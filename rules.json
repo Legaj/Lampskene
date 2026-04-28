@@ -1,0 +1,126 @@
+{
+  "title": "Jetlag - Hide n Seek Rulebook",
+  "subtitle": "General",
+  "sections": [
+    {
+      "id": "overview",
+      "title": "Overview",
+      "icon": "📖",
+      "content": "The game usually follows this structure:\n- Hiding period\n- Seekers find the hiders station - main game\n- Endgame - in the hiders zone\n\n**Assumptions**\nThis rulebook assumes each player knows how the game is played generally and has to make an honest attempt to play it fairly, for example the seekers may not refuse to send a question code just because this rulebook doesn't mention it explicitly. But if there are any loopholes that are not based on misinterpreting on how to play the game but for example a curse is overpowered in a situation it's allowed to use that loophole.\n\n**Starting**\nOne person/group becomes the seekers and the others become the seekers. The seeker then gets his hiding period started to find a hiding place. For our variant the seekers have to wait 10 min without looking for the hider to have time to get away, after that the seekers are allowed to be within 300m from t centralen, the hider may not have his hiding station within 300m from t centralen. The seekers may not be innanför spärrarna during the hiding period.\n\nThe seekers share their location at all times during the game with the hiders."
+    },
+    {
+      "id": "hiding_period",
+      "title": "Hiding period",
+      "icon": "⏱️",
+      "content": "The hider has 55 minutes to hide, from the chosen location (in our case TC). For any rounds after the first one has been played that aren't the first one in the day, the hider gets an additional 5 minutes added to their hiding period, this is to compensate for the unknowable time of start of any round after the first.\n\nAt the end of the hiding period the hider must be at his chosen station, he may be up to 10 seconds on foot away to allow leniency for tight arrivals. If the hider arrived at the station early he must not be next to it at the end of the hiding period given that he locks down his choice of station, this should not be told to the seekers.\n\nThe hider may only travel with sl trafik or on foot - paying for any other mode of transport is not allowed.\n\nThe hider is only allowed to be inside the hiding zone for game purposes, the hider is allowed to leave but has to be ready to take pictures that require to be at the station, and if the seekers are closing in the hider has to be inside the hiding zone. If for some reason the hider is outside the zone and the endgame question is correctly asked the hider must go to the closest allowed point in their hiding zone.",
+      "subsections": [
+        {
+          "title": "Beginning of the round",
+          "content": "The hider may draw 4 cards, keep 2 cards.\n\nTip - take the photo questions in advance."
+        }
+      ]
+    },
+    {
+      "id": "seeking_period",
+      "title": "Seeking Period",
+      "icon": "🔍",
+      "content": "During this period the seekers may ask questions to the hider. They may only ask one question at any moment - they have to wait for the hiders answer or lack of before asking another question.\n\nAt the start of the round every question is allowed except endgame exclusive questions. Questions may be banned or otherwise affected by curses but the endgame question is not allowed to be affected by curses, the only exception being a curse that disallows asking any question in general until it's cleared.\n\nThe hider may draw cards for each question after its been answered(or unanswered if curse allows), see questions for the amount of cards.\n\nThe hider answers all questions with the station as the location for all questions regarding location. Any question regarding finding something, the thing has to be found inside the hiders zone, unless its a question of what you can see then everything is in play.\n\nIf a question cannot be answered by the hider as there doesn't exist a way to answer it, for example a photo of a restaurant if no restaurant is in the zone. The hider returns a null answer that counts as a valid answer.\n\nThe seekers may only travel with sl trafik or on foot - paying for any other mode of transport is not allowed."
+    },
+    {
+      "id": "general_rules",
+      "title": "General Rules",
+      "icon": "📜",
+      "content": "We play with size small meaning all the scaling things on cards are to be interpreted with the yellow boxes.\n\nThe hider may use the internet to answer—except Google Street View and similar services. This is the only strict research ban. The hider must make a reasonable effort to answer within the time limit. If they fail, their hiding timer pauses until they answer, and they do not draw cards for that question.\n\nOnce a question is asked, it cannot be asked again—unless seekers are willing to pay its cost twice. For example, if a question normally lets the hider draw 3 cards and keep 1, asking it again means the hider draws 3 and keeps 1, then draws 3 and keeps 1 again (not 6 and keep 2). Third time: pay the cost three times, and so on.\n\nIn general, seekers are responsible for clarifying any ambiguity in their questions. For example, they can send a screenshot of all places they consider amusement parks when asking if the hider is near one. (Not very applicable in our case because of our app).",
+      "subsections": [
+        {
+          "title": "Dangerous areas",
+          "content": "The hider is prohibited from hiding or sending a curse that forces the seekers to go to a red utsatt område. Its strongly discouraged to visit any utsatta områden during the game but yellow areas are not prohibited - especially as a hider we discourage hiding there so you dont end up on the news.\n\nIts recommended to tell an non player where your hiding in the case that something happens to you and give that persons contact info to the seekers. This is because the hider is alone and their safety comes first.\n\nIf for any reason the hider or seekers feel unsafe its allowed to pause or end the game. Its recommended to communicate with the other party in the game in this type of situation so they are aware if something happens.\n\nhttps://polisen.se/siteassets/dokument/organiserad_brottslighet/utsatta-omraden/lagesbild-over-utsatta-omraden-2025.pdf"
+        }
+      ]
+    },
+    {
+      "id": "endgame",
+      "title": "Endgame",
+      "icon": "🚨",
+      "content": "If the seekers are in the hiders zone he may not move even if the seekers don't suspect them being in the hiders zone. The hider may move when the seekers have left.\n\nThe seekers have a right to ask the:\nEndgame Question - Are we in your hiding zone?.\nIf the answer is yes : The endgame begins. The hider may also draw 3 cards, keep 1.\nIf the answer is no : The seekers enter a 10 minute punishment period in which they are not allowed to move, or ask any questions. The hider may also draw 3 cards, keep 1.\n\nThe hider has up to 4 minutes to answer the question, but the rule about not moving if the seekers are in the zone still applies.\n\nYour endgame hiding spot is fixed the moment the endgame question is asked(if answer yes)/or if the seekers are in your zone before and ask the endgame question without leaving your zone.. If you're not where you planned, wherever you are becomes your spot. If not publicly accessible, move to the nearest accessible spot immediately.\n\nIn the endgame seekers may ask questions that are endgame exclusive, the count of questions asked are not removed. For example if a custom radar has been played, the double cost remains even in the endgame to play again.\n\nRemember that in the endgame the hider answers all questions using his current hiding spot as the location - in comparison before when the station was the location. Some questions become impossible to answer due to movement restrictions (e.g., a photo from a train station if not at a station). In these cases, 'I cannot answer the question' is valid, and the hider draws cards as usual."
+    },
+    {
+      "id": "hiding_place",
+      "title": "Hiding Place",
+      "icon": "📍",
+      "content": "Station - first hiding place.\n\nIt has to be a station that has at least one active sl route going through it.\nMust have at least one buss that passed through it in both directions per hour between 7.00 and 19.00.\nMust be reachable on foot from t-centralen.\nMust be reachable during the game day on a sl ticket without any extra costs.\nThe time to reach t-centralen from the station may not exceed 100 minutes when searching for a route in between 7.00 and 19.00.",
+      "subsections": [
+        {
+          "title": "Endgame",
+          "content": "Must be at most 2 meters from any accessible path. The path must be featured at the transit layer in jetlag the game app.\n\nYou must be open meaning tents, mats and other cover methods are not allowed. The only exception being an umbrella, you may not intentionally make yourself harder to find with the umbrella. Face paint is not allowed. You may not be partially submersed in water or any other liquid.\n\nOnce you see the seekers are close (100m) you may not move much (before you could move a couple meters in each direction) at all and have to be in one spot - within reason you may move +- 1m in each direction.\n\nIf the seekers deem you to have intentionally made effort to hide in a way that goes against the spirit of the game. The hider may challenge this decision in that case the decision goes to someone else who both parties agree to ask."
+        }
+      ]
+    },
+    {
+      "id": "ending",
+      "title": "Ending",
+      "icon": "🏁",
+      "content": "The hider is found when seekers spot them and are within 2 meters. If seekers are nearby but haven't identified the hider, they aren't caught yet.\n\nWhen caught, the hiding timer stops, and all time bonus cards in hand are added to the hider's total.\n\nThe endgame question does not have been asked to find a hider - the seekers may find a hider at any time during the seeking period."
+    },
+    {
+      "id": "cards_handsize",
+      "title": "Cards & Handsize",
+      "icon": "🃏",
+      "content": "The handsize is 7 cards at the beginning, it may only be changed by playing expand powerups or curses that explicitly mention changing the handsize.\n\nIf after getting a new card or cards and having more cards in the hand than allowed, or at any point where having more cards in the hand than allowed the hider must play or discard as many cards as required to reach the allowed handsize.\n\nThe hider may discard any card at any time he wishes.",
+      "subsections": [
+        {
+          "title": "Hiderdeck cards",
+          "content": "The hider deck contains three types of cards: Time Bonus Cards, Powerup Cards, and Curse Cards. The hider draws cards after answering a question, and keeps them until played or discarded."
+        }
+      ]
+    },
+    {
+      "id": "powerups",
+      "title": "Powerups",
+      "icon": "⚡",
+      "content": "There are several different types of powerup cards you can draw from the hider deck. These cards can be played at any time and allow you to take a particular type of advantageous action a single time; once powerup cards have been used, they are discarded and leave your hand.\n\nYou only need to inform the seekers that you are using a powerup if that powerup has some kind of direct effect on them that they need to know about. These are the powerups in the hider deck:",
+      "subsections": [
+        {
+          "title": "Nothing",
+          "content": "This card does nothing. It cannot be played or used to pay for another card´s casting cost. If the seeker receives this card he has to immediately discard this card - this card is not allowed to be kept in the hiders hand. This does not mean that the card cannot be received, it just can´t be kept."
+        },
+        {
+          "title": "Veto",
+          "content": "Play instead of answering a question. No answer is given, and no reward is earned.\n\nIf for any reason the seekers question has no cost and a veto is used on it the next question becomes free. If there are more free questions it just stacks - if for example the next two are free and a veto is used the next two after the veto remain free.\n\nIf a question is free and a veto is used, for the next question if the seekers choose to ask the same question that the veto is used on the seekers must pay - it's not free. The cost is calculated as the cost of the question as if it wasn't free minus one standard cost of the question.\n\nThe question is still considered to have been asked after playing a veto - the cost for asking it again goes up by the established rules in this rulebook.\n\nFor the thermometer question the veto may only be used in the first 2 min from starting the thermometer, later it becomes invalid to use. Otherwise you are able to play a veto any time in the response window."
+        },
+        {
+          "title": "Randomize Question",
+          "content": "Play instead of answering a question. May be played during the answer window of the question, unless its a thermometer in which case it has to be played during the first 2 min from the seekers starting the question.\n\nIf played, the seekers assign a number to each question in the category of their original question, and use a random number generator to pick a question. Afterwards the seekers send the new question and a new answer window time starts, the only question that is considered to have been asked is the one that was randomly chosen.\n\nIf the seekers get a randomize on a thermometer, they are allowed to abandon the randomly picked thermometer given that they enter a 5 min punishment period in which they can't move or ask questions, and the hider still receives the cards from the question."
+        },
+        {
+          "title": "Discard Me & Duplicate Another Card",
+          "content": "Discard Me: May be played as any singular card currently in the game (not removed before the game started from the deck), to pay for a curses whole or part of the casting cost. May not be played as a duplicate.\n\nDuplicate Another Card: May be played as a copy of any other card currently in your hand. If kept to the end of the game the hider may choose any time bonus card in their current hand to be duplicated."
+        },
+        {
+          "title": "Draw and Discard Enhancements",
+          "content": "Draw 1/2, Expand 1/2: Draw 1 or 2 cards from the hider deck and keep them, your hand size is now expanded by 1 or 2 cards. The 1 or 2 choice depends on which variant of the card you get, you do not get to pick on your own.\n\nDiscard1/2/3, Draw 2/3/4: Discard 1/2/3 other cards from your hand - this card is not added to this count when played. Then draw and keep 2/3/4 cards from the hider deck. The value choice depends on which variant of the card you get, you do not get to pick on your own.\n\nThe nothing card when discarded is not counted to this powerup."
+        },
+        {
+          "title": "Time Trap",
+          "content": "Place this card on any transit station (metaphorically - not physically) and inform the seekers of its location.\n\nEvery 15 minutes, increase the card's value by 4 minutes - the card starts at 0 and only after the first 15 minutes the first increase happens.\n\nIf the seekers ever visit or pass through the trapped station, remove this card and add its value to your hiding time.\n\nWhen played this card is discarded from your hand. The seekers have an obligation to inform the hider if they pass or visit the trapped station."
+        },
+        {
+          "title": "Move",
+          "content": "The move powerup, if played at the right moment, can be one of the most powerful cards in the game. When played, you are granted 15 min to establish a new hiding zone. The rules for finding a new hiding zone apply as usual; you must center yourself on a new transit station, and you can only use valid transit to reach your new location.\n\nWhile you move, your hiding timer is paused, and the seekers must stay where they are and refrain from asking questions until the move timer is up. At this point, the game resumes, and your hiding timer continues from where it was at the moment you played the move powerup.\n\nIt is crucial to do this at the perfect moment, as playing the move comes at a severe cost–you must immediately discard your entire hand and inform the seekers of your original transit station after playing it.\n\nGiven that the move cannot be played during the end game, this means that you must be confident that the seekers are close to finding you, and that you are better off starting from scratch instead of using the cards you've already accumulated over the course of your round. Play it wisely!"
+        }
+      ]
+    },
+    {
+      "id": "time_bonuses",
+      "title": "Time Bonuses",
+      "icon": "⏳",
+      "content": "Time bonus cards come in varying values and count towards the hider's final hiding time. These cards cannot be 'played,' and the only way that they leave the hider's hand is if they are discarded.\n\nTime bonuses are added to the hider's final hiding time only if they are in the hider's hand at the end of the round; discarding a time bonus means that it will no longer count towards your final hiding time. You should aim to hold as many time bonuses at the end of a round as possible.\n\nNormal time bonuses stack on top each other calculated based on addition.\n\nPercentage time bonuses add an x percentage of the hiders time excluding time bonuses, they stack meaning holding x + x + 2x percentage time bonuses means a total 4x percentage of the hiding time as the bonus."
+    },
+    {
+      "id": "curses",
+      "title": "Curses",
+      "icon": "💀",
+      "content": "Curse cards are played against the seekers as a means to slow them down, prevent them from asking questions, or just to annoy them. Every curse is unique, and has some kind of one-time effect on the seekers that lasts for a certain duration; much like powerups, once a curse has been used, it is then discarded and removed from your hand.\n\nCurses cannot necessarily be played at any time; each curse has a casting cost that must be met before it can be played. In some cases, these casting costs are resources that must be paid by the hider, such as discarding other cards in your hand. In other cases, these casting costs reference certain conditions of the game, such as requiring that seekers are at least 10 miles away (You may notice that, on the cards, these casting costs are sometimes different for different game sizes, which will be indicated by the game size icons next to each cost.)\n\nYou may play multiple curses at once, but there cannot be more than one active curse preventing the seekers from asking questions or taking transit. If a curse is actively preventing the seekers from asking questions or taking transit, you must wait for the curse to be cleared before you can play another curse. In these cases, the seekers must inform you once they have cleared a curse.\n\nAlways read the online curse casting cost and details as some are modified from the original counterparts.\n\nFor any rule disputes, here are additional notes for each curse in the hider deck:\nCurses Jetlag"
+    }
+  ]
+}
