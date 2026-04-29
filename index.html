@@ -119,9 +119,10 @@
 
     /* ── SETTINGS PANEL ──────────────────────────────────────────────────────── */
     #settings-panel {
-      max-height:calc(100vh - var(--header-h) - var(--bar-h) - 10px); overflow-y:auto; -webkit-overflow-scrolling:touch;
-      position:fixed; top:var(--header-h); right:-240px; z-index:900;
+      max-height:calc(100vh - var(--header-h) - var(--bar-h) - 10px - env(safe-area-inset-top,0px)); overflow-y:auto; -webkit-overflow-scrolling:touch;
+      position:fixed; top:calc(var(--header-h) + env(safe-area-inset-top,0px)); right:-240px; z-index:900;
       width:220px; background:var(--surface); border-left:1px solid var(--border);
+      padding-top:calc(12px + env(safe-area-inset-top,0px));
       border-bottom:1px solid var(--border); border-radius:0 0 0 var(--r);
       padding:12px; display:flex; flex-direction:column; gap:10px;
       transition:right .22s ease;
@@ -344,6 +345,10 @@
     .cp-lock-btn { margin-left:auto; padding:3px 10px; background:rgba(85,221,170,.1); border:1px solid rgba(85,221,170,.35); border-radius:999px; color:#55ddaa; font-family:'DM Mono',monospace; font-size:9px; letter-spacing:1px; text-transform:uppercase; cursor:pointer; transition:all .15s; }
     .cp-lock-btn.cp-unlocked { background:var(--radar-bg); border-color:var(--radar-border); color:var(--radar); }
     .cp-lock-btn:hover { opacity:.8; }
+    .cp-deck-options { padding:8px 12px; border-bottom:1px solid var(--border); display:flex; gap:8px; flex-wrap:wrap; }
+    .cp-opt-btn { flex:1; min-width:0; padding:7px 10px; border:1px solid var(--border2); border-radius:var(--r); background:var(--surface2); color:var(--text2); font-family:'DM Mono',monospace; font-size:9px; letter-spacing:1px; text-transform:uppercase; cursor:pointer; transition:all .15s; }
+    .cp-opt-btn:hover { border-color:var(--text); color:var(--text); }
+    .cp-opt-btn.cp-opt-active { background:rgba(238,255,85,.12); border-color:rgba(238,255,85,.28); color:var(--accent); }
     .cp-search-wrap { padding:9px 12px; border-bottom:1px solid var(--border); flex-shrink:0; }
     .cp-search { width:100%; background:var(--surface2); border:1px solid var(--border2); border-radius:var(--r); padding:7px 10px; color:var(--text); font-family:'DM Mono',monospace; font-size:11px; letter-spacing:.5px; outline:none; }
     .cp-search:focus { border-color:var(--accent); }
@@ -467,7 +472,7 @@
     body.bottom-bar.statusbar-hidden #sidebar { top:0; bottom:var(--header-h); }
     body.bottom-bar.statusbar-hidden #curse-panel { top:0; }
     body.bottom-bar.statusbar-hidden #rules-panel { top:0; }
-    body.statusbar-hidden #settings-panel { max-height:calc(100vh - var(--header-h) - 10px); }
+    body.statusbar-hidden #settings-panel { max-height:calc(100vh - var(--header-h) - 10px - env(safe-area-inset-top,0px)); }
 
     /* ── MOBILE NAV ──────────────────────────────────────────────── */
     #mobile-nav { display:none; width:100%; height:100%; align-items:stretch; }
@@ -647,6 +652,10 @@
     <span class="cp-deck-stat"><span class="val" id="cp-deck-count-val">0</span> cards</span>
     <button class="cp-lock-btn" id="cp-lock-btn" onclick="_cpToggleLock()">🔒 LOCKED</button>
   </div>
+  <div class="cp-deck-options" id="cp-deck-options" style="display:none">
+    <button class="cp-opt-btn cp-opt-active" id="cp-opt-stops-btn" onclick="_cpToggleShowStops()">Stops + Inform</button>
+    <button class="cp-opt-btn" id="cp-opt-cost-btn" onclick="_cpToggleShowCost()">Casting Cost</button>
+  </div>
   <!-- Quick add by number (browse tab, hider only) -->
   <div id="cp-quick-add" style="display:none">
     <input id="cp-num-input" type="number" min="1" max="74" placeholder="# curse number"
@@ -702,6 +711,7 @@
         <button class="type-option" onclick="addQuestion('thermo')"><span class="dot" style="background:#f5d020"></span> 🌡️ Thermometer</button>
         <button class="type-option" onclick="addMatchingQuestion()"><span class="dot" style="background:#4ade80"></span> 🔗 Matching</button>
         <button class="type-option" onclick="addMeasuringQuestion()"><span class="dot" style="background:#06b6d4"></span> 📏 Measuring</button>
+        <button class="type-option" onclick="addAngleQuestion('default')"><span class="dot" style="background:#9a4dff"></span> 🟪 Angle</button>
       </div>
       <div class="code-input-wrap" style="margin-top:6px">
         <div class="q-label">Paste answer code from hider</div>
@@ -844,6 +854,7 @@ function chooseMode(m) {
     _updateFabBadge();
     // FAB hold-to-add behavior
     _initFab();
+    _initCurseHold();
     // Mobile nav setup
     _initMobileNav(m);
 
@@ -876,6 +887,7 @@ function switchMode() {
     if (q.marker)  map.removeLayer(q.marker);
     if (q.markerA) map.removeLayer(q.markerA);
     if (q.markerB) map.removeLayer(q.markerB);
+    if (q.type === 'angle' && typeof clearAngleQuestionLayers !== 'undefined') clearAngleQuestionLayers(q);
   });
   questions = []; qCounter = 0;
   if (hiderPin)        { map.removeLayer(hiderPin); hiderPin = null; }
@@ -956,6 +968,33 @@ function _initFab() {
   fab.addEventListener('click', e => {
     if (_fabHoldFired) return;
     toggleCursePanel();
+  });
+}
+
+function _initCurseHold() {
+  const btn = document.getElementById('curse-btn');
+  if (!btn) return;
+  let timer = null;
+  let fired = false;
+
+  btn.addEventListener('touchstart', e => {
+    fired = false;
+    timer = setTimeout(async () => {
+      fired = true;
+      if (!_cpOpen) await toggleCursePanel();
+      if (typeof mode !== 'undefined' && mode === 'hider') {
+        _cpSwitchTab('browse');
+        setTimeout(() => {
+          const inp = document.getElementById('cp-num-input');
+          if (inp) inp.focus();
+        }, 150);
+      }
+    }, 600);
+  }, { passive: true });
+
+  btn.addEventListener('touchend', e => {
+    clearTimeout(timer);
+    fired = false;
   });
 }
 
@@ -1067,9 +1106,9 @@ function applyHideLockedPins() {
   }
   if (typeof questions === 'undefined') return;
   for (const q of questions) {
-    if (!q.locked) continue;
-    for (const m of [q.marker, q.markerA, q.markerB].filter(Boolean)) {
-      try { const el = m.getElement ? m.getElement() : null; if (el) el.style.display = _hideLockedPins ? 'none' : ''; } catch(e) {}
+    const hidden = q.locked && _hideLockedPins;
+    for (const m of [q.marker, q.markerA, q.markerB, q._centerMarker, q._dirMarker].filter(Boolean)) {
+      try { const el = m.getElement ? m.getElement() : null; if (el) el.style.display = hidden ? 'none' : ''; } catch(e) {}
     }
   }
 }
@@ -1161,6 +1200,9 @@ function saveState() {
         const s = { ...q };
         delete s.marker; delete s.markerA; delete s.markerB;
         delete s._markerMoveHandler; delete s._measMoveHandler;
+        delete s._centerMarker; delete s._dirMarker; delete s._seekerMarker;
+        delete s._cone; delete s._cone2; delete s._cone3; delete s._excludeCircle;
+        delete s._line; delete s._distTip; delete s._mapMoveHandler;
         return s;
       })
     };
@@ -1186,7 +1228,9 @@ function restoreState(state) {
     if (state.hiderPinLocked) { hiderPinLocked = false; toggleHiderLock(); }
   }
   for (const q of (state.questions || [])) {
-    if (qCounter < q.id) qCounter = q.id;
+    if (questions.some(existing => existing.id === q.id)) continue;
+    const qNum = typeof q.id === 'string' && q.id.indexOf('aq') === 0 ? parseInt(q.id.slice(2), 10) : parseInt(q.id, 10);
+    if (!isNaN(qNum) && qCounter < qNum) qCounter = qNum;
     questions.push(q);
     if (q.type === 'radar') {
       if (q.hiderMode) { renderHiderRadarCard(q); redrawOutlineCircle(q); if (q.zone !== 'pending') redrawQuestionOverlay(q); }
@@ -1243,6 +1287,15 @@ function restoreState(state) {
           if (q.marker) q.marker.dragging.disable();
         });
       }
+    } else if (q.type === 'angle') {
+      if (q.hiderMode) {
+        renderHiderAngleCard(q);
+        checkHiderAngle(q);
+      } else {
+        renderAngleCard(q);
+        angleQuestionSetupMap(q);
+        if (q.zone !== 'pending') requestAnimationFrame(() => redrawQuestionOverlay());
+      }
     }
   }
   if (state.endgamePin && mode === 'hider') {
@@ -1267,10 +1320,10 @@ function resetAllData() {
 <script src="matching-data.js?v=2"></script>
 <script src="measuring-data.js"></script>
 <script src="matching-area-data.js"></script>
-<script src="questions.js?v=49"></script>
+<script src="sl-line-voronoi-data.js?v=1"></script>
+<script src="questions.js?v=60"></script>
 <script src="vehicles.js?v=2"></script>
 <script src="curses.js?v=2"></script>
-<script src="questions.js"></script>
 <script>
 // ── FAB badge wiring (needs curses.js loaded) ──────────────────
 // Patch _cpAddToDeck and _cpRemove to keep badge up to date

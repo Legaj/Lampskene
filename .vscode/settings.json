@@ -1,0 +1,8 @@
+{
+    "chat.tools.terminal.autoApprove": {
+        "/^cmd /c python -c \"import ast; src=open\\('questions\\.js','r',encoding='utf-8'\\)\\.read\\(\\); ast\\.parse\\(src\\); print\\('ok'\\)\"$/": {
+            "approve": true,
+            "matchCommandLine": true
+        }
+    }
+}

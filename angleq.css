@@ -23,37 +23,67 @@
   border-color: #9300ad;
 }
 .angleq-card {
-  border: 2.5px solid #bb77dd;
-  border-radius: 16px;
-  background: #faf3ff;
-  box-shadow: 0 0 12px #e1d3fa77;
-  color: #6a329b;
-  padding: 12px 12px 10px 10px;
+  border: 1px solid rgba(154,77,255,0.35);
+  background: rgba(250,243,255,0.08);
+  border-radius: var(--r);
+  box-shadow: 0 0 14px rgba(141, 81, 255, 0.12);
+  color: var(--text);
+  padding: 0;
   margin-bottom: 16px;
-  max-width: 380px;
 }
-.angleq-card .aq-header {
-  font-size: 17.5px;
-  font-weight: bold;
-  color: #9300ad;
-  padding-bottom: 6px;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
+.angleq-card .q-card-header {
+  background: rgba(154,77,255,0.12);
+  border-bottom: 1px solid rgba(154,77,255,0.18);
 }
-.aq-controls { margin: 7px 0 3px 0; }
+.angleq-card .q-title {
+  color: #8f2cff;
+}
+.angleq-card .q-card-body {
+  padding: 10px;
+}
+.aq-controls { margin: 7px 0 5px 0; }
+.angleq-card .copy-btn.angle-copy-btn {
+  background: rgba(154,77,255,0.18);
+  border-color: rgba(154,77,255,0.35);
+  color: #8f2cff;
+}
+.angleq-card .copy-btn.angle-copy-btn:hover {
+  background: rgba(154,77,255,0.3);
+}
 .aq-remove {
   font-size: 15px;
-  background: #eed8fd00;
+  background: transparent;
   border: none;
-  color: #ad1bb3;
+  color: #8f2cff;
   cursor: pointer;
   border-radius: 100px;
   padding: 1px 7px 0 7px;
   margin-left: 7px;
   transition: background .15s;
 }
-.aq-remove:hover { background: #e7c6fc; }
-.aq-label-d { background: #caaaf2!important; color: #4c1569!important; font-weight: 600;}
-.aq-label { background: #e5d3f7!important; color: #9300ad!important; font-size:12px; font-weight:600;}
+.aq-remove:hover { background: rgba(155, 81, 255, 0.12); }
+.aq-label-d { background: #d9c5ff!important; color: #4c1569!important; font-weight: 600; }
+.aq-label { background: #f0e4ff!important; color: #7c23c0!important; font-size:12px; font-weight:600; }
 input[type="range"].aq-radius { accent-color:#bb77dd; }
+.angleq-card .aq-preset,
+.angleq-card .aq-mode {
+  background: rgba(154,77,255,0.14) !important;
+  border-color: rgba(154,77,255,0.28) !important;
+  color: #8f2cff !important;
+}
+.angleq-card .aq-preset.selected,
+.angleq-card .aq-mode.selected {
+  background: #8f2cff !important;
+  border-color: #7a1fe0 !important;
+  color: #fff !important;
+}
+.angleq-card .aq-preset:not(.selected):hover,
+.angleq-card .aq-mode:not(.selected):hover {
+  background: #fff !important;
+  color: #8f2cff !important;
+  border-color: #8f2cff !important;
+}
+.angleq-card .icon-btn.go-btn:hover {
+  border-color: #8f2cff;
+  color: #8f2cff;
+}

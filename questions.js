@@ -267,6 +267,16 @@ function geoRingToPx(ring) {
   });
 }
 
+function rectToPx(rect) {
+  const [[minLng, minLat], [maxLng, maxLat]] = rect;
+  return geoRingToPx([
+    [minLng, minLat],
+    [maxLng, minLat],
+    [maxLng, maxLat],
+    [minLng, maxLat]
+  ]);
+}
+
 // ringToPixelD: used by voronoi lines code
 function ringToPixelD(ring, reverse) {
   return ptsToD(geoRingToPx(ring), reverse);
@@ -296,6 +306,21 @@ function addYesPath(shapePts) {
   const d = worldD + ' ' + ptsToD(ccw, false);
   const path = document.createElementNS(NS, 'path');
   path.setAttribute('d', d);
+  path.setAttribute('fill', BLUE);
+  path.setAttribute('fill-rule', 'nonzero');
+  path.setAttribute('stroke', 'none');
+  _overlaySvg.appendChild(path);
+}
+
+function addYesPathMulti(shapePtsArray) {
+  if (!shapePtsArray || !shapePtsArray.length) return;
+  const worldD = `M${-OPAD},${-OPAD} L${OPAD},${-OPAD} L${OPAD},${OPAD} L${-OPAD},${OPAD} Z`;
+  const holesD = shapePtsArray.map(shapePts => {
+    const ccw = polySignedArea(shapePts) > 0 ? [...shapePts].reverse() : shapePts;
+    return ptsToD(ccw, false);
+  }).join(' ');
+  const path = document.createElementNS(NS, 'path');
+  path.setAttribute('d', worldD + ' ' + holesD);
   path.setAttribute('fill', BLUE);
   path.setAttribute('fill-rule', 'nonzero');
   path.setAttribute('stroke', 'none');
@@ -434,6 +459,23 @@ function rebuildAll(){
       addNoPath(excludedQuad); // blue in the excluded half-plane
     }
 
+    // ── Angle question ─────────────────────────────────────────
+    else if(q.type === 'angle'){
+      if(q.zone !== 'inside' && q.zone !== 'outside') continue;
+      const sectors = angleSectorPxPointSets(q);
+      if (!sectors.length) continue;
+      if(q.mode === 'excludeRadius'){
+        if(q.zone === 'inside'){
+          addYesPathMulti(sectors);
+        } else {
+          sectors.forEach(outer => addNoPath(outer));
+        }
+      } else {
+        if(q.zone === 'inside') addYesPathMulti(sectors);
+        else                   sectors.forEach(outer => addNoPath(outer));
+      }
+    }
+
     // ── Matching ──────────────────────────────────────────────
     else if(q.type === 'matching'){
       if(q.answer !== 'yes' && q.answer !== 'no') continue;
@@ -479,6 +521,13 @@ function rebuildAll(){
         const cell = geoRingToPx(loc.voronoiCell);
         if(q.answer === 'yes') addYesPath(cell);
         else                   addNoPath(cell);
+      }
+
+      else if(type0 === 'raster-voronoi'){
+        const loc = locs.find(x => x.id === q.nearestId); if(!loc || !loc.rects) continue;
+        const cells = loc.rects.map(rectToPx);
+        if(q.answer === 'yes') addYesPathMulti(cells);
+        else                   cells.forEach(cell => addNoPath(cell));
       }
     }
 
@@ -595,7 +644,7 @@ function decodeAndAdd(){
     const subcat = decodeSubcat(matchMatch[1].toLowerCase());
     const seekerLat = parseFloat(matchMatch[2]), seekerLng = parseFloat(matchMatch[3]);
     const nearestId = matchMatch[4].toLowerCase();
-    const locs = MATCHING_DATA[subcat] || [];
+    const locs = getAllMatchingData()[subcat] || [];
     const loc  = locs.find(x => x.id === nearestId) || { name: nearestId };
     qCounter++;
     const q = { id: qCounter, type: 'matching', subcat, seekerLat, seekerLng, nearestId, nearestName: loc.name, answer: 'pending', locked: true, hiderMode: true };
@@ -612,6 +661,26 @@ function decodeAndAdd(){
     if (decodeMeasuring(rawOrig)) return;
   }
 
+  const angleMatch = rawOrig.match(/^ANG-([\-\d.]+)-([\-\d.]+)-([\-\d.]+)-([\-\d.]+)-(\d+)-([A-Za-z]+)-(\d+)$/i);
+  if (angleMatch) {
+    const centerLat = parseFloat(angleMatch[1]), centerLng = parseFloat(angleMatch[2]);
+    const dirLat = parseFloat(angleMatch[3]), dirLng = parseFloat(angleMatch[4]);
+    const angle = parseInt(angleMatch[5], 10);
+    const modeRaw = angleMatch[6].toLowerCase();
+    const mode = modeRaw === 'excluderadius' ? 'excludeRadius' : modeRaw;
+    const excludeRadius = parseInt(angleMatch[7], 10) || 0;
+    qCounter++;
+    const q = { id: qCounter, type: 'angle', angle, mode, excludeRadius, center: { lat: centerLat, lng: centerLng }, direction: { lat: dirLat, lng: dirLng }, zone: 'pending', locked: true, hiderMode: true };
+    questions.push(q);
+    renderHiderAngleCard(q);
+    checkHiderAngle(q);
+    map.setView([centerLat, centerLng], 13);
+    document.getElementById('hider-code-field').value = '';
+    showToast('Angle question added!');
+    if (typeof saveState !== 'undefined') saveState();
+    return;
+  }
+
   showToast('Invalid code — check format');
 }
 
@@ -624,9 +693,32 @@ function renderHiderRadarCard(q){const ql=document.getElementById('question-list
 
 function checkHiderRadar(q){const _ahp=getActiveHiderPin();if(!_ahp)return;const hp=_ahp.getLatLng();const r=getRadiusMeters(q);if(!r)return;const dist=map.distance([q.lat,q.lng],[hp.lat,hp.lng]);const inside=dist<=r;const el=document.getElementById(`hider-ans-${q.id}`);if(!el)return;if(inside){el.className='answer-badge inside';el.textContent=`✅ Inside the radar (${Math.round(dist)}m from center)`;q.zone='inside';}else{el.className='answer-badge outside';el.textContent=`❌ Outside the radar (${Math.round(dist)}m from center)`;q.zone='outside';}if(outlineCircles[q.id]){map.removeLayer(outlineCircles[q.id]);delete outlineCircles[q.id];}redrawQuestionOverlay(q);}
 
+function renderHiderAngleCard(q){
+  const ql=document.getElementById('question-list');
+  const card=document.createElement('div');
+  card.className='q-card angleq-card';
+  card.id=`q-card-${q.id}`;
+  const modeLabel = q.mode === 'excludeRadius' ? `Exclude Radius (${q.excludeRadius || 0}m)` : q.mode;
+  card.innerHTML=`<div class="q-card-header"><span style="font-size:18px">🟪</span><span class="q-title">Angle</span><span class="q-num">#${q.id}</span></div><div class="q-card-body"><div style="font-size:10px;color:var(--text2)">Angle: <span style="color:#8f2cff;font-weight:500">${q.angle}°</span></div><div style="font-size:10px;color:var(--text2)">Mode: <span style="color:#8f2cff;font-weight:500">${modeLabel}</span></div><div class="coord-disp">Center: ${q.center.lat.toFixed(5)}, ${q.center.lng.toFixed(5)}</div><div class="icon-btns"><button class="icon-btn go-btn" onclick="map.setView([${q.center.lat},${q.center.lng}],14)">📍 Center</button><button class="icon-btn go-btn" onclick="map.setView([${q.direction.lat},${q.direction.lng}],14)">📍 Direction</button></div><div id="hider-ans-${q.id}" class="answer-badge waiting">Place your hiding pin first…</div><button class="remove-btn" onclick="removeQuestion(${q.id})">✕ Remove</button></div>`;
+  ql.appendChild(card);
+}
+
+function checkHiderAngle(q){
+  const _ahp=getActiveHiderPin();
+  if(!_ahp)return;
+  const hp=_ahp.getLatLng();
+  const inside=isInCone(q,{lat:hp.lat,lng:hp.lng});
+  const el=document.getElementById(`hider-ans-${q.id}`);
+  if(!el)return;
+  q.zone=inside?'inside':'outside';
+  el.className=inside?'answer-badge inside':'answer-badge outside';
+  el.textContent=inside?'✅ Inside the angle':'❌ Outside the angle';
+  redrawQuestionOverlay(q);
+}
+
 function removeQuestion(id){const q=questions.find(x=>x.id===id);if(!q)return;if(q.marker)map.removeLayer(q.marker);if(q.markerA)map.removeLayer(q.markerA);if(q.markerB)map.removeLayer(q.markerB);if(outlineCircles[id]){map.removeLayer(outlineCircles[id]);delete outlineCircles[id];}if(typeof removeMatchingLocMarkers!=='undefined')removeMatchingLocMarkers(id);if(typeof removeAreaFeatures!=='undefined')removeAreaFeatures(id);if(typeof removeMeasuringLocMarkers!=='undefined')removeMeasuringLocMarkers(id);clearQuestionOverlay(id);questions=questions.filter(x=>x.id!==id);const card=document.getElementById(`q-card-${id}`);if(card)card.remove();showToast('Question removed');if(typeof saveState!=='undefined')saveState();}
 
-function checkAllHiderRadars(){questions.filter(q=>q.hiderMode&&q.type==='radar').forEach(q=>checkHiderRadar(q));questions.filter(q=>q.hiderMode&&q.type==='thermo').forEach(q=>checkHiderThermo(q));questions.filter(q=>q.hiderMode&&q.type==='matching').forEach(q=>checkHiderMatching(q));questions.filter(q=>q.hiderMode&&q.type==='measuring').forEach(q=>checkHiderMeasuring(q));}
+function checkAllHiderRadars(){questions.filter(q=>q.hiderMode&&q.type==='radar').forEach(q=>checkHiderRadar(q));questions.filter(q=>q.hiderMode&&q.type==='thermo').forEach(q=>checkHiderThermo(q));questions.filter(q=>q.hiderMode&&q.type==='matching').forEach(q=>checkHiderMatching(q));questions.filter(q=>q.hiderMode&&q.type==='measuring').forEach(q=>checkHiderMeasuring(q));questions.filter(q=>q.hiderMode&&q.type==='angle').forEach(q=>checkHiderAngle(q));}
 
 
 // ── MATCHING QUESTIONS ────────────────────────────────────────
@@ -727,6 +819,8 @@ function updateMatchingNearest(q) {
     best = findContainingArea(q.lng, q.lat, locations) || locations[0];
   } else if (locations.length && locations[0].type === 'polyline') {
     best = findNearestPolyline(q.lng, q.lat, locations);
+  } else if (locations.length && locations[0].type === 'raster-voronoi') {
+    best = findContainingRectCell(q.lng, q.lat, locations) || findNearestPolyline(q.lng, q.lat, getSLTransitLines());
   } else {
     // Point-based
     let bestDist = Infinity;
@@ -747,7 +841,7 @@ function updateMatchingNearest(q) {
       else if (best.type === 'polygon') {
         const contained = pointInPolygon(q.lng, q.lat, best.rings);
         distEl.textContent = contained ? 'You are inside this area' : 'Nearest area (not inside)';
-      } else if (best.type === 'polyline') {
+      } else if (best.type === 'polyline' || best.type === 'raster-voronoi') {
         distEl.textContent = 'Nearest line';
       } else {
         const dist = map.distance([q.lat, q.lng], [best.lat, best.lng]);
@@ -830,7 +924,16 @@ function copyMatchingCode(id) {
 }
 
 function encodeSubcat(s)  { return s.replace(/\s+/g,'_').toLowerCase(); }
-function decodeSubcat(s)  { const sl = s.toLowerCase(); return Object.keys(getAllMatchingData()).find(k => encodeSubcat(k) === sl) || s; }
+function decodeSubcat(s)  {
+  const sl = s.toLowerCase();
+  const matchKey = Object.keys(getAllMatchingData()).find(k => encodeSubcat(k) === sl);
+  if (matchKey) return matchKey;
+  const measuringKey = (typeof MEASURING_SUBCATS !== 'undefined' ? MEASURING_SUBCATS : []).find(k => encodeSubcat(k) === sl || k.toLowerCase() === sl);
+  if (measuringKey) return measuringKey;
+  const measuringAlias = (typeof MEASURING_MDKEY !== 'undefined' ? Object.keys(MEASURING_MDKEY) : []).find(k => encodeSubcat(k) === sl || k.toLowerCase() === sl);
+  if (measuringAlias) return measuringAlias;
+  return s;
+}
 
 function renderSeekerMatchingCard(q) {
   const ql   = document.getElementById('question-list');
@@ -912,6 +1015,8 @@ function checkHiderMatching(q) {
     best = findContainingArea(hp.lng, hp.lat, locs) || locs[0];
   } else if (locs[0].type === 'polyline') {
     best = findNearestPolyline(hp.lng, hp.lat, locs);
+  } else if (locs[0].type === 'raster-voronoi') {
+    best = findContainingRectCell(hp.lng, hp.lat, locs) || findNearestPolyline(hp.lng, hp.lat, getSLTransitLines());
   } else {
     let bestDist = Infinity;
     for (const loc of locs) {
@@ -1025,6 +1130,8 @@ function getAllMatchingData() {
     Object.assign(result, MATCHING_DATA);
   if (typeof MATCHING_AREA_DATA !== 'undefined')
     Object.assign(result, MATCHING_AREA_DATA);
+  if (typeof SL_LINE_VORONOI_DATA !== 'undefined')
+    result['SL Line'] = SL_LINE_VORONOI_DATA;
   // Split Supermarket into IKEA and Coop sub-entries for matching
   if (result['Supermarket']) {
     result['IKEA'] = result['Supermarket'].filter(x =>
@@ -1090,12 +1197,27 @@ function findNearestPolyline(lng, lat, locs) {
   return best;
 }
 
+function getSLTransitLines() {
+  return (typeof MATCHING_AREA_DATA !== 'undefined' && MATCHING_AREA_DATA['SL Transit Line']) || [];
+}
+
+function findContainingRectCell(lng, lat, locs) {
+  for (const loc of locs) {
+    for (const rect of (loc.rects || [])) {
+      const [[minLng, minLat], [maxLng, maxLat]] = rect;
+      if (lng >= minLng && lng <= maxLng && lat >= minLat && lat <= maxLat) return loc;
+    }
+  }
+  return null;
+}
+
 // Find nearest or containing location for any category
 function findMatchingArea(lng, lat, locs) {
   if (!locs.length) return null;
   const type0 = locs[0].type;
   if (type0 === 'polygon') return findContainingArea(lng, lat, locs) || locs[0];
   if (type0 === 'polyline') return findNearestPolyline(lng, lat, locs);
+  if (type0 === 'raster-voronoi') return findContainingRectCell(lng, lat, locs) || findNearestPolyline(lng, lat, getSLTransitLines());
   return null;
 }
 
@@ -1134,10 +1256,11 @@ function showAreaFeatures(q) {
       }).bindTooltip(loc.name, { permanent: false, direction: 'center', className: 'train-tip' })
         .addTo(map);
       layers.push(poly);
-    } else if (loc.type === 'polyline') {
+    } else if (loc.type === 'polyline' || loc.type === 'raster-voronoi') {
       const lineColor = loc.colour || '#4488cc'; // default blue for rivers etc.
       let tooltipAdded = false;
-      for (const seg of (loc.segments || [])) {
+      const source = loc.type === 'raster-voronoi' ? (getSLTransitLines().find(x => x.id === loc.id) || loc) : loc;
+      for (const seg of (source.segments || [])) {
         const latLngs = seg.map(([lng, lat]) => [lat, lng]);
         const line = L.polyline(latLngs, {
           color: lineColor,
@@ -1652,7 +1775,6 @@ function seekerDecodeAndAdd() {
 
 // ── ANGLE QUESTION — NEW FEATURE ─────────────────────────────
 
-const ANGLE_QUESTION_PRESETS = [5, 10, 15, 25, 40, 60, 90, 130, 160];
 const ANGLE_QUESTION_MODES = [
   { key: 'default', label: 'Default' },
   { key: 'bidirectional', label: 'Bidirectional' },
@@ -1660,13 +1782,35 @@ const ANGLE_QUESTION_MODES = [
   { key: 'excludeRadius', label: 'Exclude Radius' }
 ];
 
+const ANGLE_QUESTION_LAYER_GROUPS = {};
+
+function getAngleLayerGroups(id) {
+  if (!ANGLE_QUESTION_LAYER_GROUPS[id]) {
+    ANGLE_QUESTION_LAYER_GROUPS[id] = {
+      markers: L.layerGroup().addTo(map),
+      geometry: L.layerGroup().addTo(map)
+    };
+  }
+  return ANGLE_QUESTION_LAYER_GROUPS[id];
+}
+
+function clearAngleGeometry(q) {
+  const groups = getAngleLayerGroups(q.id);
+  groups.geometry.clearLayers();
+  ['_cone','_cone2','_cone3','_excludeCircle','_line','_distTip'].forEach(key => {
+    q[key] = null;
+  });
+}
+
 function addAngleQuestion(testMode) {
-  const id = 'aq' + Math.random().toString(36).slice(2, 8);
-  // Initial state: center at map center, direction east, seeker at random ~400m away
-  const center = map.getCenter(), ctr = { lat: center.lat, lng: center.lng };
-  // Pick direction ~200m east
+  typePickerOpen = false;
+  const picker = document.getElementById('type-picker');
+  if (picker) picker.style.display = 'none';
+  qCounter++;
+  const id = 'aq' + qCounter;
+  const center = map.getCenter();
+  const ctr = { lat: center.lat, lng: center.lng };
   const dPoint = L.latLng(center.lat, center.lng + 0.004);
-  const seeker = L.latLng(center.lat + 0.0025, center.lng + 0.0025);
   const q = {
     id,
     type: 'angle',
@@ -1675,12 +1819,15 @@ function addAngleQuestion(testMode) {
     excludeRadius: 40,
     center: ctr,
     direction: { lat: dPoint.lat, lng: dPoint.lng },
-    seeker: { lat: seeker.lat, lng: seeker.lng },
+    zone: 'pending',
     locked: false
   };
   questions.push(q);
   renderAngleCard(q);
   angleQuestionSetupMap(q);
+  if (!sidebarOpen) toggleSidebar();
+  showToast('Angle question added');
+  if (typeof saveState !== 'undefined') saveState();
 }
 
 // Trigonometry helpers
@@ -1734,28 +1881,53 @@ function getAngleCones(q) {
 
 // Does a point fall inside any cone? center/direction and width in radians
 function isInCone(q, seeker) {
-  const pt = latlngToXY(q.center, seeker);
-  const cones = getAngleCones(q);
-  for (let c of cones) {
-    if (q.mode === 'triple' && q.angle > 90) continue;
-    // Exclude radius logic: if radius is set, and within, always outside
-    if (q.mode === 'excludeRadius') {
-      const d = distXY(c.center, pt);
-      if (d < q.excludeRadius) return false;
-    }
-    const rel = Math.atan2(pt.y - c.center.y, pt.x - c.center.x);
-    const ang = ((rel - c.theta + 3 * Math.PI) % (2 * Math.PI));
-    if (ang < 2 * Math.PI && ang > Math.PI) ang -= 2 * Math.PI;
-    if (Math.abs(ang) <= c.width / 2) return true;
+  const center = map.latLngToLayerPoint(L.latLng(q.center.lat, q.center.lng));
+  const dir = map.latLngToLayerPoint(L.latLng(q.direction.lat, q.direction.lng));
+  const pt = map.latLngToLayerPoint(L.latLng(seeker.lat, seeker.lng));
+  const baseTheta = Math.atan2(dir.y - center.y, dir.x - center.x);
+  const rel = Math.atan2(pt.y - center.y, pt.x - center.x);
+  const width = (parseFloat(q.angle) || 0) * Math.PI / 180;
+  let thetas = [baseTheta];
+  if (q.mode === 'bidirectional') thetas = [baseTheta, baseTheta + Math.PI];
+  if (q.mode === 'triple') {
+    if (q.angle > 90) return false;
+    thetas = [0, 1, 2].map(i => baseTheta + i * 2 * Math.PI / 3);
+  }
+  if (q.mode === 'excludeRadius') {
+    const r = Math.max(0, parseFloat(q.excludeRadius) || 0);
+    if (map.distance([q.center.lat, q.center.lng], [seeker.lat, seeker.lng]) < r) return false;
+  }
+  for (const theta of thetas) {
+    const delta = Math.atan2(Math.sin(rel - theta), Math.cos(rel - theta));
+    if (Math.abs(delta) <= width / 2) return true;
   }
   return false;
 }
 
 // For drawing: points for a cone sector
-function coneSectorPoints(center, theta, width, r, n = 36) {
-  // Returns [{x, y}, ...] points for SVG/polygon (starting at center)
-  let pts = [center];
+function coneSectorPoints(center, theta, width, r, n = 36, innerR = 0) {
+  // Returns [{x, y}, ...] points for SVG/polygon.
+  // With innerR > 0 this is an annular sector that starts at the radius arc.
   const start = theta - width / 2, end = theta + width / 2;
+  if (innerR > 0) {
+    const pts = [];
+    for (let i = 0; i <= n; ++i) {
+      const a = start + (end - start) * i / n;
+      pts.push({
+        x: center.x + r * Math.cos(a),
+        y: center.y + r * Math.sin(a)
+      });
+    }
+    for (let i = n; i >= 0; --i) {
+      const a = start + (end - start) * i / n;
+      pts.push({
+        x: center.x + innerR * Math.cos(a),
+        y: center.y + innerR * Math.sin(a)
+      });
+    }
+    return pts;
+  }
+  const pts = [center];
   for (let i = 0; i <= n; ++i) {
     const a = start + (end - start) * i / n;
     pts.push({
@@ -1766,106 +1938,219 @@ function coneSectorPoints(center, theta, width, r, n = 36) {
   return pts;
 }
 
+function angleSectorPxPoints(q) {
+  const center = map.latLngToLayerPoint(L.latLng(q.center.lat, q.center.lng));
+  const dir = map.latLngToLayerPoint(L.latLng(q.direction.lat, q.direction.lng));
+  const dx = dir.x - center.x;
+  const dy = dir.y - center.y;
+  return angleSectorPxPointsFromTheta(q, Math.atan2(dy, dx));
+}
+
+function angleSectorPxPointsFromTheta(q, theta) {
+  const center = map.latLngToLayerPoint(L.latLng(q.center.lat, q.center.lng));
+  const width = q.angle * Math.PI / 180;
+  const r = getAngleDrawRadiusPx(q);
+  const innerR = q.mode === 'excludeRadius' ? getAngleExcludeRadiusPx(q) : 0;
+  const steps = 40;
+  if (innerR > 0) {
+    const pts = [];
+    for (let i = 0; i <= steps; ++i) {
+      const a = theta - width/2 + (width * i / steps);
+      pts.push([center.x + r * Math.cos(a), center.y + r * Math.sin(a)]);
+    }
+    for (let i = steps; i >= 0; --i) {
+      const a = theta - width/2 + (width * i / steps);
+      pts.push([center.x + innerR * Math.cos(a), center.y + innerR * Math.sin(a)]);
+    }
+    return pts;
+  }
+  const pts = [[center.x, center.y]];
+  for (let i = 0; i <= steps; ++i) {
+    const a = theta - width/2 + (width * i / steps);
+    pts.push([center.x + r * Math.cos(a), center.y + r * Math.sin(a)]);
+  }
+  return pts;
+}
+
+function angleSectorPxPointSets(q) {
+  const center = map.latLngToLayerPoint(L.latLng(q.center.lat, q.center.lng));
+  const dir = map.latLngToLayerPoint(L.latLng(q.direction.lat, q.direction.lng));
+  const baseTheta = Math.atan2(dir.y - center.y, dir.x - center.x);
+  if (q.mode === 'bidirectional') {
+    return [baseTheta, baseTheta + Math.PI].map(theta => angleSectorPxPointsFromTheta(q, theta));
+  }
+  if (q.mode === 'triple') {
+    if (q.angle > 90) return [];
+    return [0, 1, 2].map(i => angleSectorPxPointsFromTheta(q, baseTheta + i * 2 * Math.PI / 3));
+  }
+  return [angleSectorPxPointsFromTheta(q, baseTheta)];
+}
+
+function angleCirclePx(q) {
+  const center = map.latLngToLayerPoint(L.latLng(q.center.lat, q.center.lng));
+  const p = map.latLngToLayerPoint(L.latLng(q.center.lat + (q.excludeRadius / 111320), q.center.lng));
+  const r = Math.abs(p.y - center.y) || Math.abs(p.x - center.x) || 10;
+  const pts = [];
+  const steps = 40;
+  for (let i = 0; i <= steps; ++i) {
+    const a = (i / steps) * 2 * Math.PI;
+    pts.push([center.x + r * Math.cos(a), center.y + r * Math.sin(a)]);
+  }
+  return pts;
+}
+
+function getAngleExcludeRadiusPx(q) {
+  const r = Math.max(0, parseFloat(q.excludeRadius) || 0);
+  if (!r) return 0;
+  const center = map.latLngToLayerPoint(L.latLng(q.center.lat, q.center.lng));
+  const p = map.latLngToLayerPoint(L.latLng(q.center.lat + (r / 111320), q.center.lng));
+  return Math.max(0, Math.abs(p.y - center.y) || Math.abs(p.x - center.x));
+}
+
+function clearAngleQuestionLayers(q) {
+  if (q._mapMoveHandler && map && map.off) {
+    map.off('moveend zoomend viewreset', q._mapMoveHandler);
+  }
+  q._mapMoveHandler = null;
+  const groups = ANGLE_QUESTION_LAYER_GROUPS[q.id];
+  if (groups) {
+    groups.markers.clearLayers();
+    groups.geometry.clearLayers();
+    if (map && map.hasLayer && map.hasLayer(groups.markers)) map.removeLayer(groups.markers);
+    if (map && map.hasLayer && map.hasLayer(groups.geometry)) map.removeLayer(groups.geometry);
+    delete ANGLE_QUESTION_LAYER_GROUPS[q.id];
+  }
+  ['_centerMarker','_dirMarker','_seekerMarker','_cone','_cone2','_cone3','_excludeCircle','_line','_distTip'].forEach(key => {
+    if (q[key] && map && map.hasLayer && map.hasLayer(q[key])) {
+      map.removeLayer(q[key]);
+    }
+    q[key] = null;
+  });
+}
+
+function getAngleDrawRadiusMeters(q) {
+  const center = L.latLng(q.center.lat, q.center.lng);
+  if (!map || !map.getBounds || !map.getBounds().isValid()) {
+    return Math.max(map.distance(center, L.latLng(q.direction.lat, q.direction.lng)), 2000);
+  }
+  const bounds = map.getBounds();
+  const corners = [bounds.getNorthEast(), bounds.getNorthWest(), bounds.getSouthEast(), bounds.getSouthWest()];
+  let maxDist = 0;
+  for (const corner of corners) {
+    maxDist = Math.max(maxDist, map.distance(center, corner));
+  }
+  const dirDist = map.distance(center, L.latLng(q.direction.lat, q.direction.lng));
+  return Math.max(maxDist * 4, dirDist * 2, 2000);
+}
+
+function getAngleDrawRadiusPx(q) {
+  const center = map.latLngToLayerPoint(L.latLng(q.center.lat, q.center.lng));
+  if (!map || !map.getBounds || !map.getBounds().isValid()) {
+    const dir = map.latLngToLayerPoint(L.latLng(q.direction.lat, q.direction.lng));
+    return Math.max(Math.hypot(dir.x - center.x, dir.y - center.y), 1200);
+  }
+  const bounds = map.getBounds();
+  const corners = [bounds.getNorthEast(), bounds.getNorthWest(), bounds.getSouthEast(), bounds.getSouthWest()];
+  let maxPx = 0;
+  for (const corner of corners) {
+    const pt = map.latLngToLayerPoint(corner);
+    maxPx = Math.max(maxPx, Math.hypot(pt.x - center.x, pt.y - center.y));
+  }
+  const dir = map.latLngToLayerPoint(L.latLng(q.direction.lat, q.direction.lng));
+  return Math.max(maxPx * 4, Math.hypot(dir.x - center.x, dir.y - center.y) * 2, 1200);
+}
+
 // Update the live map graphics, pins, overlays for this question
 function angleQuestionSetupMap(q) {
+  // Full setup: creates center/direction markers and cones
   // Remove overlays/pins if already present for this question
-  if (q._centerMarker) map.removeLayer(q._centerMarker);
-  if (q._dirMarker) map.removeLayer(q._dirMarker);
-  if (q._seekerMarker) map.removeLayer(q._seekerMarker);
-  if (q._cone) map.removeLayer(q._cone);
-  if (q._cone2) map.removeLayer(q._cone2);
-  if (q._cone3) map.removeLayer(q._cone3);
+  clearAngleQuestionLayers(q);
+  const groups = getAngleLayerGroups(q.id);
   // Center pin (drag)
-  q._centerMarker = L.circleMarker([q.center.lat, q.center.lng], {
-    radius: 9, color: '#d4a3ff', fillColor: '#9A00C9', fillOpacity: 0.95, weight: 3, draggable: !q.locked, pane: 'markerPane'
-  }).addTo(map).on('drag', e => {
+  q._centerMarker = L.marker([q.center.lat, q.center.lng], {
+    icon: tearDropIcon('#9A00C9', 32), draggable: !q.locked
+  }).addTo(groups.markers).on('dragend', e => {
     if (!q.locked) {
-      const latlng = e.latlng;
+      const latlng = e.target.getLatLng();
       q.center = { lat: latlng.lat, lng: latlng.lng };
-      angleQuestionSetupMap(q);
+      angleQuestionUpdateGeometry(q);
+      redrawQuestionOverlay();
       renderAngleCard(q);
+      if (typeof saveState !== 'undefined') saveState();
     }
   });
   q._centerMarker.bindTooltip('Center Pin', { direction: 'top', offset: [0, -15], className: 'aq-label' }).openTooltip();
 
   // Direction pin (drag)
-  q._dirMarker = L.circleMarker([q.direction.lat, q.direction.lng], {
-    radius: 9, color: '#d4a3ff', fillColor: '#BB77DD', fillOpacity: 0.95, weight: 3, draggable: !q.locked, pane: 'markerPane'
-  }).addTo(map).on('drag', e => {
+  q._dirMarker = L.marker([q.direction.lat, q.direction.lng], {
+    icon: tearDropIcon('#BB77DD', 32), draggable: !q.locked
+  }).addTo(groups.markers).on('dragend', e => {
     if (!q.locked) {
-      const latlng = e.latlng;
+      const latlng = e.target.getLatLng();
       q.direction = { lat: latlng.lat, lng: latlng.lng };
-      angleQuestionSetupMap(q);
+      angleQuestionUpdateGeometry(q);
+      redrawQuestionOverlay();
       renderAngleCard(q);
+      if (typeof saveState !== 'undefined') saveState();
     }
   });
   q._dirMarker.bindTooltip('Direction Pin', { direction: 'top', offset: [0, -15], className: 'aq-label' }).openTooltip();
 
-  // Seeker marker (drag)
-  q._seekerMarker = L.circleMarker([q.seeker.lat, q.seeker.lng], {
-    radius: 12, color: '#5512CC', fillColor: isInCone(q, q.seeker) ? '#fff' : '#3B7FFF', fillOpacity: 1.0, weight: 4, draggable: !q.locked, pane: 'markerPane'
-  }).addTo(map).on('drag', e => {
-    if (!q.locked) {
-      const latlng = e.latlng;
-      q.seeker = { lat: latlng.lat, lng: latlng.lng };
-      angleQuestionSetupMap(q);
-      renderAngleCard(q);
-    }
-  });
-  q._seekerMarker.bindTooltip('Seeker', { direction: 'top', offset: [0, -18], className: 'aq-label', permanent: true });
-  // Draw cones/sectors
+  angleQuestionUpdateGeometry(q);
+  q._mapMoveHandler = () => angleQuestionUpdateGeometry(q);
+  if (map && map.on) map.on('moveend zoomend viewreset', q._mapMoveHandler);
+}
+
+function angleQuestionUpdateGeometry(q) {
+  // Update only the geometry (cones, lines, etc.) without recreating pins
+  clearAngleGeometry(q);
+  if (q.zone === 'inside' || q.zone === 'outside') {
+    redrawQuestionOverlay();
+    return;
+  }
+  const groups = getAngleLayerGroups(q.id);
   const cones = getAngleCones(q);
   // Make polygons for cone, bidir, triple
-  if (q._cone) map.removeLayer(q._cone);
-  q._cone = null;
   let coneLayers = [];
   cones.forEach((co, i) => {
     const center = latlngToXY(q.center, q.center);
-    // Use radius = distance to direction pin, or 400m fallback
-    const dirXY = latlngToXY(q.center, q.direction);
-    const r = distXY(center, dirXY) || 400;
-    const pts = coneSectorPoints(center, co.theta, co.width, r, 36).map(pt => {
+    // Use a radius that extends beyond the direction pin so the cone continues past it
+    const r = getAngleDrawRadiusMeters(q);
+    const innerR = q.mode === 'excludeRadius' ? Math.max(0, parseFloat(q.excludeRadius) || 0) : 0;
+    const pts = coneSectorPoints(center, co.theta, co.width, r, 36, innerR).map(pt => {
       return L.latLng(xyToLatLng(q.center, pt));
     });
     const color = '#BB77DD';
     let poly = L.polygon(pts, {
       color: color, fillColor: color, fillOpacity: 0.24, weight: 2, pane: 'overlayPane'
     });
-    poly.addTo(map);
+    poly.addTo(groups.geometry);
     coneLayers.push(poly);
     if (i === 0) q._cone = poly;
     if (i === 1) q._cone2 = poly;
     if (i === 2) q._cone3 = poly;
   });
-  // Cut out the exclude-radius if set, by adding hollow circle on top
-  if (q.mode === 'excludeRadius') {
-    const rEx = q.excludeRadius || 60;
-    const n = 40, c = latlngToXY(q.center, q.center);
-    const ring = [];
-    for (let i = 0; i <= n; i++) {
-      const ang = 2 * Math.PI * i / n;
-      const pt = { x: c.x + rEx * Math.cos(ang), y: c.y + rEx * Math.sin(ang) };
-      ring.push(L.latLng(xyToLatLng(q.center, pt)));
-    }
-    // Draw filled white circle to "cut" effect
-    if (q._excludeCircle) map.removeLayer(q._excludeCircle);
-    q._excludeCircle = L.polygon(ring, { color: '#CFCDFC', fillColor: '#F7F6FF', fillOpacity: 0.75, weight: 0, pane: 'shadowPane' }).addTo(map);
-  } else if (q._excludeCircle) {
-    map.removeLayer(q._excludeCircle);
-    q._excludeCircle = null;
-  }
   // Draw line (center→dir), and label distance
-  if (q._line) map.removeLayer(q._line);
+  let lineStart = q.center;
+  if (q.mode === 'excludeRadius') {
+    const centerXY = latlngToXY(q.center, q.center);
+    const dirXY = latlngToXY(q.center, q.direction);
+    const theta = angleBetweenXY(centerXY, dirXY);
+    const rEx = Math.max(0, parseFloat(q.excludeRadius) || 0);
+    lineStart = xyToLatLng(q.center, { x: centerXY.x + rEx * Math.cos(theta), y: centerXY.y + rEx * Math.sin(theta) });
+  }
   const dist = map.distance([q.center.lat, q.center.lng], [q.direction.lat, q.direction.lng]);
-  q._line = L.polyline([[q.center.lat, q.center.lng], [q.direction.lat, q.direction.lng]], {
+  q._line = L.polyline([[lineStart.lat, lineStart.lng], [q.direction.lat, q.direction.lng]], {
     color: '#7f1e94', dashArray: '6,8', weight: 5, opacity: 0.65
-  }).addTo(map);
-  if (q._distTip) map.removeLayer(q._distTip);
-  q._distTip = L.circleMarker([(q.center.lat + q.direction.lat)/2, (q.center.lng + q.direction.lng)/2], {
+  }).addTo(groups.geometry);
+  q._distTip = L.circleMarker([(lineStart.lat + q.direction.lat)/2, (lineStart.lng + q.direction.lng)/2], {
     radius: 1, fillOpacity: 0, opacity: 0
   }).bindTooltip((dist<1000?dist.toFixed(0)+' m':(dist/1000).toFixed(2)+' km'), {
     className:'aq-label-d', direction:'top', offset:[0,-6], permanent:true
-  }).addTo(map);
+  }).addTo(groups.geometry);
+  if (q.zone === 'inside' || q.zone === 'outside') {
+    redrawQuestionOverlay();
+  }
 }
 
 function renderAngleCard(q) {
@@ -1874,100 +2159,166 @@ function renderAngleCard(q) {
   if (el) el.remove();
   const ql = document.getElementById('question-list');
   if (!ql) return;
+  // Safely compute status text without throwing during render
+  let distanceText = '—';
+  try {
+    let dist = null;
+    if (map && typeof map.distance === 'function') {
+      dist = map.distance([q.center.lat, q.center.lng], [q.direction.lat, q.direction.lng]);
+    }
+    if (dist === null || isNaN(dist)) {
+      const centerXY = latlngToXY(q.center, q.center);
+      const dirXY = latlngToXY(q.center, q.direction);
+      dist = distXY(centerXY, dirXY);
+    }
+    distanceText = dist < 1000 ? `${Math.round(dist)} m` : `${(dist / 1000).toFixed(2)} km`;
+  } catch (e) {
+    console.warn('Angle card render warning:', e);
+  }
   // Card container
   el = document.createElement('div');
   el.className = 'q-card angleq-card';
   el.id = 'angle-card-'+q.id;
-  let presets = ANGLE_QUESTION_PRESETS.map(a =>
-    `<button class="aq-preset${q.angle===a?' selected':''}" onclick="setAngleQuestionAngle('${q.id}',${a})">${a}&deg;</button>`).join(' ');
   let modes = ANGLE_QUESTION_MODES.map(m =>
     `<button class="aq-mode${q.mode===m.key?' selected':''}" onclick="setAngleQuestionMode('${q.id}','${m.key}')">${m.label}</button>`).join(' ');
   let exR = '';
   if (q.mode === 'excludeRadius') {
-    exR = `<div style="margin-top:7px">Exclude radius:
-      <input type="range" min="20" max="200" step="1" value="${q.excludeRadius||40}" style="width:80px;vertical-align:middle"
+    exR = `<div style="margin-top:7px">
+      <div class="q-label">Exclude radius (m)</div>
+      <input type="number" min="0" step="1" value="${q.excludeRadius||40}" style="width:110px;padding:7px 9px;border:1px solid rgba(154,77,255,0.35);border-radius:10px;background:#fff;color:#5d2387;font-weight:700;"
          onchange="setAngleExcludeRadius('${q.id}',this.value)">
-      <span class="aq-radius">${q.excludeRadius||40} m</span>
     </div>`;
   }
+  const lockText = q.locked ? '🔓 Locked' : '🔒 Lock';
+  const lockClass = q.locked ? 'icon-btn locked' : 'icon-btn';
+  const removeAttrs = q.locked ? 'disabled style="margin-top:6px;opacity:0.25;pointer-events:none"' : 'style="margin-top:6px"';
   el.innerHTML = `
-    <div class="aq-header">🟪 Angle Question
-      <span class="aq-remove" onclick="removeAngleQuestion('${q.id}')">✕</span>
+    <div class="q-card-header">
+      <span style="font-size:18px">🟪</span>
+      <span class="q-title">Angle Question</span>
+      <span class="q-num">#${q.id}</span>
     </div>
-    <div class="aq-controls">
-      <div>${presets}</div>
-      <div>Mode: ${modes}</div>
+    <div class="q-card-body">
+      <div class="q-label">Angle</div>
+      <div>
+        <input type="number" min="1" max="180" value="${q.angle}" style="width:86px;padding:7px 9px;border:1px solid rgba(154,77,255,0.35);border-radius:10px;background:#fff;color:#5d2387;font-weight:700;" onchange="setAngleQuestionAngle('${q.id}', this.value)">
+      </div>
+      <div style="margin-top:10px">Mode: ${modes}</div>
       ${exR}
+      <div class="coord-disp"><strong>Center</strong><br>${q.center.lat.toFixed(5)}, ${q.center.lng.toFixed(5)}</div>
+      <div class="coord-disp"><strong>Direction</strong><br>${q.direction.lat.toFixed(5)}, ${q.direction.lng.toFixed(5)}</div>
+      <div class="coord-disp"><strong>Pin distance</strong><br>${distanceText}</div>
+      <div class="icon-btns" style="gap:6px;">
+        <button class="icon-btn go-btn" onclick="goToAnglePin('${q.id}','center')">📍 Center</button>
+        <button class="icon-btn go-btn" onclick="goToAnglePin('${q.id}','direction')">📍 Direction</button>
+        <button class="${lockClass}" id="aq-lock-btn-${q.id}" onclick="toggleAngleLock('${q.id}')">${lockText}</button>
+      </div>
+      <div style="margin-top:10px;">
+        <div class="q-label">Seeker is…</div>
+        <div class="zone-toggle">
+          <button class="zone-btn${q.zone==='pending'?' active-pend':''}" id="aq-zone-pend-${q.id}" onclick="setAngleZone('${q.id}','pending')">⏳ TBD</button>
+          <button class="zone-btn${q.zone==='inside'?' active-in':''}" id="aq-zone-in-${q.id}" onclick="setAngleZone('${q.id}','inside')">✅ Inside</button>
+          <button class="zone-btn${q.zone==='outside'?' active-out':''}" id="aq-zone-out-${q.id}" onclick="setAngleZone('${q.id}','outside')">❌ Outside</button>
+        </div>
+      </div>
+      <button class="copy-btn angle-copy-btn" style="margin-top:10px" onclick="copyAngleCode('${q.id}')">📋 Copy Question Code</button>
+      <button class="remove-btn" ${removeAttrs} onclick="removeAngleQuestion('${q.id}')">✕ Remove Question</button>
     </div>
-    <div style="margin:5px 0 4px;font-size:12px">
-      <b>Status:</b> Seeker is <span style="color:${isInCone(q, q.seeker)?'#333':'#2060b0'};font-weight:700">${isInCone(q, q.seeker)?'INSIDE':'OUTSIDE'}</span> the cone
-    </div>
-    <div style="color:#ae66d8;font-size:12px;padding:1px 2px 2px;">
-      Drag the purple pins (center/direction) and the blue seeker to demo.<br>
-      Distance between pins: <b>${(map.distance([q.center.lat, q.center.lng], [q.direction.lat, q.direction.lng])).toFixed(0)} m</b>
-    </div>
-    <div style="color:#7f1e94;font-size:10px;">Mode info:<br>
-    Default = cone only | Bidirectional = both ways | Triple = three cones | Exclude radius = excludes area near center.</div>
   `;
-  ql.prepend(el);
+  ql.appendChild(el);
 }
 
 // UI controls
 function setAngleQuestionAngle(id, a) {
   const q = questions.find(x=>x.id===id);
   if (!q) return;
-  q.angle = a;
-  angleQuestionSetupMap(q);
+  q.angle = parseInt(a, 10) || q.angle;
+  angleQuestionUpdateGeometry(q);
+  redrawQuestionOverlay();
   renderAngleCard(q);
+  if (typeof saveState !== 'undefined') saveState();
 }
 function setAngleQuestionMode(id, m) {
   const q = questions.find(x=>x.id===id);
   if (!q) return;
   q.mode = m;
   if (m!=='excludeRadius') q.excludeRadius = 40;
-  angleQuestionSetupMap(q);
+  angleQuestionUpdateGeometry(q);
+  redrawQuestionOverlay();
   renderAngleCard(q);
+  if (typeof saveState !== 'undefined') saveState();
+}
+function setAngleZone(id, z) {
+  const q = questions.find(x=>x.id===id);
+  if (!q) return;
+  q.zone = z;
+  const btnPend = document.getElementById(`aq-zone-pend-${id}`);
+  const btnIn = document.getElementById(`aq-zone-in-${id}`);
+  const btnOut = document.getElementById(`aq-zone-out-${id}`);
+  if (btnPend) btnPend.className = 'zone-btn' + (z==='pending'?' active-pend':'');
+  if (btnIn) btnIn.className = 'zone-btn' + (z==='inside'?' active-in':'');
+  if (btnOut) btnOut.className = 'zone-btn' + (z==='outside'?' active-out':'');
+  angleQuestionUpdateGeometry(q);
+  redrawQuestionOverlay();
+  renderAngleCard(q);
+  if (typeof saveState !== 'undefined') saveState();
 }
 function setAngleExcludeRadius(id, v) {
   const q = questions.find(x=>x.id===id);
   if (!q) return;
-  q.excludeRadius = parseInt(v);
-  angleQuestionSetupMap(q);
+  q.excludeRadius = Math.max(0, parseInt(v, 10) || 0);
+  angleQuestionUpdateGeometry(q);
+  redrawQuestionOverlay();
   renderAngleCard(q);
+  if (typeof saveState !== 'undefined') saveState();
+}
+function toggleAngleLock(id) {
+  const q = questions.find(x=>x.id===id);
+  if (!q) return;
+  q.locked = !q.locked;
+  if (q._centerMarker && q._centerMarker.dragging) {
+    if (q.locked) q._centerMarker.dragging.disable();
+    else q._centerMarker.dragging.enable();
+  }
+  if (q._dirMarker && q._dirMarker.dragging) {
+    if (q.locked) q._dirMarker.dragging.disable();
+    else q._dirMarker.dragging.enable();
+  }
+  renderAngleCard(q);
+  showToast(`Angle #${id} ${q.locked ? 'locked 🔒' : 'unlocked'}`);
+  if (typeof saveState !== 'undefined') saveState();
+  if (typeof applyHideLockedPins !== 'undefined') applyHideLockedPins();
+}
+function goToAnglePin(id, pin) {
+  const q = questions.find(x=>x.id===id);
+  if (!q) return;
+  let loc = q.center;
+  if (pin === 'direction') loc = q.direction;
+  map.setView([loc.lat, loc.lng], 15);
+}
+function copyAngleCode(id) {
+  const q = questions.find(x=>x.id===id);
+  if (!q) return;
+  const code = `ANG-${q.center.lat.toFixed(5)}-${q.center.lng.toFixed(5)}-${q.direction.lat.toFixed(5)}-${q.direction.lng.toFixed(5)}-${q.angle}-${q.mode}-${q.excludeRadius}`;
+  navigator.clipboard.writeText(code).then(() => {
+    showToast('Angle code copied!');
+  }).catch(() => {
+    showToast(code, 5000);
+  });
 }
 function removeAngleQuestion(id) {
   const idx = questions.findIndex(x=>x.id===id);
   if (idx >= 0) {
     const q = questions[idx];
-    ['_centerMarker','_dirMarker','_seekerMarker','_cone','_cone2','_cone3','_excludeCircle','_line','_distTip'].forEach(k => { if (q[k]) map.removeLayer(q[k]); });
+    clearAngleQuestionLayers(q);
     questions.splice(idx, 1);
   }
   const el = document.getElementById('angle-card-'+id);
   if (el) el.remove();
+  clearQuestionOverlay();
+  if (typeof saveState !== 'undefined') saveState();
 }
 
 // Add menu button
-function injectAngleQuestionMenu() {
-  const menu = document.getElementById('sidebar-footer') || document.getElementById('question-list');
-  if (!menu) return;
-  if (document.getElementById('add-angleq-btn')) return;
-  let btn = document.createElement('button');
-  btn.id = 'add-angleq-btn';
-  btn.className = 'add-q-btn angleq-btn';
-  btn.innerHTML = '🟪 Add Angle Question';
-  btn.onclick = () => addAngleQuestion('default');
-  menu.prepend(btn);
-
-  // Add test mode toggles
-  let dev = document.createElement('div');
-  dev.style = "margin-top:7px;font-size:11px;";
-  dev.innerHTML = '<b>AngleQ Test Modes:</b><br>' +
-    ANGLE_QUESTION_MODES.filter(m=>m.key!=='default').map(m =>
-      `<button class="aq-mode aq-mode-dev" style="margin:1px" onclick="addAngleQuestion('${m.key}')">${m.label}</button>`).join(' ');
-  menu.prepend(dev);
-}
-
-if (document.readyState==='complete' || document.readyState==='interactive') setTimeout(injectAngleQuestionMenu,300);
-else window.addEventListener('DOMContentLoaded', injectAngleQuestionMenu);
 
 // ...[existing code unchanged below this point]...

@@ -244,16 +244,15 @@ function _cpRenderBrowse(query) {
 
   const filtered = ql
     ? _CURSES.filter(c => {
-        // FIX 2: also search by numeric ID (e.g. "12" or "#12")
-        const numQ = ql.replace(/^#/, '').trim();
-        const isNumericSearch = /^\d+$/.test(numQ);
-        if (isNumericSearch && String(c.id) === numQ) return true;
+        const rawNum = ql.replace(/^#/, '').trim();
+        const isNumericSearch = /^\d+$/.test(rawNum);
+        if (isNumericSearch && String(c.id) === rawNum) return true;
 
         return c.name.toLowerCase().includes(ql) ||
           (c.cardInfo  || '').toLowerCase().includes(ql) ||
           (c.castingCost || '').toLowerCase().includes(ql) ||
           (c.extraInfo || '').toLowerCase().includes(ql) ||
-          (isNumericSearch && String(c.id).includes(numQ));
+          (isNumericSearch && String(c.id).includes(rawNum));
       })
     : _CURSES;
 
