@@ -12,6 +12,10 @@ let _cpExpanded = new Set(); // expanded item IDs (browse panel)
 let _cpDeckExpanded = new Set(); // expanded deck indices
 let _cpCollapseExtra = true; // collapse extra info by default
 
+// ── NEW: deck compact-info toggles ───────────────────────────────────────────
+let _cpShowStops = true;   // show stops-question + inform badge when collapsed (default ON)
+let _cpShowCost  = false;  // show casting cost when collapsed (default OFF)
+
 const _CP_SAVE_KEY = 'jetlag_curses_v1';
 
 // ── LOAD ──────────────────────────────────────────────────────────────────────
@@ -76,6 +80,11 @@ function _cpRender() {
     if (quickAdd) quickAdd.style.display = 'none';
     const headerNote = document.getElementById('cp-seeker-note');
     if (headerNote) headerNote.style.display = 'block';
+
+    // Render deck-options bar hidden for seeker
+    const optBar = document.getElementById('cp-deck-options');
+    if (optBar) optBar.style.display = 'none';
+
     _cpRenderBrowse();
     return;
   }
@@ -93,11 +102,17 @@ function _cpRender() {
     if (quickAdd) quickAdd.style.display = 'none';
     deckStats.style.display   = 'flex';
     _cpUpdateStats();
+    // Show deck options bar
+    const optBar = document.getElementById('cp-deck-options');
+    if (optBar) optBar.style.display = 'flex';
+    _cpUpdateDeckOptionButtons();
     _cpRenderDeck();
   } else {
     searchWrap.style.display  = 'block';
     if (quickAdd) quickAdd.style.display = 'flex';
     deckStats.style.display   = 'none';
+    const optBar = document.getElementById('cp-deck-options');
+    if (optBar) optBar.style.display = 'none';
     _cpRenderBrowse();
   }
 }
@@ -133,6 +148,28 @@ function _cpToggleLock() {
   showToast(_cpLocked ? 'Deck locked 🔒' : 'Deck unlocked — remove cards with care');
 }
 
+// ── DECK OPTION TOGGLES (stops + cost) ───────────────────────────────────────
+function _cpUpdateDeckOptionButtons() {
+  const stopsBtn = document.getElementById('cp-opt-stops-btn');
+  const costBtn  = document.getElementById('cp-opt-cost-btn');
+  if (stopsBtn) stopsBtn.classList.toggle('cp-opt-active', _cpShowStops);
+  if (costBtn)  costBtn.classList.toggle('cp-opt-active', _cpShowCost);
+}
+
+function _cpToggleShowStops() {
+  _cpShowStops = !_cpShowStops;
+  _cpUpdateDeckOptionButtons();
+  _cpSaveState();
+  _cpRenderDeck();
+}
+
+function _cpToggleShowCost() {
+  _cpShowCost = !_cpShowCost;
+  _cpUpdateDeckOptionButtons();
+  _cpSaveState();
+  _cpRenderDeck();
+}
+
 // ── RENDER DECK (hider) ───────────────────────────────────────────────────────
 function _cpRenderDeck() {
   const list = document.getElementById('cp-list');
@@ -153,6 +190,27 @@ function _cpRenderDeck() {
 
 function _cpDeckCardHTML(c, idx) {
   const expanded = _cpDeckExpanded.has(idx);
+
+  // Build compact-info line shown when collapsed
+  const stopV = (c.stopsQuestion || '').toLowerCase();
+  const stopClass = stopV === 'yes' ? 'cp-badge-red' : stopV === 'no' ? 'cp-badge-green' : 'cp-badge-orange';
+  const stopLabel = stopV === 'yes' ? '⛔ Stops Q' : stopV === 'no' ? '✅ Allows Q' : `⚡ ${c.stopsQuestion}`;
+  const informBadge = c.informSeekers === 'True'
+    ? '<span class="cp-badge cp-badge-blue" style="font-size:7px;padding:2px 5px">📢 Inform</span>'
+    : '<span class="cp-badge cp-badge-dim" style="font-size:7px;padding:2px 5px">🔇 Hidden</span>';
+
+  let compactInfo = '';
+  if (!expanded) {
+    const parts = [];
+    if (_cpShowStops) {
+      parts.push(`<span class="cp-badge ${stopClass}" style="font-size:7px;padding:2px 5px">${stopLabel}</span>${informBadge}`);
+    }
+    if (_cpShowCost && c.castingCost) {
+      parts.push(`<div class="cp-compact-cost">${_esc(c.castingCost)}</div>`);
+    }
+    if (parts.length) compactInfo = `<div class="cp-compact-info">${parts.join('')}</div>`;
+  }
+
   return `
     <div class="cp-item ${expanded ? 'cp-expanded' : ''}" id="cpd-${idx}">
       <div class="cp-item-header" onclick="_cpToggleDeckCard(${idx})">
@@ -161,6 +219,7 @@ function _cpDeckCardHTML(c, idx) {
         <div class="cp-dot" style="background:${_cpStopColor(c.stopsQuestion)}" title="Stops question: ${c.stopsQuestion}"></div>
         <svg class="cp-chevron" width="12" height="12" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path d="m6 9 6 6 6-6"/></svg>
       </div>
+      ${compactInfo}
       <div class="cp-item-body">
         ${_cpCardBodyHTML(c, 'deck', idx)}
       </div>
@@ -172,21 +231,29 @@ function _cpToggleDeckCard(idx) {
   else _cpDeckExpanded.add(idx);
   const el = document.getElementById(`cpd-${idx}`);
   if (el) el.classList.toggle('cp-expanded');
+  // Re-render single card to update compact info visibility
+  const c = _CURSES.find(x => x.id === _cpDeck[idx]);
+  if (el && c) el.outerHTML = _cpDeckCardHTML(c, idx);
 }
 
 // ── RENDER BROWSE ─────────────────────────────────────────────────────────────
 function _cpRenderBrowse(query) {
   const input = document.getElementById('cp-search-input');
   query = (query !== undefined ? query : (input ? input.value.trim() : ''));
-  const ql = query.toLowerCase();
+  const ql = query.toLowerCase().trim();
+
   const filtered = ql
     ? _CURSES.filter(c => {
-        const numQ = ql.replace('#', '').trim();
+        // FIX 2: also search by numeric ID (e.g. "12" or "#12")
+        const numQ = ql.replace(/^#/, '').trim();
+        const isNumericSearch = /^\d+$/.test(numQ);
+        if (isNumericSearch && String(c.id) === numQ) return true;
+
         return c.name.toLowerCase().includes(ql) ||
           (c.cardInfo  || '').toLowerCase().includes(ql) ||
           (c.castingCost || '').toLowerCase().includes(ql) ||
           (c.extraInfo || '').toLowerCase().includes(ql) ||
-          (/^\d+$/.test(numQ) && String(c.id).includes(numQ));
+          (isNumericSearch && String(c.id).includes(numQ));
       })
     : _CURSES;
 
@@ -287,7 +354,6 @@ function _cpQuickAdd() {
   _cpAddToDeck(c.id);
   input.value = '';
   input.focus();
-  // Briefly highlight in browse if visible
 }
 
 function _cpQuickJump() {
@@ -299,7 +365,6 @@ function _cpQuickJump() {
   if (!c) { showToast(`No curse #${val}`); return; }
   const searchInput = document.getElementById('cp-search-input');
   if (searchInput) { searchInput.value = c.name; _cpRenderBrowse(c.name); }
-  // Expand that item
   requestAnimationFrame(() => {
     const el = document.getElementById(`cpb-${c.id}`);
     if (el) {
@@ -344,7 +409,6 @@ function _cpToggleCollapseExtra() {
   if (btn) btn.classList.toggle('sp-active', _cpCollapseExtra);
   if (st)  st.textContent = _cpCollapseExtra ? 'ON' : 'OFF';
   _cpSaveState();
-  // Re-render current view
   if (_cpOpen) _cpRender();
 }
 
@@ -355,7 +419,9 @@ function _cpSaveState() {
       deck: _cpDeck,
       locked: _cpLocked,
       history: _cpHistory.slice(-50),
-      collapseExtra: _cpCollapseExtra
+      collapseExtra: _cpCollapseExtra,
+      showStops: _cpShowStops,
+      showCost: _cpShowCost,
     }));
   } catch(e) {}
 }
@@ -369,6 +435,8 @@ function _cpRestoreState() {
     if (s.locked !== undefined) _cpLocked = s.locked;
     if (s.history) _cpHistory = s.history;
     if (s.collapseExtra !== undefined) _cpCollapseExtra = s.collapseExtra;
+    if (s.showStops !== undefined) _cpShowStops = s.showStops;
+    if (s.showCost  !== undefined) _cpShowCost  = s.showCost;
   } catch(e) {}
 }
 
@@ -409,7 +477,6 @@ async function toggleRulesPanel() {
   if (_rulesOpen) { _closeRulesPanel(); return; }
   const ok = await _loadRules();
   if (!ok) return;
-  // Close other panels
   if (_cpOpen) _cpClose();
   document.getElementById('settings-panel')?.classList.remove('open');
   document.getElementById('settings-btn')?.classList.remove('open');
