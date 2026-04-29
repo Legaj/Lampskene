@@ -1,0 +1,59 @@
+.angleq-btn,
+.aq-preset, .aq-mode, .aq-mode-dev {
+  background: #ae66d8!important;
+  color: #fff!important;
+  font-family: inherit;
+  border: 1.7px solid #bb77dd;
+  border-radius: 12px;
+  margin: 2px 3px;
+  padding: 4px 12px;
+  font-size: 13px;
+  font-weight: bold;
+  cursor: pointer;
+  outline: none;
+  transition: background 0.1s,border 0.1s;
+}
+.aq-mode-dev { background: #b799e4!important; color:#5e1783!important; font-size:11px; border-width:1px;}
+.aq-preset.selected, .aq-mode.selected { background: #9300ad!important; border-color: #6a43c9; color: #fff!important; }
+.aq-preset:not(.selected):hover,
+.aq-mode:not(.selected):hover,
+.aq-mode-dev:hover {
+  background: #fff;
+  color: #ae66d8!important;
+  border-color: #9300ad;
+}
+.angleq-card {
+  border: 2.5px solid #bb77dd;
+  border-radius: 16px;
+  background: #faf3ff;
+  box-shadow: 0 0 12px #e1d3fa77;
+  color: #6a329b;
+  padding: 12px 12px 10px 10px;
+  margin-bottom: 16px;
+  max-width: 380px;
+}
+.angleq-card .aq-header {
+  font-size: 17.5px;
+  font-weight: bold;
+  color: #9300ad;
+  padding-bottom: 6px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.aq-controls { margin: 7px 0 3px 0; }
+.aq-remove {
+  font-size: 15px;
+  background: #eed8fd00;
+  border: none;
+  color: #ad1bb3;
+  cursor: pointer;
+  border-radius: 100px;
+  padding: 1px 7px 0 7px;
+  margin-left: 7px;
+  transition: background .15s;
+}
+.aq-remove:hover { background: #e7c6fc; }
+.aq-label-d { background: #caaaf2!important; color: #4c1569!important; font-weight: 600;}
+.aq-label { background: #e5d3f7!important; color: #9300ad!important; font-size:12px; font-weight:600;}
+input[type="range"].aq-radius { accent-color:#bb77dd; }
