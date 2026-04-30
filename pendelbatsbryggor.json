@@ -1,0 +1,1435 @@
+{
+  "pendelbatsbryggor": [
+    {
+      "id": "node/16864088",
+      "name": "Ekensberg",
+      "latitude": 59.3156252,
+      "longitude": 17.9881616,
+      "operator": null,
+      "network": "SL",
+      "lines": "89",
+      "osm_id": "node/16864088"
+    },
+    {
+      "id": "way/24967536",
+      "name": "Viking Line terminal",
+      "latitude": 59.3161295,
+      "longitude": 18.0969709,
+      "operator": "Viking Line",
+      "network": null,
+      "lines": null,
+      "osm_id": "way/24967536"
+    },
+    {
+      "id": "node/29645435",
+      "name": "Lervik",
+      "latitude": 59.4520796,
+      "longitude": 18.3848195,
+      "operator": null,
+      "network": null,
+      "lines": null,
+      "osm_id": "node/29645435"
+    },
+    {
+      "id": "node/29761139",
+      "name": "Riddarholmen",
+      "latitude": 59.3244822,
+      "longitude": 18.0616372,
+      "operator": "E/S Movitz",
+      "network": "E/S Movitz",
+      "lines": null,
+      "osm_id": "node/29761139"
+    },
+    {
+      "id": "node/34058974",
+      "name": "Gåshaga brygga",
+      "latitude": 59.3571395,
+      "longitude": 18.2352069,
+      "operator": null,
+      "network": null,
+      "lines": null,
+      "osm_id": "node/34058974"
+    },
+    {
+      "id": "node/35120411",
+      "name": "Saltsjöqvarn",
+      "latitude": 59.3151329,
+      "longitude": 18.1103205,
+      "operator": null,
+      "network": "SL",
+      "lines": "80",
+      "osm_id": "node/35120411"
+    },
+    {
+      "id": "node/35977847",
+      "name": "Nybrokajen",
+      "latitude": 59.3314444,
+      "longitude": 18.076492,
+      "operator": "Strömma Kanalbolaget",
+      "network": null,
+      "lines": null,
+      "osm_id": "node/35977847"
+    },
+    {
+      "id": "node/35977848",
+      "name": "Nybrokajen",
+      "latitude": 59.3316818,
+      "longitude": 18.0763364,
+      "operator": "Strömma Kanalbolaget",
+      "network": null,
+      "lines": null,
+      "osm_id": "node/35977848"
+    },
+    {
+      "id": "node/35977851",
+      "name": "Nybroplan",
+      "latitude": 59.3319039,
+      "longitude": 18.0763928,
+      "operator": null,
+      "network": null,
+      "lines": null,
+      "osm_id": "node/35977851"
+    },
+    {
+      "id": "node/35977856",
+      "name": "Nybroplan",
+      "latitude": 59.3322312,
+      "longitude": 18.0770666,
+      "operator": null,
+      "network": null,
+      "lines": null,
+      "osm_id": "node/35977856"
+    },
+    {
+      "id": "way/40285329",
+      "name": "Waxholmsbolaget",
+      "latitude": 59.329456,
+      "longitude": 18.0748397,
+      "operator": "Waxholmsbolaget",
+      "network": "Waxholmsbolaget",
+      "lines": null,
+      "osm_id": "way/40285329"
+    },
+    {
+      "id": "node/52141969",
+      "name": "Färjeläget Vaxholm",
+      "latitude": 59.400111,
+      "longitude": 18.3499389,
+      "operator": null,
+      "network": null,
+      "lines": null,
+      "osm_id": "node/52141969"
+    },
+    {
+      "id": "node/115116510",
+      "name": "Slagsta",
+      "latitude": 59.2576502,
+      "longitude": 17.8699083,
+      "operator": "Trafikverket",
+      "network": null,
+      "lines": null,
+      "osm_id": "node/115116510"
+    },
+    {
+      "id": "node/119776178",
+      "name": "Rindö Smedja",
+      "latitude": 59.4034802,
+      "longitude": 18.3646129,
+      "operator": null,
+      "network": null,
+      "lines": null,
+      "osm_id": "node/119776178"
+    },
+    {
+      "id": "node/130071152",
+      "name": "Ekerö",
+      "latitude": 59.2711885,
+      "longitude": 17.8462802,
+      "operator": "Trafikverket",
+      "network": null,
+      "lines": null,
+      "osm_id": "node/130071152"
+    },
+    {
+      "id": "node/160010639",
+      "name": "Viking Line: Stadsgården, Stockholm",
+      "latitude": 59.3167764,
+      "longitude": 18.0958655,
+      "operator": null,
+      "network": null,
+      "lines": null,
+      "osm_id": "node/160010639"
+    },
+    {
+      "id": "node/246525140",
+      "name": "Lumabryggan",
+      "latitude": 59.3058155,
+      "longitude": 18.0993318,
+      "operator": null,
+      "network": null,
+      "lines": null,
+      "osm_id": "node/246525140"
+    },
+    {
+      "id": "node/248036475",
+      "name": "Klippudden",
+      "latitude": 59.3459107,
+      "longitude": 18.2238378,
+      "operator": null,
+      "network": null,
+      "lines": null,
+      "osm_id": "node/248036475"
+    },
+    {
+      "id": "node/248186565",
+      "name": "Skarpöborg",
+      "latitude": 59.4140031,
+      "longitude": 18.3714468,
+      "operator": null,
+      "network": null,
+      "lines": null,
+      "osm_id": "node/248186565"
+    },
+    {
+      "id": "node/248188711",
+      "name": "Granholmen",
+      "latitude": 59.3762049,
+      "longitude": 18.3086519,
+      "operator": null,
+      "network": null,
+      "lines": null,
+      "osm_id": "node/248188711"
+    },
+    {
+      "id": "node/248551357",
+      "name": "Tegelön",
+      "latitude": 59.3635729,
+      "longitude": 18.3224259,
+      "operator": null,
+      "network": null,
+      "lines": null,
+      "osm_id": "node/248551357"
+    },
+    {
+      "id": "node/255852543",
+      "name": "Allmänna gränd",
+      "latitude": 59.324008,
+      "longitude": 18.0945212,
+      "operator": null,
+      "network": null,
+      "lines": "82",
+      "osm_id": "node/255852543"
+    },
+    {
+      "id": "node/271325222",
+      "name": "Skeppsholmen",
+      "latitude": 59.3249862,
+      "longitude": 18.0892022,
+      "operator": null,
+      "network": "SL",
+      "lines": "82",
+      "osm_id": "node/271325222"
+    },
+    {
+      "id": "node/282191410",
+      "name": "Kastellet",
+      "latitude": 59.4022938,
+      "longitude": 18.359581,
+      "operator": null,
+      "network": null,
+      "lines": null,
+      "osm_id": "node/282191410"
+    },
+    {
+      "id": "node/298082092",
+      "name": "Vaxholm",
+      "latitude": 59.4018436,
+      "longitude": 18.3541681,
+      "operator": null,
+      "network": null,
+      "lines": null,
+      "osm_id": "node/298082092"
+    },
+    {
+      "id": "node/353068525",
+      "name": "Hasseludden",
+      "latitude": 59.3486759,
+      "longitude": 18.2444638,
+      "operator": "Waxholmsbolaget",
+      "network": null,
+      "lines": null,
+      "osm_id": "node/353068525"
+    },
+    {
+      "id": "node/355654016",
+      "name": "Strandvägen",
+      "latitude": 59.3313412,
+      "longitude": 18.0805439,
+      "operator": "Strömma Kanalbolaget",
+      "network": null,
+      "lines": null,
+      "osm_id": "node/355654016"
+    },
+    {
+      "id": "node/410634528",
+      "name": null,
+      "latitude": 59.3279998,
+      "longitude": 18.0576975,
+      "operator": null,
+      "network": null,
+      "lines": null,
+      "osm_id": "node/410634528"
+    },
+    {
+      "id": "node/410634533",
+      "name": null,
+      "latitude": 59.3279429,
+      "longitude": 18.0577318,
+      "operator": null,
+      "network": null,
+      "lines": null,
+      "osm_id": "node/410634533"
+    },
+    {
+      "id": "node/410634537",
+      "name": null,
+      "latitude": 59.3278509,
+      "longitude": 18.0578262,
+      "operator": null,
+      "network": null,
+      "lines": null,
+      "osm_id": "node/410634537"
+    },
+    {
+      "id": "node/410634785",
+      "name": null,
+      "latitude": 59.3277196,
+      "longitude": 18.0581266,
+      "operator": null,
+      "network": null,
+      "lines": null,
+      "osm_id": "node/410634785"
+    },
+    {
+      "id": "node/410634797",
+      "name": null,
+      "latitude": 59.3277196,
+      "longitude": 18.0582983,
+      "operator": null,
+      "network": null,
+      "lines": null,
+      "osm_id": "node/410634797"
+    },
+    {
+      "id": "node/410634798",
+      "name": null,
+      "latitude": 59.3277809,
+      "longitude": 18.0587961,
+      "operator": null,
+      "network": null,
+      "lines": null,
+      "osm_id": "node/410634798"
+    },
+    {
+      "id": "node/410634799",
+      "name": "Drottingholm, Mälarlunch",
+      "latitude": 59.3278071,
+      "longitude": 18.059045,
+      "operator": null,
+      "network": null,
+      "lines": null,
+      "osm_id": "node/410634799"
+    },
+    {
+      "id": "node/410634819",
+      "name": "Drottingholm, Mälarlunch",
+      "latitude": 59.3278397,
+      "longitude": 18.0593041,
+      "operator": null,
+      "network": null,
+      "lines": null,
+      "osm_id": "node/410634819"
+    },
+    {
+      "id": "node/410634843",
+      "name": "Birka, Mälarparty",
+      "latitude": 59.3278676,
+      "longitude": 18.0595342,
+      "operator": null,
+      "network": null,
+      "lines": null,
+      "osm_id": "node/410634843"
+    },
+    {
+      "id": "node/410634860",
+      "name": "Birka skoltrafik",
+      "latitude": 59.3278818,
+      "longitude": 18.0598031,
+      "operator": null,
+      "network": null,
+      "lines": null,
+      "osm_id": "node/410634860"
+    },
+    {
+      "id": "node/435221490",
+      "name": "Tyresö (Trintorp)",
+      "latitude": 59.2297744,
+      "longitude": 18.360558,
+      "operator": "Waxholmsbolaget",
+      "network": null,
+      "lines": null,
+      "osm_id": "node/435221490"
+    },
+    {
+      "id": "node/435221501",
+      "name": "Saltsjöbaden",
+      "latitude": 59.2790555,
+      "longitude": 18.3162988,
+      "operator": "Waxholmsbolaget",
+      "network": "Waxholmsbolaget",
+      "lines": null,
+      "osm_id": "node/435221501"
+    },
+    {
+      "id": "node/467092718",
+      "name": "Höganäs",
+      "latitude": 59.3869428,
+      "longitude": 18.3423633,
+      "operator": "Waxholmsbolaget",
+      "network": "Waxholmsbolaget",
+      "lines": null,
+      "osm_id": "node/467092718"
+    },
+    {
+      "id": "node/470300804",
+      "name": "Jungfrusund",
+      "latitude": 59.2713771,
+      "longitude": 17.8463723,
+      "operator": null,
+      "network": "SL",
+      "lines": "89",
+      "osm_id": "node/470300804"
+    },
+    {
+      "id": "node/485967116",
+      "name": "Strömkajen",
+      "latitude": 59.3294226,
+      "longitude": 18.0739291,
+      "operator": null,
+      "network": null,
+      "lines": null,
+      "osm_id": "node/485967116"
+    },
+    {
+      "id": "node/485995815",
+      "name": "Strömkajen",
+      "latitude": 59.3291265,
+      "longitude": 18.075448,
+      "operator": null,
+      "network": null,
+      "lines": null,
+      "osm_id": "node/485995815"
+    },
+    {
+      "id": "node/486034379",
+      "name": null,
+      "latitude": 59.3281071,
+      "longitude": 18.077214,
+      "operator": null,
+      "network": null,
+      "lines": null,
+      "osm_id": "node/486034379"
+    },
+    {
+      "id": "node/486061809",
+      "name": "Nybrokajen",
+      "latitude": 59.3308056,
+      "longitude": 18.0778161,
+      "operator": "Strömma Kanalbolaget",
+      "network": null,
+      "lines": null,
+      "osm_id": "node/486061809"
+    },
+    {
+      "id": "node/486067046",
+      "name": "Nybrokajen",
+      "latitude": 59.3309812,
+      "longitude": 18.0774294,
+      "operator": "Strömma Kanalbolaget",
+      "network": null,
+      "lines": null,
+      "osm_id": "node/486067046"
+    },
+    {
+      "id": "node/486068299",
+      "name": "Nybrokajen",
+      "latitude": 59.3311554,
+      "longitude": 18.0770476,
+      "operator": "Strömma Kanalbolaget",
+      "network": null,
+      "lines": null,
+      "osm_id": "node/486068299"
+    },
+    {
+      "id": "node/486078674",
+      "name": "Strandvägen",
+      "latitude": 59.3320532,
+      "longitude": 18.0783041,
+      "operator": "Strömma Kanalbolaget",
+      "network": null,
+      "lines": null,
+      "osm_id": "node/486078674"
+    },
+    {
+      "id": "way/533755501",
+      "name": "Värtaterminalen",
+      "latitude": 59.3513622,
+      "longitude": 18.1118449,
+      "operator": "Stockholms Hamnar / Tallink-Silja Line",
+      "network": null,
+      "lines": null,
+      "osm_id": "way/533755501"
+    },
+    {
+      "id": "way/766761468",
+      "name": null,
+      "latitude": 59.3229063,
+      "longitude": 18.0759922,
+      "operator": null,
+      "network": "SL",
+      "lines": null,
+      "osm_id": "way/766761468"
+    },
+    {
+      "id": "node/810671304",
+      "name": "Frösvik",
+      "latitude": 59.4032434,
+      "longitude": 18.1539631,
+      "operator": null,
+      "network": null,
+      "lines": null,
+      "osm_id": "node/810671304"
+    },
+    {
+      "id": "node/863443820",
+      "name": "Nacka strand",
+      "latitude": 59.3180733,
+      "longitude": 18.1569257,
+      "operator": "Waxholmsbolaget",
+      "network": "Waxholmsbolaget",
+      "lines": null,
+      "osm_id": "node/863443820"
+    },
+    {
+      "id": "node/897584337",
+      "name": "Stegesund",
+      "latitude": 59.4131823,
+      "longitude": 18.3677945,
+      "operator": null,
+      "network": null,
+      "lines": null,
+      "osm_id": "node/897584337"
+    },
+    {
+      "id": "node/1143110463",
+      "name": "Hop-on Hop-off",
+      "latitude": 59.3270825,
+      "longitude": 18.0748531,
+      "operator": null,
+      "network": null,
+      "lines": null,
+      "osm_id": "node/1143110463"
+    },
+    {
+      "id": "node/1305968326",
+      "name": "Nybroplan",
+      "latitude": 59.3321868,
+      "longitude": 18.076856,
+      "operator": null,
+      "network": "SL",
+      "lines": "80",
+      "osm_id": "node/1305968326"
+    },
+    {
+      "id": "node/1342567197",
+      "name": "Vasholmen",
+      "latitude": 59.3841749,
+      "longitude": 18.3434461,
+      "operator": "Waxholmsbolaget",
+      "network": "Waxholmsbolaget",
+      "lines": null,
+      "osm_id": "node/1342567197"
+    },
+    {
+      "id": "node/1342567199",
+      "name": "Edlunda",
+      "latitude": 59.3751284,
+      "longitude": 18.3184817,
+      "operator": "Waxholmsbolaget",
+      "network": null,
+      "lines": null,
+      "osm_id": "node/1342567199"
+    },
+    {
+      "id": "node/1342567200",
+      "name": "Karlsudd",
+      "latitude": 59.3815062,
+      "longitude": 18.3321169,
+      "operator": "Waxholmsbolaget",
+      "network": null,
+      "lines": null,
+      "osm_id": "node/1342567200"
+    },
+    {
+      "id": "node/1345009516",
+      "name": "Kungshättan",
+      "latitude": 59.3047834,
+      "longitude": 17.9022254,
+      "operator": null,
+      "network": "SL",
+      "lines": "89",
+      "osm_id": "node/1345009516"
+    },
+    {
+      "id": "node/1345027624",
+      "name": "Drottningholm",
+      "latitude": 59.3231805,
+      "longitude": 17.8909153,
+      "operator": "Strömma Kanalbolaget",
+      "network": null,
+      "lines": null,
+      "osm_id": "node/1345027624"
+    },
+    {
+      "id": "node/1377839891",
+      "name": "Mälarhöjdsbadet",
+      "latitude": 59.3009983,
+      "longitude": 17.9273622,
+      "operator": "Strömma Kanalbolaget",
+      "network": null,
+      "lines": null,
+      "osm_id": "node/1377839891"
+    },
+    {
+      "id": "node/1386448414",
+      "name": "Frihamnsterminalen",
+      "latitude": 59.3434204,
+      "longitude": 18.1191381,
+      "operator": "Tallink Silja AB",
+      "network": null,
+      "lines": null,
+      "osm_id": "node/1386448414"
+    },
+    {
+      "id": "node/1388609772",
+      "name": "Storholmen östra",
+      "latitude": 59.3969305,
+      "longitude": 18.1445155,
+      "operator": null,
+      "network": null,
+      "lines": null,
+      "osm_id": "node/1388609772"
+    },
+    {
+      "id": "way/1454900437",
+      "name": null,
+      "latitude": 59.3180194,
+      "longitude": 18.1569269,
+      "operator": null,
+      "network": null,
+      "lines": null,
+      "osm_id": "way/1454900437"
+    },
+    {
+      "id": "node/1501888033",
+      "name": "Fridhem",
+      "latitude": 59.3036068,
+      "longitude": 17.9500573,
+      "operator": null,
+      "network": null,
+      "lines": null,
+      "osm_id": "node/1501888033"
+    },
+    {
+      "id": "node/1539476819",
+      "name": "Värtahamnen, Stockholm",
+      "latitude": 59.3506036,
+      "longitude": 18.115094,
+      "operator": null,
+      "network": null,
+      "lines": null,
+      "osm_id": "node/1539476819"
+    },
+    {
+      "id": "node/1550340367",
+      "name": "Viking Line: Stadsgården, Stockholm",
+      "latitude": 59.3161315,
+      "longitude": 18.0990844,
+      "operator": null,
+      "network": null,
+      "lines": null,
+      "osm_id": "node/1550340367"
+    },
+    {
+      "id": "node/1550340457",
+      "name": "Viking Line Stockholm",
+      "latitude": 59.3177003,
+      "longitude": 18.0887506,
+      "operator": null,
+      "network": null,
+      "lines": null,
+      "osm_id": "node/1550340457"
+    },
+    {
+      "id": "node/1596504099",
+      "name": "Koviksudde",
+      "latitude": 59.3632705,
+      "longitude": 18.3421314,
+      "operator": null,
+      "network": null,
+      "lines": null,
+      "osm_id": "node/1596504099"
+    },
+    {
+      "id": "node/1596504122",
+      "name": "Risberga",
+      "latitude": 59.3702453,
+      "longitude": 18.3626068,
+      "operator": null,
+      "network": null,
+      "lines": null,
+      "osm_id": "node/1596504122"
+    },
+    {
+      "id": "node/1617791905",
+      "name": "Nybroplan",
+      "latitude": 59.3321107,
+      "longitude": 18.0766612,
+      "operator": null,
+      "network": null,
+      "lines": null,
+      "osm_id": "node/1617791905"
+    },
+    {
+      "id": "node/1732293576",
+      "name": "Ramsö",
+      "latitude": 59.3905332,
+      "longitude": 18.3990249,
+      "operator": null,
+      "network": null,
+      "lines": null,
+      "osm_id": "node/1732293576"
+    },
+    {
+      "id": "node/1746028195",
+      "name": "Finnboda hamn",
+      "latitude": 59.3160822,
+      "longitude": 18.1242317,
+      "operator": null,
+      "network": "SL",
+      "lines": "80",
+      "osm_id": "node/1746028195"
+    },
+    {
+      "id": "node/1752867076",
+      "name": "Barnängsbryggan",
+      "latitude": 59.3080273,
+      "longitude": 18.097532,
+      "operator": null,
+      "network": null,
+      "lines": null,
+      "osm_id": "node/1752867076"
+    },
+    {
+      "id": "node/1806455598",
+      "name": "Henriksdal",
+      "latitude": 59.309209,
+      "longitude": 18.1012638,
+      "operator": null,
+      "network": null,
+      "lines": null,
+      "osm_id": "node/1806455598"
+    },
+    {
+      "id": "node/2010570464",
+      "name": "Vegabryggan",
+      "latitude": 59.3911396,
+      "longitude": 18.406509,
+      "operator": null,
+      "network": null,
+      "lines": null,
+      "osm_id": "node/2010570464"
+    },
+    {
+      "id": "node/2151194095",
+      "name": "Rindö Västra brygga",
+      "latitude": 59.4031711,
+      "longitude": 18.3654928,
+      "operator": null,
+      "network": null,
+      "lines": null,
+      "osm_id": "node/2151194095"
+    },
+    {
+      "id": "node/2300082242",
+      "name": "Nacka strand",
+      "latitude": 59.3180758,
+      "longitude": 18.1597527,
+      "operator": null,
+      "network": "SL",
+      "lines": "80",
+      "osm_id": "node/2300082242"
+    },
+    {
+      "id": "node/2302339559",
+      "name": "Dalénum",
+      "latitude": 59.34315,
+      "longitude": 18.1519526,
+      "operator": null,
+      "network": "SL",
+      "lines": "80",
+      "osm_id": "node/2302339559"
+    },
+    {
+      "id": "node/2381391443",
+      "name": "Gustavsberg",
+      "latitude": 59.3243591,
+      "longitude": 18.3813063,
+      "operator": null,
+      "network": null,
+      "lines": null,
+      "osm_id": "node/2381391443"
+    },
+    {
+      "id": "node/2381391480",
+      "name": "Artipelag/Hålludden",
+      "latitude": 59.3076201,
+      "longitude": 18.3460893,
+      "operator": null,
+      "network": null,
+      "lines": null,
+      "osm_id": "node/2381391480"
+    },
+    {
+      "id": "node/2534683206",
+      "name": "Ytterby brygga",
+      "latitude": 59.4249996,
+      "longitude": 18.3555175,
+      "operator": null,
+      "network": null,
+      "lines": null,
+      "osm_id": "node/2534683206"
+    },
+    {
+      "id": "node/2582730315",
+      "name": "Boo",
+      "latitude": 59.3069128,
+      "longitude": 18.2924722,
+      "operator": null,
+      "network": null,
+      "lines": null,
+      "osm_id": "node/2582730315"
+    },
+    {
+      "id": "node/2598658806",
+      "name": "Riset",
+      "latitude": 59.3600676,
+      "longitude": 18.2855248,
+      "operator": null,
+      "network": null,
+      "lines": null,
+      "osm_id": "node/2598658806"
+    },
+    {
+      "id": "node/2622730794",
+      "name": "Kvarnholmen",
+      "latitude": 59.3175983,
+      "longitude": 18.1365162,
+      "operator": null,
+      "network": "SL",
+      "lines": "80",
+      "osm_id": "node/2622730794"
+    },
+    {
+      "id": "node/3520614506",
+      "name": "Strandvägen",
+      "latitude": 59.3316316,
+      "longitude": 18.0796169,
+      "operator": "Strömma Kanalbolaget",
+      "network": null,
+      "lines": null,
+      "osm_id": "node/3520614506"
+    },
+    {
+      "id": "node/3672291787",
+      "name": "Ropsten",
+      "latitude": 59.3584147,
+      "longitude": 18.1062326,
+      "operator": null,
+      "network": null,
+      "lines": null,
+      "osm_id": "node/3672291787"
+    },
+    {
+      "id": "node/3672291804",
+      "name": "Tranholmen",
+      "latitude": 59.3765192,
+      "longitude": 18.092034,
+      "operator": null,
+      "network": null,
+      "lines": null,
+      "osm_id": "node/3672291804"
+    },
+    {
+      "id": "node/3672291806",
+      "name": "Ekudden",
+      "latitude": 59.3899537,
+      "longitude": 18.0910041,
+      "operator": null,
+      "network": null,
+      "lines": null,
+      "osm_id": "node/3672291806"
+    },
+    {
+      "id": "node/3672291814",
+      "name": "Sticklinge brygga",
+      "latitude": 59.3904703,
+      "longitude": 18.1096072,
+      "operator": null,
+      "network": null,
+      "lines": null,
+      "osm_id": "node/3672291814"
+    },
+    {
+      "id": "node/3672314530",
+      "name": "Mor Annas brygga",
+      "latitude": 59.3897924,
+      "longitude": 18.1382427,
+      "operator": null,
+      "network": null,
+      "lines": null,
+      "osm_id": "node/3672314530"
+    },
+    {
+      "id": "node/3672314531",
+      "name": "Storholmen södra",
+      "latitude": 59.3933557,
+      "longitude": 18.1342098,
+      "operator": null,
+      "network": null,
+      "lines": null,
+      "osm_id": "node/3672314531"
+    },
+    {
+      "id": "node/3672314547",
+      "name": "Storholmen norra",
+      "latitude": 59.3987166,
+      "longitude": 18.1354138,
+      "operator": null,
+      "network": null,
+      "lines": null,
+      "osm_id": "node/3672314547"
+    },
+    {
+      "id": "node/4009662202",
+      "name": "Masthamnen",
+      "latitude": 59.3157653,
+      "longitude": 18.1067966,
+      "operator": null,
+      "network": null,
+      "lines": null,
+      "osm_id": "node/4009662202"
+    },
+    {
+      "id": "node/4010778911",
+      "name": "Fredriksberg brygga",
+      "latitude": 59.4000583,
+      "longitude": 18.3337093,
+      "operator": null,
+      "network": null,
+      "lines": null,
+      "osm_id": "node/4010778911"
+    },
+    {
+      "id": "node/4158908415",
+      "name": "Värtahamnen, Stockholm",
+      "latitude": 59.3526186,
+      "longitude": 18.1173289,
+      "operator": null,
+      "network": null,
+      "lines": null,
+      "osm_id": "node/4158908415"
+    },
+    {
+      "id": "node/4158971117",
+      "name": null,
+      "latitude": 59.3526563,
+      "longitude": 18.1125245,
+      "operator": null,
+      "network": null,
+      "lines": null,
+      "osm_id": "node/4158971117"
+    },
+    {
+      "id": "node/4628097508",
+      "name": "Blockhusudden",
+      "latitude": 59.3207593,
+      "longitude": 18.1518674,
+      "operator": null,
+      "network": "SL",
+      "lines": "80",
+      "osm_id": "node/4628097508"
+    },
+    {
+      "id": "node/4900324640",
+      "name": "Vaxholm",
+      "latitude": 59.4024049,
+      "longitude": 18.3556819,
+      "operator": null,
+      "network": null,
+      "lines": null,
+      "osm_id": "node/4900324640"
+    },
+    {
+      "id": "node/4993327848",
+      "name": "Frihamnen",
+      "latitude": 59.3458399,
+      "longitude": 18.1314401,
+      "operator": null,
+      "network": "SL",
+      "lines": "80",
+      "osm_id": "node/4993327848"
+    },
+    {
+      "id": "node/5056024976",
+      "name": "Stora Essingen",
+      "latitude": 59.3165431,
+      "longitude": 17.9845687,
+      "operator": null,
+      "network": null,
+      "lines": null,
+      "osm_id": "node/5056024976"
+    },
+    {
+      "id": "node/5061941784",
+      "name": "Årsta holmars brygga",
+      "latitude": 59.3086755,
+      "longitude": 18.0414434,
+      "operator": null,
+      "network": null,
+      "lines": null,
+      "osm_id": "node/5061941784"
+    },
+    {
+      "id": "node/5147750225",
+      "name": "Allmänna gränd",
+      "latitude": 59.324222,
+      "longitude": 18.0942741,
+      "operator": null,
+      "network": null,
+      "lines": "80",
+      "osm_id": "node/5147750225"
+    },
+    {
+      "id": "node/5262521844",
+      "name": "Klara Mälarstrand",
+      "latitude": 59.3277368,
+      "longitude": 18.0580091,
+      "operator": null,
+      "network": "SL",
+      "lines": "89",
+      "osm_id": "node/5262521844"
+    },
+    {
+      "id": "node/5262521850",
+      "name": "Tappström",
+      "latitude": 59.2925594,
+      "longitude": 17.8114355,
+      "operator": null,
+      "network": "SL",
+      "lines": "89",
+      "osm_id": "node/5262521850"
+    },
+    {
+      "id": "node/5262521858",
+      "name": "Lilla Essingen",
+      "latitude": 59.3231203,
+      "longitude": 18.0086478,
+      "operator": "SL",
+      "network": "SL",
+      "lines": "89",
+      "osm_id": "node/5262521858"
+    },
+    {
+      "id": "node/5899361295",
+      "name": "Värtahamnen, Stockholm",
+      "latitude": 59.3504686,
+      "longitude": 18.1101658,
+      "operator": null,
+      "network": null,
+      "lines": null,
+      "osm_id": "node/5899361295"
+    },
+    {
+      "id": "node/6189599063",
+      "name": "Färjeläget Vaxholm",
+      "latitude": 59.400244,
+      "longitude": 18.3501048,
+      "operator": null,
+      "network": null,
+      "lines": null,
+      "osm_id": "node/6189599063"
+    },
+    {
+      "id": "node/6190265288",
+      "name": "Värtahamnen, Stockholm",
+      "latitude": 59.349645,
+      "longitude": 18.1100799,
+      "operator": null,
+      "network": null,
+      "lines": null,
+      "osm_id": "node/6190265288"
+    },
+    {
+      "id": "node/6315972800",
+      "name": "Vikingsborg",
+      "latitude": 59.4220487,
+      "longitude": 18.3604567,
+      "operator": null,
+      "network": null,
+      "lines": null,
+      "osm_id": "node/6315972800"
+    },
+    {
+      "id": "node/7160212532",
+      "name": "Talludden",
+      "latitude": 59.3301104,
+      "longitude": 18.2183135,
+      "operator": null,
+      "network": null,
+      "lines": null,
+      "osm_id": "node/7160212532"
+    },
+    {
+      "id": "node/7161105018",
+      "name": "Slussen",
+      "latitude": 59.3229762,
+      "longitude": 18.0761288,
+      "operator": null,
+      "network": "SL",
+      "lines": "82",
+      "osm_id": "node/7161105018"
+    },
+    {
+      "id": "node/7255728121",
+      "name": "Frihamnen, Stockholm",
+      "latitude": 59.3454401,
+      "longitude": 18.1245522,
+      "operator": null,
+      "network": null,
+      "lines": null,
+      "osm_id": "node/7255728121"
+    },
+    {
+      "id": "node/7593157345",
+      "name": "Alviks Strand",
+      "latitude": 59.3288104,
+      "longitude": 17.9855322,
+      "operator": "E/S Movitz",
+      "network": "E/S Movitz",
+      "lines": null,
+      "osm_id": "node/7593157345"
+    },
+    {
+      "id": "node/7593182562",
+      "name": "Solna Strand",
+      "latitude": 59.3539218,
+      "longitude": 17.9691441,
+      "operator": "Arkipelag rederi",
+      "network": "M/S Hamnskär",
+      "lines": null,
+      "osm_id": "node/7593182562"
+    },
+    {
+      "id": "node/7593206974",
+      "name": "Hornsbergs Strand",
+      "latitude": 59.339977,
+      "longitude": 18.004668,
+      "operator": "E/S Movitz",
+      "network": "E/S Movitz",
+      "lines": null,
+      "osm_id": "node/7593206974"
+    },
+    {
+      "id": "node/7597797021",
+      "name": "Lilla Essingen",
+      "latitude": 59.3232809,
+      "longitude": 18.0088856,
+      "operator": "E/S Movitz",
+      "network": "E/S Movitz",
+      "lines": null,
+      "osm_id": "node/7597797021"
+    },
+    {
+      "id": "node/7659223230",
+      "name": "Furuholmen",
+      "latitude": 59.3721667,
+      "longitude": 18.3359397,
+      "operator": null,
+      "network": null,
+      "lines": null,
+      "osm_id": "node/7659223230"
+    },
+    {
+      "id": "node/7659583981",
+      "name": "Edholma",
+      "latitude": 59.412321,
+      "longitude": 18.3525954,
+      "operator": null,
+      "network": null,
+      "lines": null,
+      "osm_id": "node/7659583981"
+    },
+    {
+      "id": "node/7659583983",
+      "name": "Kalvholmen",
+      "latitude": 59.3776933,
+      "longitude": 18.3650187,
+      "operator": null,
+      "network": null,
+      "lines": null,
+      "osm_id": "node/7659583983"
+    },
+    {
+      "id": "node/7762516963",
+      "name": "Norra Lagnö",
+      "latitude": 59.355375,
+      "longitude": 18.411657,
+      "operator": null,
+      "network": null,
+      "lines": null,
+      "osm_id": "node/7762516963"
+    },
+    {
+      "id": "node/7762516964",
+      "name": "Norra Lagnö brygga",
+      "latitude": 59.3554018,
+      "longitude": 18.4115541,
+      "operator": null,
+      "network": null,
+      "lines": null,
+      "osm_id": "node/7762516964"
+    },
+    {
+      "id": "node/7762535608",
+      "name": "Norehill",
+      "latitude": 59.3840628,
+      "longitude": 18.3940528,
+      "operator": null,
+      "network": null,
+      "lines": null,
+      "osm_id": "node/7762535608"
+    },
+    {
+      "id": "node/7762535622",
+      "name": "Norra Tynningö",
+      "latitude": 59.3929842,
+      "longitude": 18.3763755,
+      "operator": null,
+      "network": null,
+      "lines": null,
+      "osm_id": "node/7762535622"
+    },
+    {
+      "id": "node/7816288901",
+      "name": "Slussen",
+      "latitude": 59.3235899,
+      "longitude": 18.0761765,
+      "operator": null,
+      "network": null,
+      "lines": null,
+      "osm_id": "node/7816288901"
+    },
+    {
+      "id": "node/7821206880",
+      "name": "Fisksätra Marina",
+      "latitude": 59.295649,
+      "longitude": 18.249713,
+      "operator": null,
+      "network": null,
+      "lines": null,
+      "osm_id": "node/7821206880"
+    },
+    {
+      "id": "node/7821236495",
+      "name": "Lilla Björknäs",
+      "latitude": 59.3201746,
+      "longitude": 18.2242117,
+      "operator": null,
+      "network": null,
+      "lines": null,
+      "osm_id": "node/7821236495"
+    },
+    {
+      "id": "node/7837932953",
+      "name": "Strömkajen",
+      "latitude": 59.3294315,
+      "longitude": 18.0742384,
+      "operator": null,
+      "network": null,
+      "lines": null,
+      "osm_id": "node/7837932953"
+    },
+    {
+      "id": "node/7837932954",
+      "name": "Strömkajen",
+      "latitude": 59.3294253,
+      "longitude": 18.0740827,
+      "operator": null,
+      "network": null,
+      "lines": null,
+      "osm_id": "node/7837932954"
+    },
+    {
+      "id": "node/7837932955",
+      "name": "Strömkajen",
+      "latitude": 59.3294181,
+      "longitude": 18.0737815,
+      "operator": null,
+      "network": null,
+      "lines": null,
+      "osm_id": "node/7837932955"
+    },
+    {
+      "id": "node/8722087049",
+      "name": "Rindö västra",
+      "latitude": 59.4031613,
+      "longitude": 18.3650734,
+      "operator": null,
+      "network": null,
+      "lines": null,
+      "osm_id": "node/8722087049"
+    },
+    {
+      "id": "node/8898660241",
+      "name": null,
+      "latitude": 59.3275338,
+      "longitude": 18.1794549,
+      "operator": null,
+      "network": null,
+      "lines": null,
+      "osm_id": "node/8898660241"
+    },
+    {
+      "id": "node/9167180324",
+      "name": "Vårby brygga",
+      "latitude": 59.2628274,
+      "longitude": 17.8750218,
+      "operator": null,
+      "network": null,
+      "lines": null,
+      "osm_id": "node/9167180324"
+    },
+    {
+      "id": "node/10126712868",
+      "name": null,
+      "latitude": 59.3099581,
+      "longitude": 18.0443489,
+      "operator": null,
+      "network": null,
+      "lines": null,
+      "osm_id": "node/10126712868"
+    },
+    {
+      "id": "node/10151488182",
+      "name": "Viking Line: Stadsgården, Stockholm",
+      "latitude": 59.3169172,
+      "longitude": 18.0951941,
+      "operator": null,
+      "network": null,
+      "lines": null,
+      "osm_id": "node/10151488182"
+    },
+    {
+      "id": "node/10925853658",
+      "name": "Lindholmen",
+      "latitude": 59.3135608,
+      "longitude": 17.9799923,
+      "operator": null,
+      "network": null,
+      "lines": null,
+      "osm_id": "node/10925853658"
+    },
+    {
+      "id": "node/11064006067",
+      "name": "Tollare",
+      "latitude": 59.3001005,
+      "longitude": 18.2348252,
+      "operator": null,
+      "network": null,
+      "lines": null,
+      "osm_id": "node/11064006067"
+    },
+    {
+      "id": "node/11436946066",
+      "name": null,
+      "latitude": 59.3261849,
+      "longitude": 18.0440806,
+      "operator": null,
+      "network": null,
+      "lines": null,
+      "osm_id": "node/11436946066"
+    },
+    {
+      "id": "node/11437420087",
+      "name": null,
+      "latitude": 59.3213637,
+      "longitude": 18.0504352,
+      "operator": null,
+      "network": null,
+      "lines": null,
+      "osm_id": "node/11437420087"
+    },
+    {
+      "id": "node/11891927693",
+      "name": "Telegrafberget",
+      "latitude": 59.3414669,
+      "longitude": 18.225796,
+      "operator": null,
+      "network": null,
+      "lines": null,
+      "osm_id": "node/11891927693"
+    },
+    {
+      "id": "node/12045143191",
+      "name": "Rindöbaden",
+      "latitude": 59.397069,
+      "longitude": 18.3762878,
+      "operator": null,
+      "network": null,
+      "lines": null,
+      "osm_id": "node/12045143191"
+    },
+    {
+      "id": "node/12097745948",
+      "name": "Saltsjöbaden",
+      "latitude": 59.2790406,
+      "longitude": 18.3163476,
+      "operator": "Waxholmsbolaget",
+      "network": "Waxholmsbolaget",
+      "lines": null,
+      "osm_id": "node/12097745948"
+    },
+    {
+      "id": "node/12925845276",
+      "name": "Stora Ekholmen",
+      "latitude": 59.3936673,
+      "longitude": 18.3450263,
+      "operator": "Waxholmsbolaget",
+      "network": null,
+      "lines": null,
+      "osm_id": "node/12925845276"
+    }
+  ],
+  "count": 143
+}

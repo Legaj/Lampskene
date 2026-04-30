@@ -612,6 +612,9 @@
     <button class="sp-btn" id="transit-layer-btn" onclick="toggleTransitLayer()" style="margin-top:5px">
       <span>🚇 Transit Lines</span><span id="transit-layer-status">OFF</span>
     </button>
+    <button class="sp-btn" id="pendelbat-layer-btn" onclick="togglePendelbatLayer()" style="margin-top:5px">
+      <span>⛵ Pendelbåts</span><span id="pendelbat-layer-status">OFF</span>
+    </button>
   </div>
   <div>
     <div class="sp-label">Performance</div>
@@ -1086,6 +1089,43 @@ function drawTransitLayer() {
   }
 }
 function clearTransitLayer() { _transitLayers.forEach(l => map && map.removeLayer(l)); _transitLayers = []; }
+
+// ── PENDELBÅTS LAYER ───────────────────────────────────────────
+let _pendelbatLayerOn = false, _pendelbatMarkers = [];
+async function togglePendelbatLayer() {
+  _pendelbatLayerOn = !_pendelbatLayerOn;
+  const btn = document.getElementById('pendelbat-layer-btn');
+  const s   = document.getElementById('pendelbat-layer-status');
+  if (btn) btn.classList.toggle('sp-active', _pendelbatLayerOn);
+  if (s)   s.textContent = _pendelbatLayerOn ? 'ON' : 'OFF';
+  if (_pendelbatLayerOn) await drawPendelbatLayer(); else clearPendelbatLayer();
+}
+async function drawPendelbatLayer() {
+  clearPendelbatLayer();
+  try {
+    const r = await fetch('pendelbatsbryggor.json');
+    const data = await r.json();
+    const places = data.pendelbatsbryggor || [];
+    for (const p of places) {
+      if (p.latitude && p.longitude) {
+        // Blue anchor marker
+        const marker = L.circleMarker([p.latitude, p.longitude], {
+          radius: 5,
+          fillColor: '#3080d0',
+          fillOpacity: 0.9,
+          color: '#fff',
+          weight: 1.5,
+          opacity: 0.8
+        });
+        const name = p.name || 'Unknown';
+        const lines = p.lines ? ` (${p.lines})` : '';
+        marker.bindTooltip(name + lines, { permanent: false, direction: 'top', className: 'pendelbat-tip' });
+        if (map) { marker.addTo(map); _pendelbatMarkers.push(marker); }
+      }
+    }
+  } catch(e) { showToast('Could not load pendelbatsbryggor.json'); }
+}
+function clearPendelbatLayer() { _pendelbatMarkers.forEach(m => map && map.removeLayer(m)); _pendelbatMarkers = []; }
 
 // ── HIGH PERF ZOOM ─────────────────────────────────────────────
 let _highPerf = true;
