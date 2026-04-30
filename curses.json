@@ -1,76 +1,686 @@
 [
-  {"id":1,"name":"Curse of the Ransom Note","castingCost":"Spell out \"ransom note\" as a ransom note (without using this card).","stopsQuestion":"No","informSeekers":"True","cardInfo":"The next question that the seekers ask must be composed of words and letters cut out of any printed material.\nThe question must be coherent and include at least 5 words.","extraInfo":"Once the cost is fulfilled, this curse must be cast immediately. The printed material cannot be printed by the seekers; the letters should be gathered from magazines, newspapers, or any other material that the seekers encounter in the wild. \"Coherence\" in this context does not necessarily mean complete sentences, but the hider should be able to discern the meaning of the question without further clarification. You may use easy-to-understand abbreviations for certain words (such as \"2\" instead of \"to.\") If the question requires additional context outside of the basic sentence itself, this context does NOT need to be provided in the form of a ransom note. For example, if you are asking a thermometer question, you can simply ask something along the lines of, \"Went 5 miles. Hotter/colder?\" Any information about where you started and ended the thermometer can be provided as normal, in the form of a location pin or text."},
-  {"id":2,"name":"Curse of the Urban Explorer","castingCost":"Discard 3 cards.","stopsQuestion":"No","informSeekers":"True","cardInfo":"For the rest of your run, seekers cannot ask questions when they are on transit or in a transit station.","extraInfo":"Any pending questions that were asked on transit before this curse was played must still be answered. Questions can still be asked outside of transit stations, but seekers cannot be on a platform or in any building associated with the transit station when asking questions."},
-  {"id":3,"name":"Curse of the Labyrinth","castingCost":"Draw a maze","stopsQuestion":"Yes","informSeekers":"True","cardInfo":"Spend up to S 10 M 20 L 30 minutes drawing a solvable maze and send a photo of it to the seekers. You cannot use the internet to research maze designs. The seekers must solve the maze before asking another question.","extraInfo":"\"Solvable,\" in this context, refers to a conventional solution to the maze–you must be able to draw an unbroken line from the start of the maze to the end of the maze. Your time limit begins from the moment you draw your first line; time spent gathering materials does not count. You may discard your maze and start drawing a new maze at any point, but you cannot restart your timer. You may not consult the internet or any other materials when drawing your maze; it must come entirely from your own head. The photo must be of a good enough quality so that the minimum distance between two walls in the maze may be 6 pixels."},
-  {"id":4,"name":"Curse of the Queue","castingCost":"You must currently be in line somewhere. You must be in the line at least 20 seconds in total.","stopsQuestion":"Yes","informSeekers":"True","cardInfo":"Seekers may not ask another question until they've waited in line for at least five minutes. They may wait in different lines, but they cannot wait in the same line more than once. They may not let people cut in front of them in line, and lines must have at least two people when they enter them.","extraInfo":"Players are considered no longer in line once there are no more people in front of them."},
-  {"id":5,"name":"Curse of the Hide-And-Seek-Ception","castingCost":"The seekers must be off-transit, at least 300 meters from a transit station.","stopsQuestion":"Yes","informSeekers":"True","cardInfo":"All seekers but one must close their eyes. Without discussion, the remaining seeker must go somewhere at least 100 meters away and not within direct eyeshot in any direction. The other seekers must find them, without asking them for any information, before asking another question. The seeker must choose a seeker that counts to a hundred before starting to look.","extraInfo":"The hiding seeker may call or text the other seeker(s) when they are in position, but no more communication is allowed. \"Off-transit\" means that players have physically disembarked their last form of transit and that it has left the station (i.e. you cannot temporarily step off a train while it's stopped to fulfill the condition.)"},
-  {"id":6,"name":"Curse of the Hidden Hangman","castingCost":"Discard 3 cards.","stopsQuestion":"Yes","informSeekers":"True","cardInfo":"Before asking another question or boarding another form of transportation, seekers must beat the hider in a game of hangman. To play, the hider chooses a 5 letter word, and the game ends after either a correct word guess or 7 wrong letter guesses (head, body, two arms, two legs, and a hat). The hider must respond to all queries within 30 seconds. The seekers cannot challenge the hider for 10 minutes after a loss. After S1 M2 L3 losses, the seekers must wait 10 more minutes and then the curse is cleared.","extraInfo":"The chosen five-letter word must be a real word, found in a dictionary, in the language that the game is being played in. You cannot, for example, use a French word if all players only speak English. If the hider ever fails to respond to a query in 30 seconds, this curse is instantly cleared. In our case the word has to be Swedish."},
-  {"id":7,"name":"Curse of the Quill","castingCost":"Seekers must be within at least two shops or/and restaurants in the nearest 500m. Discard 2 cards.","stopsQuestion":"Yes","informSeekers":"True","cardInfo":"Before asking another question, the seekers must spell out the name of the category they intend to use (e.g. PHOTO or MATCHING) by sending photos of handwritten letters they've found out in the world. The letters do not all need to be found in the same place, but they must be created by other people and not printed by any kind of machine. They cannot use a letter twice.","extraInfo":"The category words are: MATCHING, MEASURING, RADAR, THERMOMETER, PHOTO, TENTACLES. There must be reasonable evidence to suggest that a handwritten letter was written directly on the surface by a person (with a pencil, pen, marker, paintbrush, spray can, chalk, etc.) and not printed."},
-  {"id":8,"name":"Curse of the Right Turn","castingCost":"Discard a card.","stopsQuestion":"No","informSeekers":"True","cardInfo":"For the next S 20 M 40 L 60 minutes, the seekers can only turn right at any street intersection. If, at any point, they find themselves in a dead end where they cannot continue forward or turn right for another 300 meters, they may do a full 180. A right turn is defined as a road at any angle that veers to the right of the seekers.","extraInfo":"This curse only applies to street intersections, meaning the intersection between two roads intended for cars (or pedestrian sidewalks along those roads.) This curse would not have any effects indoors, or in an area where there are no streets."},
-  {"id":9,"name":"Curse of the Egg Partner","castingCost":"Discard two cards. The seekers must be at most 400m from an open grocery store.","stopsQuestion":"Yes until acquired","informSeekers":"True","cardInfo":"The seekers must acquire an egg before asking another question. This egg is now treated as an official team member of the seekers. If any team members are abandoned or killed (defined as any crack, in the egg's case) before the end of your run, you are awarded an extra S 30 M 45 L 60 minutes. This curse cannot be played during the endgame.","extraInfo":"The egg can be from any type of animal, but it must be a real egg (a chocolate egg or a plastic egg, for example, would not count.) Any visible fracture, however small, counts as killing the egg. If you do not want to buy items during the course of your game, or object to this curse on ethical grounds, this curse should be removed from the deck. For any other curse that requires all seekers to do something, the egg counts as a seeker. For example, using the Curse of the Lemon Phylactery after this curse has been played would require the egg to have a lemon attached to it."},
-  {"id":10,"name":"Curse of the Lemon Phylactery","castingCost":"Discard a powerup. The seekers must be at most 400m from an open grocery store.","stopsQuestion":"Yes until acquired","informSeekers":"True","cardInfo":"Before asking another question, the seekers must each find a lemon and affix it to the outermost layer of their clothes or skin. If, at any point, one of these lemons is no longer touching a seeker, you are awarded an extra S 30 M 45 L 60 minutes. This curse cannot be played during the endgame.","extraInfo":"The lemon must be a real lemon. It can be affixed using any means, but must be constantly touching the seeker's skin or clothes. Once the lemon falls, the hider should be informed of their bonus immediately."},
-  {"id":11,"name":"Curse of the Runner","castingCost":"Run 600m in 5 min. Use Strava to measure.","stopsQuestion":"No","informSeekers":"True","cardInfo":"For the next S 30 M 45 L 60 minutes, the seekers are only allowed to run or be still. They may not walk.","extraInfo":"\"Running\" is defined as a gait that does not have a double-support phase (i.e. both feet cannot be touching the ground at the same time.) If players want to be still and place both feet on the ground simultaneously, they must do so for 5 seconds or longer. Players may not discard part of a time bonus; they must discard cards in their entirety. It is possible that players may have to discard more than the required number of minutes in order to pay for this curse."},
-  {"id":12,"name":"Curse of the 5-Minute King","castingCost":"Discard two 5-minute bonus cards.","stopsQuestion":"No","informSeekers":"False","cardInfo":"Remove all 5-minute bonuses from the deck for the rest of your run. After doing so, you must reshuffle the deck.","extraInfo":""},
-  {"id":13,"name":"Curse of the Void","castingCost":"Discard a veto.","stopsQuestion":"No","informSeekers":"True","cardInfo":"For the next three questions that the seekers ask, roll a die. If you roll a 1, 2, or 3 that question is automatically vetoed.","extraInfo":"If the seekers had a free question and it's vetoed by this curse, the next question is a draw 1 keep 1 unless another curse changes something."},
-  {"id":14,"name":"Curse of the Empty Mind","castingCost":"You cannot draw cards for the rest of the round.","stopsQuestion":"No","informSeekers":"False","cardInfo":"Search through the deck and choose any three cards to add to your hand. You must play this curse immediately.","extraInfo":"\"Immediately\" means that this curse never enters your hand; it is played the moment it is chosen. Cards must be chosen before the next question is asked."},
-  {"id":15,"name":"Curse of the Overflowing Chalice","castingCost":"Discard a card.","stopsQuestion":"No","informSeekers":"False","cardInfo":"For the next three questions, you may draw (not keep) an additional card when drawing from the hider deck.","extraInfo":""},
-  {"id":16,"name":"Curse of the Long Shot","castingCost":"Seekers must be within 3km of you. Discard a curse.","stopsQuestion":"No","informSeekers":"True","cardInfo":"Once this curse is cast, the seekers have five minutes to provide one guess as to what transit station you are centered at. This is done by then giving a radius of 500m from any point. If they are correct (your station is inside), you must tell them so. If they are incorrect, they are frozen for 10 minutes.","extraInfo":"When seekers are \"frozen,\" they cannot make progress on clearing other curses or take any form of transit. If they are currently on transit when they become frozen, they must disembark at the next opportunity and wait out the rest of their freeze period at that station. Players may walk around freely while frozen for non game-related reasons, but must resume from the place where they were frozen when the freeze period concludes."},
-  {"id":17,"name":"Curse of the Bridge Troll","castingCost":"Seekers must be at least 2 km from you and need to have an accessible bridge within 1km of them.","stopsQuestion":"No","informSeekers":"True","cardInfo":"The seekers must ask their next question from under a bridge.","extraInfo":"\"Bridge\" is defined as any elevated structure, acting as a path, road or railway, intended to be crossed by pedestrians, cars, or other vehicles. All seekers must have some part of their body under some part of the bridge when the next question is asked. If there are no bridges on the game map, this curse should be removed from the deck."},
-  {"id":18,"name":"Curse of the Oracle","castingCost":"Discard two cards.","stopsQuestion":"Yes","informSeekers":"True","cardInfo":"Seekers must flip a coin and predict its outcome while it is in the air. If they are correct, they do it again.\nIf they are wrong, they must wait 30 seconds. They may not ask another question until they get it correct three times in a row.","extraInfo":""},
-  {"id":19,"name":"Curse of the Chasm","castingCost":"Discard a randomize.","stopsQuestion":"No","informSeekers":"True","cardInfo":"For the next three questions that the seekers ask, they must roll a die. If they roll a 1, 2, or 3 that question is automatically randomized.","extraInfo":""},
-  {"id":20,"name":"Curse of the Express Route","castingCost":"Discard at least 10 minutes worth of time bonuses.","stopsQuestion":"No","informSeekers":"True","cardInfo":"Seekers cannot disembark any transit for the next 10 minutes, unless they've reached the end of a line.","extraInfo":"Players may not discard part of a time bonus; they must discard cards in their entirety. It is possible that players may have to discard more than the required number of minutes in order to pay for this curse."},
-  {"id":21,"name":"Curse of the Endless Tumble","castingCost":"Roll a die. If it's a 5 or a 6, this card has no effect.","stopsQuestion":"Yes","informSeekers":"True","cardInfo":"Seekers must roll a die at least 30 meters and have it land on a 5 or a 6 before they can ask another question.\nThe die must roll the full distance, unaided, using only the momentum from the initial throw and gravity to travel the 30 meters. If the seekers accidentally hit someone with a die, you are awarded a 10 minute bonus.","extraInfo":"30 metres is measured parallel to the ground. The die can, and likely should, be rolled on an inclined surface. If the die is lost or does not land cleanly on one side, it cannot be counted. Any bonuses awarded to the hider should be delivered immediately."},
-  {"id":22,"name":"Curse of the Mediocre Travel Agent","castingCost":"Their vacation destination must be further from you than their current location.","stopsQuestion":"Yes","informSeekers":"True","cardInfo":"Choose any publicly-accessible place within 500 m of the seekers' current location. They cannot currently be on transit. They must go there, and spend at least 5 minutes, before asking another question. They must send you at least three photos of them enjoying their vacation, and procure an object to bring you as a souvenir. If this souvenir is lost before they can give it to you, you are awarded an extra 30 minutes.","extraInfo":"\"Publicly accessible\" in this context follows the same rules as \"publicly accessible\" in the context of hiding spots. The destination does not need to be a single point; it can be a small general area like a park or store. The souvenir can be literally any physical object. It does not need to be with the seekers at all times, but it must be with them at the moment that the hider is caught."},
-  {"id":23,"name":"Curse of the Prophet","castingCost":"Discard two cards.","stopsQuestion":"No","informSeekers":"False","cardInfo":"Rearrange the top ten cards of the deck in any order you choose.","extraInfo":""},
-  {"id":24,"name":"Curse of the Clone","castingCost":"Find a stranger. The seekers have to be in a populated area; at minimum 10 open shops or service places (like barbershops) within 500m of them.","stopsQuestion":"Yes","informSeekers":"True","cardInfo":"Find a stranger in public and note the following things about them:\nDo they have long sleeves or short sleeves?\nDo they have long pants/skirt or short pants/skirt?\nDo they have glasses or no glasses?\nDo they have a hat or no hat?\nDo they have a bag or no bag?\nThe seekers must find a stranger with the same qualities before asking another question.","extraInfo":"Long sleeves are defined as sleeves that extend past the elbow, and long pants/skirts are defined as extending past the knee."},
-  {"id":25,"name":"Curse of the Sniper","castingCost":"A photo of the seekers.","stopsQuestion":"No","informSeekers":"True","cardInfo":"Send the seekers a photo you've taken of them. Upon receiving this curse, they have 60 seconds to take a photo of you and end your run (read extra info). If they fail, draw and keep five cards. You no longer have a maximum hand size. Also if they fail they are frozen for 2 minutes and you're allowed to find a new hiding spot during those 2 minutes (if in the endgame otherwise just hide).","extraInfo":"All seekers must be visible in the photo provided. The 60 seconds begins from the moment the curse and photo are delivered. You must immediately call the seekers to confirm that they have received the info then the 60 seconds begins."},
-  {"id":26,"name":"Curse of the Open Mind","castingCost":"Discard your whole hand.","stopsQuestion":"No","informSeekers":"False","cardInfo":"You no longer have a hand size limit.","extraInfo":"The discard your whole hand overrides any other card or curse, to play this you must discard every card in your hand."},
-  {"id":27,"name":"Curse of the Freewheeler","castingCost":"Seekers must be at least 4 km from you. The seekers must be within 500m of an SL spårvägslinje station or a bus station with at most 15 minutes traffic.","stopsQuestion":"Yes","informSeekers":"True","cardInfo":"The next three questions that the seekers ask must be asked while on a moving form of transit.","extraInfo":""},
-  {"id":28,"name":"Curse of the Pomologist","castingCost":"A photo of a fruit. The seekers must be at most 400m from an open grocery store.","stopsQuestion":"Yes","informSeekers":"True","cardInfo":"Send the seekers a photo of a fruit, along with a link to its corresponding Wikipedia page. They must find the same type of fruit before asking another question. The hider must find this fruit in the real world.","extraInfo":"Specificity is defined by the title of the Wikipedia page (e.g. \"Golden Delicious\" is a variety of apple that has a Wikipedia page, so finding a Golden Delicious apple would require the seekers to do the same. \"Summerset\" is a variety of apple that does not have a Wikipedia page, so you could send the Wikipedia page for \"apple\" and the seekers could respond with anything that would fall under the category of \"apple.\") You cannot create a Wikipedia page. If the fruit is found without a plaque (or similar) explicitly mentioning its variety the hider may only send the general category of the fruit, for example apple for an apple. The seekers are able to abandon this question for a 25 minute penalty period. The hider is allowed to go to a botanical garden if it's within his zone."},
-  {"id":29,"name":"Curse of the Grass-Toucher","castingCost":"This curse must be cast at least 75 meters from any named street. If the seekers are in innerstan this curse costs 3 cards to play.","stopsQuestion":"No","informSeekers":"True","cardInfo":"The next question that the seekers ask must be asked at least 75 meters from any named street (on Google Maps.)\nAs always, no trespassing.","extraInfo":""},
-  {"id":30,"name":"Curse of Spotty Memory","castingCost":"Discard a time bonus.","stopsQuestion":"No","informSeekers":"True","cardInfo":"For the rest of your run, one random category of questions will be disabled at all times. After this curse is played, seekers must roll a die to determine the category of questions to be disabled. This category remains disabled until the next question is asked, at which point a die is rolled again to choose a new category. The same category can be disabled multiple times in a row.","extraInfo":"The seekers should assign die numbers to each category before their first roll. For small-sized games, which only include five categories of questions, a six would result in a reroll."},
-  {"id":31,"name":"Curse of the Untethered Spirit","castingCost":"The tracker is reversed.","stopsQuestion":"No","informSeekers":"True","cardInfo":"You may move freely within your hiding zone during this round's endgame.","extraInfo":"When played the seekers may choose to have a pause period of the game until they receive a working location tracker of the hider. The hider or seekers may not move during this period. If the seekers choose to not have this period the hider still has to send his location as fast as possible but both parties are allowed to move."},
-  {"id":32,"name":"Curse of the Distant Cuisine","castingCost":"You must be at the restaurant.","stopsQuestion":"Yes","informSeekers":"True","cardInfo":"Find a restaurant within your zone that explicitly serves food from a specific foreign country. The seekers must visit a restaurant serving food from a country that is an equal or greater distance away before asking another question.","extraInfo":"The restaurants used in this curse must explicitly reference a single country or region within a single country within either their name or some other public-facing material such as a menu. If a restaurant associates itself with multiple countries, or a region larger than a single country (such as an \"Asian\" restaurant), it cannot be used for this curse. Distance from a given country is measured from your exact location to the nearest point in that country."},
-  {"id":33,"name":"Curse of the Shark","castingCost":"Discard a power-up.","stopsQuestion":"No","informSeekers":"True","cardInfo":"For the next 30 minutes, the seekers are not allowed to stop walking for any reason.","extraInfo":"The seekers may walk in small circles. Walking in place is not allowed. The same foot has to be placed at least 10cm from its previous place to count as walking, measuring centre to centre of the shoe."},
-  {"id":34,"name":"Curse of the U-Turn","castingCost":"Seekers must be heading the wrong way. (Their next station is further from you than they are.)","stopsQuestion":"No","informSeekers":"True","cardInfo":"The seekers must disembark their current mode of transportation at the next station (as long as that station is serviced by another form of transit in the next 30 minutes).","extraInfo":"\"Next Station,\" in this context, refers to the next station that the seekers' current mode of transit will stop at; if there are any stops along the line that their current route will skip, those should be disregarded. If you are not sure whether the seekers are on transit, or whether their route will stop at a particular station, you may ask them for that information. If there is any ambiguity, you should tell them what you believe their next station is when this curse is cast to confirm that you didn't misread their tracker. Even if the seekers' current mode of transit would eventually bring them closer to you, this curse may still be played so long as their next station is further; a line that heads in your direction but temporarily curves away is a particularly advantageous situation for this curse."},
-  {"id":35,"name":"Curse of the Planespotter","castingCost":"Seekers must be within 15 km of a commercial airport. Take a photo of an airplane flying.","stopsQuestion":"Yes","informSeekers":"True","cardInfo":"The seekers must take a photo of an airplane and send it to the hider before asking another question.","extraInfo":"An airplane is an object capable of self-propelled flight that isn't a helicopter, and has human pilots."},
-  {"id":36,"name":"Curse of the Impressionable Consumer","castingCost":"The seekers' next question is free. The seekers must be at most 400m from an open grocery store.","stopsQuestion":"Yes","informSeekers":"True","cardInfo":"Seekers must enter and gain admission (if applicable) to a location or buy a product that they saw an advertisement for before asking another question. This advertisement must be found out in the world, not on a seeker's device, and must be at least 30 meters from the product or location itself.","extraInfo":"Any object or display whose primary purpose is to raise awareness of a product, service, or business counts as an advertisement. If the advertisement is for a specific service, such as a massage, the seekers must pay for and receive the service advertised. If the advertisement is for a location but not a specific service, such as an amusement park, the seekers must enter that location. Locations that are not private businesses, such as a public park, do not count. If you do not want to be forced to potentially spend money to fulfill this curse, it should be removed from the deck."},
-  {"id":37,"name":"Curse of the Gilded Inquiry","castingCost":"The seekers' next question is free.","stopsQuestion":"No","informSeekers":"True","cardInfo":"Secretly choose one specific question. If the seekers ask that question after this curse is played, the question is automatically vetoed and you instantly draw and keep three extra cards.","extraInfo":"\"Vetoed\" in this case should be treated identically to a veto card being played; the question is not answered, no reward is given, and it is removed from the game for the rest of the round. If the veto happens on a question that the seekers had free they get their next question to be draw 1 keep 1."},
-  {"id":38,"name":"Curse of the Bird Guide","castingCost":"Film a bird.","stopsQuestion":"Yes","informSeekers":"True","cardInfo":"You have one chance to film a bird for as long as possible, up to 5 minutes straight. If, at any point, the bird leaves the frame, your timer is stopped. The seekers must then film a bird for the same amount of time or longer before asking another question.","extraInfo":"The bird must be in frame from the moment the video starts. It is considered \"in frame\" so long as there is any recognizable portion of the bird on camera. The seekers have unlimited attempts to accomplish this. The seekers may abandon this curse for a 25 minute time penalty."},
-  {"id":39,"name":"Curse of the Blind Wanderer","castingCost":"Seekers must be at least 4 km from you. The seekers must be within 500m of an SL spårvägslinje station or a bus station with at most 15 minute traffic.","stopsQuestion":"No","informSeekers":"True","cardInfo":"Seekers must ask their next question at least 2 km from where they are right now.","extraInfo":"This may not be played in the endgame."},
-  {"id":40,"name":"Curse of the Tiny Home","castingCost":"The radius of your hiding zone is halved. This curse cannot be played during the endgame.","stopsQuestion":"No","informSeekers":"True","cardInfo":"All time bonus cards held at the end of this round are worth 50% extra.","extraInfo":"This curse cannot be played if the hider would be outside their new zone once the curse takes effect; it must be played within a half radius of the station."},
-  {"id":41,"name":"Curse of the Trickster","castingCost":"Discard a curse.","stopsQuestion":"No","informSeekers":"True","cardInfo":"You may lie — or provide a false photo — for one of the next three questions that the seekers ask. As always, you must send a photo of this curse when cast.","extraInfo":"You are not required to lie after playing this curse; you may choose to answer the next three questions truthfully."},
-  {"id":42,"name":"Curse of the Impenetrable Fog","castingCost":"Roll a die. If it's odd, this curse has no effect.","stopsQuestion":"No","informSeekers":"True","cardInfo":"For the next hour, any time the seekers reach a street intersection, they must assign each direction to a number on their die. They may assign a direction to multiple numbers, but each direction must be assigned to at least one. Then, they roll the die to see what direction to go.","extraInfo":"\"Intersection\" here is defined as any point along a named path or street (i.e. has a name on whatever mapping app you choose to use) where the player has an opportunity to turn onto one or more different named paths or streets. If there are somehow more than six divergent paths, a random number generator can be used instead of a die."},
-  {"id":43,"name":"Curse of the Drained Brain","castingCost":"Discard your hand. Your hand has to have at least 2 cards beside this curse when played.","stopsQuestion":"No","informSeekers":"True","cardInfo":"Choose three specific questions in different categories. The seekers cannot ask those questions for the rest of your run.","extraInfo":"This curse may be used (and its price paid) during the time interval between a question and its answer, allowing a player to discard their hand before receiving the reward from a given question. You may not, however, ban the question that has just been asked, even if you have not yet answered it. Questions removed from the game using this curse cannot be asked, even for increased cost. The discard your whole hand overrides any other card or curse, to play this you must discard every card in your hand."},
-  {"id":44,"name":"Curse of the Cairn","castingCost":"Build a rock tower.","stopsQuestion":"Yes","informSeekers":"True","cardInfo":"You have one attempt to stack as many rocks on top of each other as you can in a freestanding tower. Each rock may only touch one other rock. Once you have added a rock to the tower, it may not be removed. Before adding another rock, the tower must stand for at least five seconds. If at any point, any rock other than the base rock touches the ground, your tower has fallen. Once your tower falls, tell the seekers how many rocks high your tower was when it last stood for five seconds. The seekers must then construct a rock tower of the same number of rocks, under the same parameters, before asking another question. If their tower falls, they must restart. The rocks must be found in nature, and both teams must disperse the rocks after building.","extraInfo":"Once the cost is fulfilled, this curse must be cast immediately. \"Found in nature,\" in this context, does not necessarily mean found in a natural space or untouched by humans; it simply means that you must find the rocks yourself, and cannot buy them."},
-  {"id":45,"name":"Curse of Water Weight","castingCost":"Seekers must be within 400m of an open grocery store. And within 400m of a body of water.","stopsQuestion":"Yes until acquired","informSeekers":"True","cardInfo":"The seekers must acquire and carry at least 2 liters of liquid per seeker for the rest of your run. They cannot ask another question until they have acquired the liquid. The water may be distributed between seekers as they see fit. If the liquid is lost or abandoned at any point after acquisition, the hider is awarded a 30 minute bonus.","extraInfo":"Any liquid already traveling with the seekers at the time that this card is played (e.g. water bottles) does not count. The liquid can be in any number of containers, and can be passed back and forth between the seekers at any time. The liquid can be sat down when the seekers are stationary or on transit, but it is considered \"abandoned\" once it is no longer within 10 feet of any seeker. The hider must be informed of their bonus immediately. \"Body of water\" within this context does not necessarily mean natural, but it cannot be a pool and must be large enough to be marked on the map."},
-  {"id":46,"name":"Curse of the Shrewd Critic","castingCost":"Seekers must be currently off-transit within 150 meters of a location that has at least a 4.3 star average rating on Google Maps.","stopsQuestion":"Yes","informSeekers":"True","cardInfo":"Without using the internet, the seekers must find and visit a location (going inside or immediately outside) that has at least a 4.3 star average rating on Google Maps before asking another question. If their guess was wrong, they must wait 2 minutes before guessing another location. They cannot be on transit when submitting a guess.","extraInfo":"If the guessed location does not have a Google pin or any reviews, seekers may make another guess immediately. \"Off-transit\" means that players have physically disembarked their last form of transit and that it has left the station (i.e. you cannot temporarily step off a train while it's stopped to fulfill the condition.)"},
-  {"id":47,"name":"Curse of the Soothsayer","castingCost":"Discard a curse and a powerup.","stopsQuestion":"No","informSeekers":"True","cardInfo":"For the rest of the round, you may choose to predict the next question after each question is asked. If you are right, you earn triple rewards. If you are wrong, you earn no reward.","extraInfo":"\"Triple rewards\" means that the reward is earned three times in succession, not all at once (i.e. a radar question would have you draw two, keep one, draw two, keep one, draw two, keep one.) If you already have a double reward or similar it's not multiplied but stacked; for example a double + a triple becomes a 4x not a 6x."},
-  {"id":48,"name":"Curse of Featherless Flight","castingCost":"Throw and retrieve a paper airplane.","stopsQuestion":"Yes","informSeekers":"True","cardInfo":"Construct a paper airplane. You may practice throwing it, but you get one official attempt to measure how far it flies horizontally. The seekers must construct, throw, and retrieve an airplane from at least the same distance before asking another question.","extraInfo":"A paper airplane may take any form, but must be constructed entirely from paper. The paper airplane may be thrown from a height in order to achieve extra lateral distance."},
-  {"id":49,"name":"Curse of the Mind Meld","castingCost":"Discard a card.","stopsQuestion":"Yes","informSeekers":"True","cardInfo":"On the count of three, any two seekers say any word at the same time. Assuming they're not the same word, they must wait 1 minute, and both seekers say a new word that they believe to be the midpoint between the last two words. You may not say any words that have already been said, or do anything at all to indicate what word you will say next.\nSeekers may not ask another question until they both say the same word.","extraInfo":""},
-  {"id":50,"name":"Curse of the Zoologist","castingCost":"A photo of an animal.","stopsQuestion":"Yes","informSeekers":"True","cardInfo":"Take a photo of a wild fish, bird, mammal, reptile, amphibian, or bug.\nThe seekers must take a picture of a wild animal in the same category before asking another question.","extraInfo":"\"Bug\" in this context refers to any insect, arachnid, diplopoda, chilopoda, or anything else that would be colloquially and commonly referred to as a \"bug\". \"Wild\" in this context means undomesticated and not kept in human captivity, including large-scale outdoor instances of captivity, such as farms or sanctuaries. The photo must include enough of the animal to be recognizable within its category. If there is any dispute as to an animal's classification, defer to Wikipedia. Animals outside of any of these categories (such as crustaceans) cannot be used for this curse. The seekers may abandon this question for a 20 minute penalty period."},
-  {"id":51,"name":"Curse of the Archaeologist","castingCost":"A standard photo of a building or structure.","stopsQuestion":"Yes","informSeekers":"True","cardInfo":"Send the seekers a photo of a building or structure whose age you can verify to within a century. The seekers must find a building or structure (whose age they can also verify) from the same century or earlier before asking another question.","extraInfo":"\"Building or structure\" encompasses any manmade objects. To verify the age, you must have at least one credible source that specifically references that object. Partially rebuilt or renovated structures may use their original build date, but fully rebuilt structures (or structures designed to emulate an older structure) may not."},
-  {"id":52,"name":"Curse of the Rewind","castingCost":"The last question must have been asked during the endgame.","stopsQuestion":"No","informSeekers":"True","cardInfo":"Seekers must ask their next question from the exact place they asked their last question.","extraInfo":"It is the responsibility of the hider to keep track of where the last question was asked (and therefore where the seekers must return before asking their next question.)"},
-  {"id":53,"name":"Curse of the Pong Champion","castingCost":"Successfully land the die in three attempts.","stopsQuestion":"Yes","informSeekers":"True","cardInfo":"Throw a die into a container (maximum 15 cm in diameter) from any distance you choose. You have three attempts. Seekers must throw a die into a container from the same horizontal distance before asking another question, but must wait 1 minute between attempts.","extraInfo":"Players may not practice or solicit any external support from people outside the game. The hider attempt follows the same parameters as the seeker attempt. The dice must come to rest in the cup; if they enter but bounce out, they are not scored."},
-  {"id":54,"name":"Curse of the Plagued Word","castingCost":"Seekers must be at least 2 km from you.","stopsQuestion":"No","informSeekers":"True","cardInfo":"For the next 45 minutes, asking a question creates a 500 m radius where questions cannot be asked until this curse expires.","extraInfo":"The radiuses disappear after 45 minutes."},
-  {"id":55,"name":"Curse of the Curious Explorer","castingCost":"Seekers must be off-transit within 1 km of a museum that is open for at least another hour. Discard 2 cards.","stopsQuestion":"Yes","informSeekers":"True","cardInfo":"Seekers must spend at least 10 minutes in a museum before asking another question. If there is an entry fee, they may wait in the lobby or directly outside.","extraInfo":"\"Museum\" is anything categorized as a museum by the mapping app you are using. Players may also choose to wait outside if the museum is closed by the time they arrive. \"Off-transit\" means that players have physically disembarked their last form of transit and that it has left the station (i.e. you cannot temporarily step off a train while it's stopped to fulfill the condition.)"},
-  {"id":56,"name":"Curse of the Bargain Hunter","castingCost":"A photo of a price tag. The seekers have to be within 400m of an open grocery store.","stopsQuestion":"Yes","informSeekers":"True","cardInfo":"Send the seekers a picture of a discounted price tag (or other written discount) that you found in the real world. They must find an item that is equally (or more) discounted, by percentage, before asking another question.","extraInfo":"The discount cannot be found online or in a publication; it must be in a store that is selling that item in-person. The discount must be clearly marked as being a discount; it can't just be an item that happens to be cheaper than normal."},
-  {"id":57,"name":"Curse of the Prosperous Home","castingCost":"Discard at least 20 minutes worth of time bonuses.","stopsQuestion":"No","informSeekers":"True","cardInfo":"Expand the radius of your hiding zone by 50%.","extraInfo":"Players may not discard part of a time bonus; they must discard cards in their entirety. It is possible that players may have to discard more than the required number of minutes in order to pay for this curse."},
-  {"id":58,"name":"Curse of the Gambler's Feet","castingCost":"Roll a die. If it's an even number, this curse has no effect.","stopsQuestion":"No","informSeekers":"True","cardInfo":"For the next 20 minutes, seekers must roll a die before they take any steps in any direction. They may take that many steps before rolling again.","extraInfo":"The die rolled for this curse must be a d6. If there are multiple seekers, seekers may choose to roll independently or have one die dictate steps for all seekers at once; either is acceptable. If seekers accidentally take extra steps, they should stop and roll the die retroactively until they have made up for all the unaccounted steps. Seekers cannot take unaccounted steps on purpose, except in situations where it would be unsafe to not take extra steps (such as crossing a busy road.)"},
-  {"id":59,"name":"Curse of the Unguided Tourist","castingCost":"Seekers must be outside.","stopsQuestion":"Yes","informSeekers":"True","cardInfo":"Send the seekers an unzoomed Google Street View image from a street within 150 meters of where they are now. The shot has to be parallel to the horizon and include at least one human-built structure other than a road. Without using the internet for research, they must find what you sent them in real life before they can use transportation or ask another question. They must send a picture to the hider for verification.","extraInfo":"The human-built structure in question cannot be any part of a road, including curbs or sidewalks. If you are playing in a country or area with highly limited Google Street View coverage (such as Germany), this curse should be removed from the deck."},
-  {"id":60,"name":"Curse of the Seventh Seal","castingCost":"Discard twelve curses.","stopsQuestion":"No","informSeekers":"True","cardInfo":"Your current hiding time, excluding bonuses, is doubled. All remaining time this run is not doubled.","extraInfo":"It's not impossible but hard to get your hand size of thirteen and get twelve other curses - good luck. This may be kept to the end of the game and played after you've been found given that you have 12 other curses."},
-  {"id":61,"name":"Curse of the Data Leak","castingCost":"Discard 4 minutes worth of time bonuses.","stopsQuestion":"No","informSeekers":"True","cardInfo":"For the rest of the run, seekers must tell you their route and destination every time they board any form of transit. They may not disembark at any other destination unless forced to.","extraInfo":"\"Route\" includes start and end destinations and the line of transit (if applicable.) If forced off a route for any reason, the hider must be notified immediately. Players may not discard part of a time bonus; they must discard cards in their entirety. It is possible that players may have to discard more than the required number of minutes in order to pay for this curse."},
-  {"id":62,"name":"Curse of the Luxury Car","castingCost":"A photo of a car.","stopsQuestion":"Yes","informSeekers":"True","cardInfo":"Take a photo of a car. The seekers must take a photo of a more expensive car before asking another question.","extraInfo":"You must be able to identify the car in question when sending the photo, and the seekers must agree that it is, in fact, the car that you claim that it is. Use the MSRP of the car, factoring in its year of production, and disregarding any add-ons or modifications that may have been paid for. The photo sent to the seekers must include enough of the car for it to be identifiable. All of these rules also apply to the car found by the seekers. If you cannot confirm a car's exact production year or exact model, both sides must come to a consensus on which model and year to use for determining price."},
-  {"id":63,"name":"Curse of the Seabird","castingCost":"Seekers must be off-transit within 1 km of a natural body of water. Make a photo of a bird under the same conditions.","stopsQuestion":"Yes","informSeekers":"True","cardInfo":"Seekers must photograph a bird within 3 meters of a body of water. If, after 30 minutes, no bird has been photographed, this curse is automatically cleared.","extraInfo":"\"Body of water\" can be natural or manmade, but must be large enough to be visible on the mapping app you are using. \"Off-transit\" means that players have physically disembarked their last form of transit and that it has left the station (i.e. you cannot temporarily step off a train while it's stopped to fulfill the condition.)"},
-  {"id":64,"name":"Curse of the Post Office","castingCost":"Seekers must be within 1 km of a post office that is open for the next hour. You must provide them with your home address.","stopsQuestion":"Yes until done","informSeekers":"True","cardInfo":"Seekers must successfully mail a letter with their next question in it to your home address before asking another question.","extraInfo":"After the letter has been mailed, they may also use any other form of communication to ask you the question."},
-  {"id":65,"name":"Curse of the Passenger Princess","castingCost":"Discard two cards.","stopsQuestion":"No","informSeekers":"True","cardInfo":"The hider selects one seeker to be the passenger princess for the next S 30 M 45 L 60 minutes. The other seeker is the driver.\nThe passenger princess is not permitted to carry their own belongings, do any research, hold any maps, or discuss the game in any way.\nThey may be involved in clearing curses if instructed to do so.","extraInfo":"If there are more than two seekers, there is still only one passenger princess. If there is only one seeker, this card cannot be played. The passenger princess may speak to the other seeker(s) as normal, but must effectively act as though the game does not exist and cannot provide any substantive commentary that could help the other players in any way."},
-  {"id":66,"name":"Curse of the Landline Metric","castingCost":"Seekers must be at least 6 km from you.","stopsQuestion":"No","informSeekers":"True","cardInfo":"For the next 35 minutes, seekers may only use their phone for game-related purposes while it is charging via a wall outlet.","extraInfo":""},
-  {"id":67,"name":"Curse of the Strider","castingCost":"Travel a distance on foot.","stopsQuestion":"Yes","informSeekers":"True","cardInfo":"Walk or run any total distance over the course of 30 minutes. The seekers must travel that same distance together, on foot before asking another question (e.g. the hider runs 3 miles, the seekers must each walk/run 3 miles.)","extraInfo":""},
-  {"id":68,"name":"Curse of the Divine Blessing","castingCost":"Discard 9 curses.","stopsQuestion":"No","informSeekers":"False","cardInfo":"For the rest of the round, keep all cards drawn. Hand size limit still applies.","extraInfo":""},
-  {"id":69,"name":"Curse of the Okaihau Express","castingCost":"Discard three time bonuses.","stopsQuestion":"Yes","informSeekers":"True","cardInfo":"Seekers must record and send a video of themselves singing the first seventeen rows, memorized lyrics of Okaihau Express by Peter Cape — without any outside support — before asking another question. It is up to you, however, to prove if they have made a mistake.","extraInfo":"The full lyrics are as follows:\nShe starts out from Otiria, the smallest train you've seen\nThis is the Okaihau Express\nAn engine and a guardsvan with a carriage in between\nThis is the Okaihau Express\n\nThe driver doesn't worry if he takes the journey slow\nDriving the Okaihau Express\nHe's got all day to do it in and 30 miles to go\nDriving the Okaihau Express\n\nShe was goin' round the bend doin' 10 miles an hour\nThe whistle began to shriek\nWell she caught that bull in the middle of the brisket\nAnd the engine smelled of steak for a week\n\nThere's puppies in an apple box, pippies in a sack\nRiding the Okaihau Express\nBut no-one knows the difference when they're drippin' from the rack\nRiding the Okaihau Express\n\nShe stops at lake Omapere, to take some water in\nThis is the Okaihau Express\nThe fireman takes a bucket, the driver takes a swim\nThis is the Okaihau Express\n\nOkaihau to Otiria, it's just a single track\nThis is the Okaihau Express\nYou can't turn it at the terminus, you just reverse her back\nThis is the Okaihau Express"},
-  {"id":70,"name":"Curse of the Non-Dominant Hand","castingCost":"Discard a card.","stopsQuestion":"No","informSeekers":"True","cardInfo":"For the next S 30 M 45 L 60 minutes, seekers may not use their dominant hand for any game-related task. That includes using their phone, completing a challenge, or writing anything on a map. If you're ambidextrous, choose a hand.","extraInfo":""},
-  {"id":71,"name":"Curse of the Strongman","castingCost":"Do X push-ups.","stopsQuestion":"Yes","informSeekers":"True","cardInfo":"One hider completes as many push-ups as they can over the course of 15 minutes. They may use any standard of push-up (i.e., using knees, chest touches ground, chest touches fist, etc.) The seekers must collectively do this many push-ups of the same standard before asking another question.","extraInfo":""},
-  {"id":72,"name":"Curse of the Anonymous Benefactor","castingCost":"Donate money under the same circumstances.","stopsQuestion":"Yes","informSeekers":"True","cardInfo":"Seekers must place one dollar/euro/pound (or your country's equivalent) in a public place and confirm that it has been taken by a stranger before asking another question. Seekers cannot speak directly to any strangers about the money.","extraInfo":""},
-  {"id":73,"name":"Curse of the Zipped Lip","castingCost":"Discard a powerup.","stopsQuestion":"No","informSeekers":"True","cardInfo":"Seekers can only communicate to one another through gestures and closed-mouth non-word sounds for the next 10 minutes. They can speak to other people, but cannot speak or write any message intended for another seeker.","extraInfo":""},
-  {"id":74,"name":"Curse of the Jammed Door","castingCost":"See extra info for full ruling.","stopsQuestion":"Conditional","informSeekers":"False","cardInfo":"Seekers must roll two d6 dice to enter any doorway to a separate building for the next 30 minutes. They must roll a combined total of 8 or higher to enter. If they fail, they must wait 2 minutes before trying again.","extraInfo":"Dice can only be rolled to enter a doorway once the doorway is visible to the seekers. For example, if you are attempting to roll to enter a train, you cannot roll the dice before the train arrives; you must be able to see the train door first. Doorways within a building that lead to other parts of the same building, such as a store within a train station, do not need to pass a dice check. If there is any reasonable dispute as to whether something counts as a separate building, err on the side of doing a dice check. If the curse expires while a doorway is on cooldown, that cooldown also immediately expires."}
+  {
+    "id": 1,
+    "name": "Curse of the Ransom Note",
+    "castingCost": "Spell out \"ransom note\" as a ransom note (without using this card).",
+    "stopsQuestion": "No",
+    "informSeekers": "True",
+    "cardInfo": "The next question that the seekers ask must be composed of words and letters cut out of any printed material.\nThe question must be coherent and include at least 5 words.",
+    "extraInfo": "Once the cost is fulfilled, this curse must be cast immediately. The printed material cannot be printed by the seekers; the letters should be gathered from magazines, newspapers, or any other material that the seekers encounter in the wild. \"Coherence\" in this context does not necessarily mean complete sentences, but the hider should be able to discern the meaning of the question without further clarification. You may use easy-to-understand abbreviations for certain words (such as \"2\" instead of \"to.\") If the question requires additional context outside of the basic sentence itself, this context does NOT need to be provided in the form of a ransom note. For example, if you are asking a thermometer question, you can simply ask something along the lines of, \"Went 5 miles. Hotter/colder?\" Any information about where you started and ended the thermometer can be provided as normal, in the form of a location pin or text."
+  },
+  {
+    "id": 2,
+    "name": "Curse of the Urban Explorer",
+    "castingCost": "Discard 3 cards.",
+    "stopsQuestion": "No",
+    "informSeekers": "True",
+    "cardInfo": "For the rest of your run, seekers cannot ask questions when they are on transit or in a transit station.",
+    "extraInfo": "Any pending questions that were asked on transit before this curse was played must still be answered. Questions can still be asked outside of transit stations, but seekers cannot be on a platform or in any building associated with the transit station when asking questions."
+  },
+  {
+    "id": 3,
+    "name": "Curse of the Labyrinth",
+    "castingCost": "Draw a maze",
+    "stopsQuestion": "Yes",
+    "informSeekers": "True",
+    "cardInfo": "Spend up to S 10 M 20 L 30 minutes drawing a solvable maze and send a photo of it to the seekers. You cannot use the internet to research maze designs. The seekers must solve the maze before asking another question.",
+    "extraInfo": "\"Solvable,\" in this context, refers to a conventional solution to the maze–you must be able to draw an unbroken line from the start of the maze to the end of the maze. Your time limit begins from the moment you draw your first line; time spent gathering materials does not count. You may discard your maze and start drawing a new maze at any point, but you cannot restart your timer. You may not consult the internet or any other materials when drawing your maze; it must come entirely from your own head. The photo must be of a good enough quality so that the minimum distance between two walls in the maze may be 6 pixels."
+  },
+  {
+    "id": 4,
+    "name": "Curse of the Queue",
+    "castingCost": "You must currently be in line somewhere. You must be in the line at least 20 seconds in total.",
+    "stopsQuestion": "Yes",
+    "informSeekers": "True",
+    "cardInfo": "Seekers may not ask another question until they've waited in line for at least five minutes. They may wait in different lines, but they cannot wait in the same line more than once. They may not let people cut in front of them in line, and lines must have at least two people when they enter them.",
+    "extraInfo": "Players are considered no longer in line once there are no more people in front of them."
+  },
+  {
+    "id": 5,
+    "name": "Curse of the Hide-And-Seek-Ception",
+    "castingCost": "The seekers must be off-transit, at least 300 meters from a transit station.",
+    "stopsQuestion": "Yes",
+    "informSeekers": "True",
+    "cardInfo": "All seekers but one must close their eyes. Without discussion, the remaining seeker must go somewhere at least 100 meters away and not within direct eyeshot in any direction. The other seekers must find them, without asking them for any information, before asking another question. The seeker must choose a seeker that counts to a hundred before starting to look.",
+    "extraInfo": "The hiding seeker may call or text the other seeker(s) when they are in position, but no more communication is allowed. \"Off-transit\" means that players have physically disembarked their last form of transit and that it has left the station (i.e. you cannot temporarily step off a train while it's stopped to fulfill the condition.)"
+  },
+  {
+    "id": 6,
+    "name": "Curse of the Hidden Hangman",
+    "castingCost": "Discard 3 cards.",
+    "stopsQuestion": "Yes",
+    "informSeekers": "True",
+    "cardInfo": "Before asking another question or boarding another form of transportation, seekers must beat the hider in a game of hangman. To play, the hider chooses a 5 letter word, and the game ends after either a correct word guess or 7 wrong letter guesses (head, body, two arms, two legs, and a hat). The hider must respond to all queries within 30 seconds. The seekers cannot challenge the hider for 10 minutes after a loss. After S1 M2 L3 losses, the seekers must wait 10 more minutes and then the curse is cleared.",
+    "extraInfo": "The chosen five-letter word must be a real word, found in a dictionary, in the language that the game is being played in. You cannot, for example, use a French word if all players only speak English. If the hider ever fails to respond to a query in 30 seconds, this curse is instantly cleared. In our case the word has to be Swedish."
+  },
+  {
+    "id": 7,
+    "name": "Curse of the Quill",
+    "castingCost": "Seekers must be within at least two shops or/and restaurants in the nearest 500m. Discard 2 cards.",
+    "stopsQuestion": "Yes",
+    "informSeekers": "True",
+    "cardInfo": "Before asking another question, the seekers must spell out the name of the category they intend to use (e.g. PHOTO or MATCHING) by sending photos of handwritten letters they've found out in the world. The letters do not all need to be found in the same place, but they must be created by other people and not printed by any kind of machine. They cannot use a letter twice.",
+    "extraInfo": "The category words are: MATCHING, MEASURING, RADAR, THERMOMETER, PHOTO, TENTACLES. There must be reasonable evidence to suggest that a handwritten letter was written directly on the surface by a person (with a pencil, pen, marker, paintbrush, spray can, chalk, etc.) and not printed."
+  },
+  {
+    "id": 8,
+    "name": "Curse of the Right Turn",
+    "castingCost": "Discard a card.",
+    "stopsQuestion": "No",
+    "informSeekers": "True",
+    "cardInfo": "For the next S 20 M 40 L 60 minutes, the seekers can only turn right at any street intersection. If, at any point, they find themselves in a dead end where they cannot continue forward or turn right for another 300 meters, they may do a full 180. A right turn is defined as a road at any angle that veers to the right of the seekers.",
+    "extraInfo": "This curse only applies to street intersections, meaning the intersection between two roads intended for cars (or pedestrian sidewalks along those roads.) This curse would not have any effects indoors, or in an area where there are no streets."
+  },
+  {
+    "id": 9,
+    "name": "Curse of the Egg Partner",
+    "castingCost": "Discard two cards. The seekers must be at most 400m from an open grocery store.",
+    "stopsQuestion": "Yes until acquired",
+    "informSeekers": "True",
+    "cardInfo": "The seekers must acquire an egg before asking another question. This egg is now treated as an official team member of the seekers. If any team members are abandoned or killed (defined as any crack, in the egg's case) before the end of your run, you are awarded an extra S 30 M 45 L 60 minutes. This curse cannot be played during the endgame.",
+    "extraInfo": "The egg can be from any type of animal, but it must be a real egg (a chocolate egg or a plastic egg, for example, would not count.) Any visible fracture, however small, counts as killing the egg. If you do not want to buy items during the course of your game, or object to this curse on ethical grounds, this curse should be removed from the deck. For any other curse that requires all seekers to do something, the egg counts as a seeker. For example, using the Curse of the Lemon Phylactery after this curse has been played would require the egg to have a lemon attached to it."
+  },
+  {
+    "id": 10,
+    "name": "Curse of the Lemon Phylactery",
+    "castingCost": "Discard a powerup. The seekers must be at most 400m from an open grocery store.",
+    "stopsQuestion": "Yes until acquired",
+    "informSeekers": "True",
+    "cardInfo": "Before asking another question, the seekers must each find a lemon and affix it to the outermost layer of their clothes or skin. If, at any point, one of these lemons is no longer touching a seeker, you are awarded an extra S 30 M 45 L 60 minutes. This curse cannot be played during the endgame.",
+    "extraInfo": "The lemon must be a real lemon. It can be affixed using any means, but must be constantly touching the seeker's skin or clothes. Once the lemon falls, the hider should be informed of their bonus immediately."
+  },
+  {
+    "id": 11,
+    "name": "Curse of the Runner",
+    "castingCost": "Run 600m in 5 min. Use Strava to measure.",
+    "stopsQuestion": "No",
+    "informSeekers": "True",
+    "cardInfo": "For the next S 30 M 45 L 60 minutes, the seekers are only allowed to run or be still. They may not walk.",
+    "extraInfo": "\"Running\" is defined as a gait that does not have a double-support phase (i.e. both feet cannot be touching the ground at the same time.) If players want to be still and place both feet on the ground simultaneously, they must do so for 5 seconds or longer. Players may not discard part of a time bonus; they must discard cards in their entirety. It is possible that players may have to discard more than the required number of minutes in order to pay for this curse."
+  },
+  {
+    "id": 12,
+    "name": "Curse of the 5-Minute King",
+    "castingCost": "Discard two 5-minute bonus cards.",
+    "stopsQuestion": "No",
+    "informSeekers": "False",
+    "cardInfo": "Remove all 5-minute bonuses from the deck for the rest of your run. After doing so, you must reshuffle the deck.",
+    "extraInfo": ""
+  },
+  {
+    "id": 13,
+    "name": "Curse of the Void",
+    "castingCost": "Discard a veto.",
+    "stopsQuestion": "No",
+    "informSeekers": "True",
+    "cardInfo": "For the next three questions that the seekers ask, roll a die. If you roll a 1, 2, or 3 that question is automatically vetoed.",
+    "extraInfo": "If the seekers had a free question and it's vetoed by this curse, the next question is a draw 1 keep 1 unless another curse changes something."
+  },
+  {
+    "id": 14,
+    "name": "Curse of the Empty Mind",
+    "castingCost": "You cannot draw cards for the rest of the round.",
+    "stopsQuestion": "No",
+    "informSeekers": "False",
+    "cardInfo": "Search through the deck and choose any three cards to add to your hand. You must play this curse immediately.",
+    "extraInfo": "\"Immediately\" means that this curse never enters your hand; it is played the moment it is chosen. Cards must be chosen before the next question is asked."
+  },
+  {
+    "id": 15,
+    "name": "Curse of the Overflowing Chalice",
+    "castingCost": "Discard a card.",
+    "stopsQuestion": "No",
+    "informSeekers": "False",
+    "cardInfo": "For the next three questions, you may draw (not keep) an additional card when drawing from the hider deck.",
+    "extraInfo": ""
+  },
+  {
+    "id": 16,
+    "name": "Curse of the Long Shot",
+    "castingCost": "Seekers must be within 3km of you. Discard a curse.",
+    "stopsQuestion": "No",
+    "informSeekers": "True",
+    "cardInfo": "Once this curse is cast, the seekers have five minutes to provide one guess as to what transit station you are centered at. This is done by then giving a radius of 500m from any point. If they are correct (your station is inside), you must tell them so. If they are incorrect, they are frozen for 10 minutes.",
+    "extraInfo": "When seekers are \"frozen,\" they cannot make progress on clearing other curses or take any form of transit. If they are currently on transit when they become frozen, they must disembark at the next opportunity and wait out the rest of their freeze period at that station. Players may walk around freely while frozen for non game-related reasons, but must resume from the place where they were frozen when the freeze period concludes."
+  },
+  {
+    "id": 17,
+    "name": "Curse of the Bridge Troll",
+    "castingCost": "Seekers must be at least 2 km from you and need to have an accessible bridge within 1km of them.",
+    "stopsQuestion": "No",
+    "informSeekers": "True",
+    "cardInfo": "The seekers must ask their next question from under a bridge.",
+    "extraInfo": "\"Bridge\" is defined as any elevated structure, acting as a path, road or railway, intended to be crossed by pedestrians, cars, or other vehicles. All seekers must have some part of their body under some part of the bridge when the next question is asked. If there are no bridges on the game map, this curse should be removed from the deck."
+  },
+  {
+    "id": 18,
+    "name": "Curse of the Oracle",
+    "castingCost": "Discard two cards.",
+    "stopsQuestion": "Yes",
+    "informSeekers": "True",
+    "cardInfo": "Seekers must flip a coin and predict its outcome while it is in the air. If they are correct, they do it again.\nIf they are wrong, they must wait 30 seconds. They may not ask another question until they get it correct three times in a row.",
+    "extraInfo": ""
+  },
+  {
+    "id": 19,
+    "name": "Curse of the Chasm",
+    "castingCost": "Discard a randomize.",
+    "stopsQuestion": "No",
+    "informSeekers": "True",
+    "cardInfo": "For the next three questions that the seekers ask, they must roll a die. If they roll a 1, 2, or 3 that question is automatically randomized.",
+    "extraInfo": ""
+  },
+  {
+    "id": 20,
+    "name": "Curse of the Express Route",
+    "castingCost": "Discard at least 10 minutes worth of time bonuses.",
+    "stopsQuestion": "No",
+    "informSeekers": "True",
+    "cardInfo": "Seekers cannot disembark any transit for the next 10 minutes, unless they've reached the end of a line.",
+    "extraInfo": "Players may not discard part of a time bonus; they must discard cards in their entirety. It is possible that players may have to discard more than the required number of minutes in order to pay for this curse."
+  },
+  {
+    "id": 21,
+    "name": "Curse of the Endless Tumble",
+    "castingCost": "Roll a die. If it's a 5 or a 6, this card has no effect.",
+    "stopsQuestion": "Yes",
+    "informSeekers": "True",
+    "cardInfo": "Seekers must roll a die at least 30 meters and have it land on a 5 or a 6 before they can ask another question.\nThe die must roll the full distance, unaided, using only the momentum from the initial throw and gravity to travel the 30 meters. If the seekers accidentally hit someone with a die, you are awarded a 10 minute bonus.",
+    "extraInfo": "30 metres is measured parallel to the ground. The die can, and likely should, be rolled on an inclined surface. If the die is lost or does not land cleanly on one side, it cannot be counted. Any bonuses awarded to the hider should be delivered immediately."
+  },
+  {
+    "id": 22,
+    "name": "Curse of the Mediocre Travel Agent",
+    "castingCost": "Their vacation destination must be further from you than their current location.",
+    "stopsQuestion": "Yes",
+    "informSeekers": "True",
+    "cardInfo": "Choose any publicly-accessible place within 500 m of the seekers' current location. They cannot currently be on transit. They must go there, and spend at least 5 minutes, before asking another question. They must send you at least three photos of them enjoying their vacation, and procure an object to bring you as a souvenir. If this souvenir is lost before they can give it to you, you are awarded an extra 30 minutes.",
+    "extraInfo": "\"Publicly accessible\" in this context follows the same rules as \"publicly accessible\" in the context of hiding spots. The destination does not need to be a single point; it can be a small general area like a park or store. The souvenir can be literally any physical object. It does not need to be with the seekers at all times, but it must be with them at the moment that the hider is caught."
+  },
+  {
+    "id": 23,
+    "name": "Curse of the Prophet",
+    "castingCost": "Discard two cards.",
+    "stopsQuestion": "No",
+    "informSeekers": "False",
+    "cardInfo": "Rearrange the top ten cards of the deck in any order you choose.",
+    "extraInfo": ""
+  },
+  {
+    "id": 24,
+    "name": "Curse of the Clone",
+    "castingCost": "Find a stranger. The seekers have to be in a populated area; at minimum 10 open shops or service places (like barbershops) within 500m of them.",
+    "stopsQuestion": "Yes",
+    "informSeekers": "True",
+    "cardInfo": "Find a stranger in public and note the following things about them:\nDo they have long sleeves or short sleeves?\nDo they have long pants/skirt or short pants/skirt?\nDo they have glasses or no glasses?\nDo they have a hat or no hat?\nDo they have a bag or no bag?\nThe seekers must find a stranger with the same qualities before asking another question.",
+    "extraInfo": "Long sleeves are defined as sleeves that extend past the elbow, and long pants/skirts are defined as extending past the knee."
+  },
+  {
+    "id": 25,
+    "name": "Curse of the Sniper",
+    "castingCost": "A photo of the seekers.",
+    "stopsQuestion": "No",
+    "informSeekers": "True",
+    "cardInfo": "Send the seekers a photo you've taken of them. Upon receiving this curse, they have 60 seconds to take a photo of you and end your run (read extra info). If they fail, draw and keep five cards. You no longer have a maximum hand size. Also if they fail they are frozen for 2 minutes and you're allowed to find a new hiding spot during those 2 minutes (if in the endgame otherwise just hide).",
+    "extraInfo": "All seekers must be visible in the photo provided. The 60 seconds begins from the moment the curse and photo are delivered. You must immediately call the seekers to confirm that they have received the info then the 60 seconds begins."
+  },
+  {
+    "id": 26,
+    "name": "Curse of the Open Mind",
+    "castingCost": "Discard your whole hand.",
+    "stopsQuestion": "No",
+    "informSeekers": "False",
+    "cardInfo": "You no longer have a hand size limit.",
+    "extraInfo": "The discard your whole hand overrides any other card or curse, to play this you must discard every card in your hand."
+  },
+  {
+    "id": 27,
+    "name": "Curse of the Freewheeler",
+    "castingCost": "Seekers must be at least 4 km from you. The seekers must be within 500m of an SL spårvägslinje station or a bus station with at most 15 minutes traffic.",
+    "stopsQuestion": "Yes",
+    "informSeekers": "True",
+    "cardInfo": "The next three questions that the seekers ask must be asked while on a moving form of transit.",
+    "extraInfo": ""
+  },
+  {
+    "id": 28,
+    "name": "Curse of the Pomologist",
+    "castingCost": "A photo of a fruit. The seekers must be at most 400m from an open grocery store.",
+    "stopsQuestion": "Yes",
+    "informSeekers": "True",
+    "cardInfo": "Send the seekers a photo of a fruit, along with a link to its corresponding Wikipedia page. They must find the same type of fruit before asking another question. The hider must find this fruit in the real world.",
+    "extraInfo": "Specificity is defined by the title of the Wikipedia page (e.g. \"Golden Delicious\" is a variety of apple that has a Wikipedia page, so finding a Golden Delicious apple would require the seekers to do the same. \"Summerset\" is a variety of apple that does not have a Wikipedia page, so you could send the Wikipedia page for \"apple\" and the seekers could respond with anything that would fall under the category of \"apple.\") You cannot create a Wikipedia page. If the fruit is found without a plaque (or similar) explicitly mentioning its variety the hider may only send the general category of the fruit, for example apple for an apple. The seekers are able to abandon this question for a 25 minute penalty period. The hider is allowed to go to a botanical garden if it's within his zone."
+  },
+  {
+    "id": 29,
+    "name": "Curse of the Grass-Toucher",
+    "castingCost": "This curse must be cast at least 75 meters from any named street. If the seekers are in innerstan this curse costs 3 cards to play.",
+    "stopsQuestion": "No",
+    "informSeekers": "True",
+    "cardInfo": "The next question that the seekers ask must be asked at least 75 meters from any named street (on Google Maps.)\nAs always, no trespassing.",
+    "extraInfo": ""
+  },
+  {
+    "id": 30,
+    "name": "Curse of Spotty Memory",
+    "castingCost": "Discard a time bonus.",
+    "stopsQuestion": "No",
+    "informSeekers": "True",
+    "cardInfo": "For the rest of your run, one random category of questions will be disabled at all times. After this curse is played, seekers must roll a die to determine the category of questions to be disabled. This category remains disabled until the next question is asked, at which point a die is rolled again to choose a new category. The same category can be disabled multiple times in a row.",
+    "extraInfo": "The seekers should assign die numbers to each category before their first roll. For small-sized games, which only include five categories of questions, a six would result in a reroll."
+  },
+  {
+    "id": 31,
+    "name": "Curse of the Untethered Spirit",
+    "castingCost": "The tracker is reversed.",
+    "stopsQuestion": "No",
+    "informSeekers": "True",
+    "cardInfo": "You may move freely within your hiding zone during this round's endgame.",
+    "extraInfo": "When played the seekers may choose to have a pause period of the game until they receive a working location tracker of the hider. The hider or seekers may not move during this period. If the seekers choose to not have this period the hider still has to send his location as fast as possible but both parties are allowed to move."
+  },
+  {
+    "id": 32,
+    "name": "Curse of the Distant Cuisine",
+    "castingCost": "You must be at the restaurant.",
+    "stopsQuestion": "Yes",
+    "informSeekers": "True",
+    "cardInfo": "Find a restaurant within your zone that explicitly serves food from a specific foreign country. The seekers must visit a restaurant serving food from a country that is an equal or greater distance away before asking another question.",
+    "extraInfo": "The restaurants used in this curse must explicitly reference a single country or region within a single country within either their name or some other public-facing material such as a menu. If a restaurant associates itself with multiple countries, or a region larger than a single country (such as an \"Asian\" restaurant), it cannot be used for this curse. Distance from a given country is measured from your exact location to the nearest point in that country."
+  },
+  {
+    "id": 33,
+    "name": "Curse of the Shark",
+    "castingCost": "Discard a power-up.",
+    "stopsQuestion": "No",
+    "informSeekers": "True",
+    "cardInfo": "For the next 30 minutes, the seekers are not allowed to stop walking for any reason.",
+    "extraInfo": "The seekers may walk in small circles. Walking in place is not allowed. The same foot has to be placed at least 10cm from its previous place to count as walking, measuring centre to centre of the shoe."
+  },
+  {
+    "id": 34,
+    "name": "Curse of the U-Turn",
+    "castingCost": "Seekers must be heading the wrong way. (Their next station is further from you than they are.)",
+    "stopsQuestion": "No",
+    "informSeekers": "True",
+    "cardInfo": "The seekers must disembark their current mode of transportation at the next station (as long as that station is serviced by another form of transit in the next 30 minutes).",
+    "extraInfo": "\"Next Station,\" in this context, refers to the next station that the seekers' current mode of transit will stop at; if there are any stops along the line that their current route will skip, those should be disregarded. If you are not sure whether the seekers are on transit, or whether their route will stop at a particular station, you may ask them for that information. If there is any ambiguity, you should tell them what you believe their next station is when this curse is cast to confirm that you didn't misread their tracker. Even if the seekers' current mode of transit would eventually bring them closer to you, this curse may still be played so long as their next station is further; a line that heads in your direction but temporarily curves away is a particularly advantageous situation for this curse."
+  },
+  {
+    "id": 35,
+    "name": "Curse of the Planespotter",
+    "castingCost": "Seekers must be within 15 km of a commercial airport. Take a photo of an airplane flying.",
+    "stopsQuestion": "Yes",
+    "informSeekers": "True",
+    "cardInfo": "The seekers must take a photo of an airplane and send it to the hider before asking another question.",
+    "extraInfo": "An airplane is an object capable of self-propelled flight that isn't a helicopter, and has human pilots."
+  },
+  {
+    "id": 36,
+    "name": "Curse of the Impressionable Consumer",
+    "castingCost": "The seekers' next question is free. The seekers must be at most 400m from an open grocery store.",
+    "stopsQuestion": "Yes",
+    "informSeekers": "True",
+    "cardInfo": "Seekers must enter and gain admission (if applicable) to a location or buy a product that they saw an advertisement for before asking another question. This advertisement must be found out in the world, not on a seeker's device, and must be at least 30 meters from the product or location itself.",
+    "extraInfo": "Any object or display whose primary purpose is to raise awareness of a product, service, or business counts as an advertisement. If the advertisement is for a specific service, such as a massage, the seekers must pay for and receive the service advertised. If the advertisement is for a location but not a specific service, such as an amusement park, the seekers must enter that location. Locations that are not private businesses, such as a public park, do not count. If you do not want to be forced to potentially spend money to fulfill this curse, it should be removed from the deck."
+  },
+  {
+    "id": 37,
+    "name": "Curse of the Gilded Inquiry",
+    "castingCost": "The seekers' next question is free.",
+    "stopsQuestion": "No",
+    "informSeekers": "True",
+    "cardInfo": "Secretly choose one specific question. If the seekers ask that question after this curse is played, the question is automatically vetoed and you instantly draw and keep three extra cards.",
+    "extraInfo": "\"Vetoed\" in this case should be treated identically to a veto card being played; the question is not answered, no reward is given, and it is removed from the game for the rest of the round. If the veto happens on a question that the seekers had free they get their next question to be draw 1 keep 1."
+  },
+  {
+    "id": 38,
+    "name": "Curse of the Bird Guide",
+    "castingCost": "Film a bird.",
+    "stopsQuestion": "Yes",
+    "informSeekers": "True",
+    "cardInfo": "You have one chance to film a bird for as long as possible, up to 5 minutes straight. If, at any point, the bird leaves the frame, your timer is stopped. The seekers must then film a bird for the same amount of time or longer before asking another question.",
+    "extraInfo": "The bird must be in frame from the moment the video starts. It is considered \"in frame\" so long as there is any recognizable portion of the bird on camera. The seekers have unlimited attempts to accomplish this. The seekers may abandon this curse for a 25 minute time penalty."
+  },
+  {
+    "id": 39,
+    "name": "Curse of the Blind Wanderer",
+    "castingCost": "Seekers must be at least 4 km from you. The seekers must be within 500m of an SL spårvägslinje station or a bus station with at most 15 minute traffic.",
+    "stopsQuestion": "No",
+    "informSeekers": "True",
+    "cardInfo": "Seekers must ask their next question at least 2 km from where they are right now.",
+    "extraInfo": "This may not be played in the endgame."
+  },
+  {
+    "id": 40,
+    "name": "Curse of the Tiny Home",
+    "castingCost": "The radius of your hiding zone is halved. This curse cannot be played during the endgame.",
+    "stopsQuestion": "No",
+    "informSeekers": "True",
+    "cardInfo": "All time bonus cards held at the end of this round are worth 50% extra.",
+    "extraInfo": "This curse cannot be played if the hider would be outside their new zone once the curse takes effect; it must be played within a half radius of the station."
+  },
+  {
+    "id": 41,
+    "name": "Curse of the Trickster",
+    "castingCost": "Discard a curse.",
+    "stopsQuestion": "No",
+    "informSeekers": "True",
+    "cardInfo": "You may lie — or provide a false photo — for one of the next three questions that the seekers ask. As always, you must send a photo of this curse when cast.",
+    "extraInfo": "You are not required to lie after playing this curse; you may choose to answer the next three questions truthfully."
+  },
+  {
+    "id": 42,
+    "name": "Curse of the Impenetrable Fog",
+    "castingCost": "Roll a die. If it's odd, this curse has no effect.",
+    "stopsQuestion": "No",
+    "informSeekers": "True",
+    "cardInfo": "For the next hour, any time the seekers reach a street intersection, they must assign each direction to a number on their die. They may assign a direction to multiple numbers, but each direction must be assigned to at least one. Then, they roll the die to see what direction to go.",
+    "extraInfo": "\"Intersection\" here is defined as any point along a named path or street (i.e. has a name on whatever mapping app you choose to use) where the player has an opportunity to turn onto one or more different named paths or streets. If there are somehow more than six divergent paths, a random number generator can be used instead of a die."
+  },
+  {
+    "id": 43,
+    "name": "Curse of the Drained Brain",
+    "castingCost": "Discard your hand. Your hand has to have at least 2 cards beside this curse when played.",
+    "stopsQuestion": "No",
+    "informSeekers": "True",
+    "cardInfo": "Choose three specific questions in different categories. The seekers cannot ask those questions for the rest of your run.",
+    "extraInfo": "This curse may be used (and its price paid) during the time interval between a question and its answer, allowing a player to discard their hand before receiving the reward from a given question. You may not, however, ban the question that has just been asked, even if you have not yet answered it. Questions removed from the game using this curse cannot be asked, even for increased cost. The discard your whole hand overrides any other card or curse, to play this you must discard every card in your hand."
+  },
+  {
+    "id": 44,
+    "name": "Curse of the Cairn",
+    "castingCost": "Build a rock tower.",
+    "stopsQuestion": "Yes",
+    "informSeekers": "True",
+    "cardInfo": "You have one attempt to stack as many rocks on top of each other as you can in a freestanding tower. Each rock may only touch one other rock. Once you have added a rock to the tower, it may not be removed. Before adding another rock, the tower must stand for at least five seconds. If at any point, any rock other than the base rock touches the ground, your tower has fallen. Once your tower falls, tell the seekers how many rocks high your tower was when it last stood for five seconds. The seekers must then construct a rock tower of the same number of rocks, under the same parameters, before asking another question. If their tower falls, they must restart. The rocks must be found in nature, and both teams must disperse the rocks after building.",
+    "extraInfo": "Once the cost is fulfilled, this curse must be cast immediately. \"Found in nature,\" in this context, does not necessarily mean found in a natural space or untouched by humans; it simply means that you must find the rocks yourself, and cannot buy them."
+  },
+  {
+    "id": 45,
+    "name": "Curse of Water Weight",
+    "castingCost": "Seekers must be within 400m of an open grocery store. And within 400m of a body of water.",
+    "stopsQuestion": "Yes until acquired",
+    "informSeekers": "True",
+    "cardInfo": "The seekers must acquire and carry at least 2 liters of liquid per seeker for the rest of your run. They cannot ask another question until they have acquired the liquid. The water may be distributed between seekers as they see fit. If the liquid is lost or abandoned at any point after acquisition, the hider is awarded a 30 minute bonus.",
+    "extraInfo": "Any liquid already traveling with the seekers at the time that this card is played (e.g. water bottles) does not count. The liquid can be in any number of containers, and can be passed back and forth between the seekers at any time. The liquid can be sat down when the seekers are stationary or on transit, but it is considered \"abandoned\" once it is no longer within 10 feet of any seeker. The hider must be informed of their bonus immediately. \"Body of water\" within this context does not necessarily mean natural, but it cannot be a pool and must be large enough to be marked on the map."
+  },
+  {
+    "id": 46,
+    "name": "Curse of the Shrewd Critic",
+    "castingCost": "Seekers must be currently off-transit within 150 meters of a location that has at least a 4.3 star average rating on Google Maps.",
+    "stopsQuestion": "Yes",
+    "informSeekers": "True",
+    "cardInfo": "Without using the internet, the seekers must find and visit a location (going inside or immediately outside) that has at least a 4.3 star average rating on Google Maps before asking another question. If their guess was wrong, they must wait 2 minutes before guessing another location. They cannot be on transit when submitting a guess.",
+    "extraInfo": "If the guessed location does not have a Google pin or any reviews, seekers may make another guess immediately. \"Off-transit\" means that players have physically disembarked their last form of transit and that it has left the station (i.e. you cannot temporarily step off a train while it's stopped to fulfill the condition.)"
+  },
+  {
+    "id": 47,
+    "name": "Curse of the Soothsayer",
+    "castingCost": "Discard a curse and a powerup.",
+    "stopsQuestion": "No",
+    "informSeekers": "True",
+    "cardInfo": "For the rest of the round, you may choose to predict the next question after each question is asked. If you are right, you earn triple rewards. If you are wrong, you earn no reward.",
+    "extraInfo": "\"Triple rewards\" means that the reward is earned three times in succession, not all at once (i.e. a radar question would have you draw two, keep one, draw two, keep one, draw two, keep one.) If you already have a double reward or similar it's not multiplied but stacked; for example a double + a triple becomes a 4x not a 6x."
+  },
+  {
+    "id": 48,
+    "name": "Curse of Featherless Flight",
+    "castingCost": "Throw and retrieve a paper airplane.",
+    "stopsQuestion": "Yes",
+    "informSeekers": "True",
+    "cardInfo": "Construct a paper airplane. You may practice throwing it, but you get one official attempt to measure how far it flies horizontally. The seekers must construct, throw, and retrieve an airplane from at least the same distance before asking another question.",
+    "extraInfo": "A paper airplane may take any form, but must be constructed entirely from paper. The paper airplane may be thrown from a height in order to achieve extra lateral distance."
+  },
+  {
+    "id": 49,
+    "name": "Curse of the Mind Meld",
+    "castingCost": "Discard a card.",
+    "stopsQuestion": "Yes",
+    "informSeekers": "True",
+    "cardInfo": "On the count of three, any two seekers say any word at the same time. Assuming they're not the same word, they must wait 1 minute, and both seekers say a new word that they believe to be the midpoint between the last two words. You may not say any words that have already been said, or do anything at all to indicate what word you will say next.\nSeekers may not ask another question until they both say the same word.",
+    "extraInfo": ""
+  },
+  {
+    "id": 50,
+    "name": "Curse of the Zoologist",
+    "castingCost": "A photo of an animal.",
+    "stopsQuestion": "Yes",
+    "informSeekers": "True",
+    "cardInfo": "Take a photo of a wild fish, bird, mammal, reptile, amphibian, or bug.\nThe seekers must take a picture of a wild animal in the same category before asking another question.",
+    "extraInfo": "\"Bug\" in this context refers to any insect, arachnid, diplopoda, chilopoda, or anything else that would be colloquially and commonly referred to as a \"bug\". \"Wild\" in this context means undomesticated and not kept in human captivity, including large-scale outdoor instances of captivity, such as farms or sanctuaries. The photo must include enough of the animal to be recognizable within its category. If there is any dispute as to an animal's classification, defer to Wikipedia. Animals outside of any of these categories (such as crustaceans) cannot be used for this curse. The seekers may abandon this question for a 20 minute penalty period."
+  },
+  {
+    "id": 51,
+    "name": "Curse of the Archaeologist",
+    "castingCost": "A standard photo of a building or structure.",
+    "stopsQuestion": "Yes",
+    "informSeekers": "True",
+    "cardInfo": "Send the seekers a photo of a building or structure whose age you can verify to within a century. The seekers must find a building or structure (whose age they can also verify) from the same century or earlier before asking another question.",
+    "extraInfo": "\"Building or structure\" encompasses any manmade objects. To verify the age, you must have at least one credible source that specifically references that object. Partially rebuilt or renovated structures may use their original build date, but fully rebuilt structures (or structures designed to emulate an older structure) may not."
+  },
+  {
+    "id": 52,
+    "name": "Curse of the Rewind",
+    "castingCost": "The last question must have been asked during the endgame.",
+    "stopsQuestion": "No",
+    "informSeekers": "True",
+    "cardInfo": "Seekers must ask their next question from the exact place they asked their last question.",
+    "extraInfo": "It is the responsibility of the hider to keep track of where the last question was asked (and therefore where the seekers must return before asking their next question.)"
+  },
+  {
+    "id": 53,
+    "name": "Curse of the Pong Champion",
+    "castingCost": "Successfully land the die in three attempts.",
+    "stopsQuestion": "Yes",
+    "informSeekers": "True",
+    "cardInfo": "Throw a die into a container (maximum 15 cm in diameter) from any distance you choose. You have three attempts. Seekers must throw a die into a container from the same horizontal distance before asking another question, but must wait 1 minute between attempts.",
+    "extraInfo": "Players may not practice or solicit any external support from people outside the game. The hider attempt follows the same parameters as the seeker attempt. The dice must come to rest in the cup; if they enter but bounce out, they are not scored."
+  },
+  {
+    "id": 54,
+    "name": "Curse of the Plagued Word",
+    "castingCost": "Seekers must be at least 2 km from you.",
+    "stopsQuestion": "No",
+    "informSeekers": "True",
+    "cardInfo": "For the next 45 minutes, asking a question creates a 500 m radius where questions cannot be asked until this curse expires.",
+    "extraInfo": "The radiuses disappear after 45 minutes."
+  },
+  {
+    "id": 55,
+    "name": "Curse of the Curious Explorer",
+    "castingCost": "Seekers must be off-transit within 1 km of a museum that is open for at least another hour. Discard 2 cards.",
+    "stopsQuestion": "Yes",
+    "informSeekers": "True",
+    "cardInfo": "Seekers must spend at least 10 minutes in a museum before asking another question. If there is an entry fee, they may wait in the lobby or directly outside.",
+    "extraInfo": "\"Museum\" is anything categorized as a museum by the mapping app you are using. Players may also choose to wait outside if the museum is closed by the time they arrive. \"Off-transit\" means that players have physically disembarked their last form of transit and that it has left the station (i.e. you cannot temporarily step off a train while it's stopped to fulfill the condition.)"
+  },
+  {
+    "id": 56,
+    "name": "Curse of the Bargain Hunter",
+    "castingCost": "A photo of a price tag. The seekers have to be within 400m of an open grocery store.",
+    "stopsQuestion": "Yes",
+    "informSeekers": "True",
+    "cardInfo": "Send the seekers a picture of a discounted price tag (or other written discount) that you found in the real world. They must find an item that is equally (or more) discounted, by percentage, before asking another question.",
+    "extraInfo": "The discount cannot be found online or in a publication; it must be in a store that is selling that item in-person. The discount must be clearly marked as being a discount; it can't just be an item that happens to be cheaper than normal."
+  },
+  {
+    "id": 57,
+    "name": "Curse of the Prosperous Home",
+    "castingCost": "Discard at least 20 minutes worth of time bonuses.",
+    "stopsQuestion": "No",
+    "informSeekers": "True",
+    "cardInfo": "Expand the radius of your hiding zone by 50%.",
+    "extraInfo": "Players may not discard part of a time bonus; they must discard cards in their entirety. It is possible that players may have to discard more than the required number of minutes in order to pay for this curse."
+  },
+  {
+    "id": 58,
+    "name": "Curse of the Gambler's Feet",
+    "castingCost": "Roll a die. If it's an even number, this curse has no effect.",
+    "stopsQuestion": "No",
+    "informSeekers": "True",
+    "cardInfo": "For the next 20 minutes, seekers must roll a die before they take any steps in any direction. They may take that many steps before rolling again.",
+    "extraInfo": "The die rolled for this curse must be a d6. If there are multiple seekers, seekers may choose to roll independently or have one die dictate steps for all seekers at once; either is acceptable. If seekers accidentally take extra steps, they should stop and roll the die retroactively until they have made up for all the unaccounted steps. Seekers cannot take unaccounted steps on purpose, except in situations where it would be unsafe to not take extra steps (such as crossing a busy road.)"
+  },
+  {
+    "id": 59,
+    "name": "Curse of the Unguided Tourist",
+    "castingCost": "Seekers must be outside.",
+    "stopsQuestion": "Yes",
+    "informSeekers": "True",
+    "cardInfo": "Send the seekers an unzoomed Google Street View image from a street within 150 meters of where they are now. The shot has to be parallel to the horizon and include at least one human-built structure other than a road. Without using the internet for research, they must find what you sent them in real life before they can use transportation or ask another question. They must send a picture to the hider for verification.",
+    "extraInfo": "The human-built structure in question cannot be any part of a road, including curbs or sidewalks. If you are playing in a country or area with highly limited Google Street View coverage (such as Germany), this curse should be removed from the deck."
+  },
+  {
+    "id": 60,
+    "name": "Curse of the Seventh Seal",
+    "castingCost": "Discard twelve curses.",
+    "stopsQuestion": "No",
+    "informSeekers": "True",
+    "cardInfo": "Your current hiding time, excluding bonuses, is doubled. All remaining time this run is not doubled.",
+    "extraInfo": "It's not impossible but hard to get your hand size of thirteen and get twelve other curses - good luck. This may be kept to the end of the game and played after you've been found given that you have 12 other curses."
+  },
+  {
+    "id": 61,
+    "name": "Curse of the Data Leak",
+    "castingCost": "Discard 4 minutes worth of time bonuses.",
+    "stopsQuestion": "No",
+    "informSeekers": "True",
+    "cardInfo": "For the rest of the run, seekers must tell you their route and destination every time they board any form of transit. They may not disembark at any other destination unless forced to.",
+    "extraInfo": "\"Route\" includes start and end destinations and the line of transit (if applicable.) If forced off a route for any reason, the hider must be notified immediately. Players may not discard part of a time bonus; they must discard cards in their entirety. It is possible that players may have to discard more than the required number of minutes in order to pay for this curse."
+  },
+  {
+    "id": 62,
+    "name": "Curse of the Luxury Car",
+    "castingCost": "A photo of a car.",
+    "stopsQuestion": "Yes",
+    "informSeekers": "True",
+    "cardInfo": "Take a photo of a car. The seekers must take a photo of a more expensive car before asking another question.",
+    "extraInfo": "You must be able to identify the car in question when sending the photo, and the seekers must agree that it is, in fact, the car that you claim that it is. Use the MSRP of the car, factoring in its year of production, and disregarding any add-ons or modifications that may have been paid for. The photo sent to the seekers must include enough of the car for it to be identifiable. All of these rules also apply to the car found by the seekers. If you cannot confirm a car's exact production year or exact model, both sides must come to a consensus on which model and year to use for determining price."
+  },
+  {
+    "id": 63,
+    "name": "Curse of the Seabird",
+    "castingCost": "Seekers must be off-transit within 1 km of a natural body of water. Make a photo of a bird under the same conditions.",
+    "stopsQuestion": "Yes",
+    "informSeekers": "True",
+    "cardInfo": "Seekers must photograph a bird within 3 meters of a body of water. If, after 30 minutes, no bird has been photographed, this curse is automatically cleared.",
+    "extraInfo": "\"Body of water\" can be natural or manmade, but must be large enough to be visible on the mapping app you are using. \"Off-transit\" means that players have physically disembarked their last form of transit and that it has left the station (i.e. you cannot temporarily step off a train while it's stopped to fulfill the condition.)"
+  },
+  {
+    "id": 64,
+    "name": "Curse of the Post Office",
+    "castingCost": "Seekers must be within 1 km of a post office that is open for the next hour. You must provide them with your home address.",
+    "stopsQuestion": "Yes until done",
+    "informSeekers": "True",
+    "cardInfo": "Seekers must successfully mail a letter with their next question in it to your home address before asking another question.",
+    "extraInfo": "After the letter has been mailed, they may also use any other form of communication to ask you the question."
+  },
+  {
+    "id": 65,
+    "name": "Curse of the Passenger Princess",
+    "castingCost": "Discard two cards.",
+    "stopsQuestion": "No",
+    "informSeekers": "True",
+    "cardInfo": "The hider selects one seeker to be the passenger princess for the next S 30 M 45 L 60 minutes. The other seeker is the driver.\nThe passenger princess is not permitted to carry their own belongings, do any research, hold any maps, or discuss the game in any way.\nThey may be involved in clearing curses if instructed to do so.",
+    "extraInfo": "If there are more than two seekers, there is still only one passenger princess. If there is only one seeker, this card cannot be played. The passenger princess may speak to the other seeker(s) as normal, but must effectively act as though the game does not exist and cannot provide any substantive commentary that could help the other players in any way."
+  },
+  {
+    "id": 66,
+    "name": "Curse of the Landline Metric",
+    "castingCost": "Seekers must be at least 6 km from you.",
+    "stopsQuestion": "No",
+    "informSeekers": "True",
+    "cardInfo": "For the next 35 minutes, seekers may only use their phone for game-related purposes while it is charging via a wall outlet.",
+    "extraInfo": ""
+  },
+  {
+    "id": 67,
+    "name": "Curse of the Strider",
+    "castingCost": "Travel a distance on foot.",
+    "stopsQuestion": "Yes",
+    "informSeekers": "True",
+    "cardInfo": "Walk or run any total distance over the course of 30 minutes. The seekers must travel that same distance together, on foot before asking another question (e.g. the hider runs 3 miles, the seekers must each walk/run 3 miles.)",
+    "extraInfo": ""
+  },
+  {
+    "id": 68,
+    "name": "Curse of the Divine Blessing",
+    "castingCost": "Discard 9 curses.",
+    "stopsQuestion": "No",
+    "informSeekers": "False",
+    "cardInfo": "For the rest of the round, keep all cards drawn. Hand size limit still applies.",
+    "extraInfo": ""
+  },
+  {
+    "id": 69,
+    "name": "Curse of the Okaihau Express",
+    "castingCost": "Discard three time bonuses.",
+    "stopsQuestion": "Yes",
+    "informSeekers": "True",
+    "cardInfo": "Seekers must record and send a video of themselves singing the first seventeen rows, memorized lyrics of Okaihau Express by Peter Cape — without any outside support — before asking another question. It is up to you, however, to prove if they have made a mistake.",
+    "extraInfo": "The full lyrics are as follows:\nShe starts out from Otiria, the smallest train you've seen\nThis is the Okaihau Express\nAn engine and a guardsvan with a carriage in between\nThis is the Okaihau Express\n\nThe driver doesn't worry if he takes the journey slow\nDriving the Okaihau Express\nHe's got all day to do it in and 30 miles to go\nDriving the Okaihau Express\n\nShe was goin' round the bend doin' 10 miles an hour\nThe whistle began to shriek\nWell she caught that bull in the middle of the brisket\nAnd the engine smelled of steak for a week\n\nThere's puppies in an apple box, pippies in a sack\nRiding the Okaihau Express\nBut no-one knows the difference when they're drippin' from the rack\nRiding the Okaihau Express\n\nShe stops at lake Omapere, to take some water in\nThis is the Okaihau Express\nThe fireman takes a bucket, the driver takes a swim\nThis is the Okaihau Express\n\nOkaihau to Otiria, it's just a single track\nThis is the Okaihau Express\nYou can't turn it at the terminus, you just reverse her back\nThis is the Okaihau Express"
+  },
+  {
+    "id": 70,
+    "name": "Curse of the Non-Dominant Hand",
+    "castingCost": "Discard a card.",
+    "stopsQuestion": "No",
+    "informSeekers": "True",
+    "cardInfo": "For the next S 30 M 45 L 60 minutes, seekers may not use their dominant hand for any game-related task. That includes using their phone, completing a challenge, or writing anything on a map. If you're ambidextrous, choose a hand.",
+    "extraInfo": ""
+  },
+  {
+    "id": 71,
+    "name": "Curse of the Strongman",
+    "castingCost": "Do X push-ups.",
+    "stopsQuestion": "Yes",
+    "informSeekers": "True",
+    "cardInfo": "One hider completes as many push-ups as they can over the course of 15 minutes. They may use any standard of push-up (i.e., using knees, chest touches ground, chest touches fist, etc.) The seekers must collectively do this many push-ups of the same standard before asking another question.",
+    "extraInfo": ""
+  },
+  {
+    "id": 72,
+    "name": "Curse of the Anonymous Benefactor",
+    "castingCost": "Donate money under the same circumstances.",
+    "stopsQuestion": "Yes",
+    "informSeekers": "True",
+    "cardInfo": "Seekers must place one dollar/euro/pound (or your country's equivalent) in a public place and confirm that it has been taken by a stranger before asking another question. Seekers cannot speak directly to any strangers about the money.",
+    "extraInfo": ""
+  },
+  {
+    "id": 73,
+    "name": "Curse of the Zipped Lip",
+    "castingCost": "Discard a powerup.",
+    "stopsQuestion": "No",
+    "informSeekers": "True",
+    "cardInfo": "Seekers can only communicate to one another through gestures and closed-mouth non-word sounds for the next 10 minutes. They can speak to other people, but cannot speak or write any message intended for another seeker.",
+    "extraInfo": ""
+  },
+  {
+    "id": 74,
+    "name": "Curse of the Jammed Door",
+    "castingCost": "See extra info for full ruling.",
+    "stopsQuestion": "Conditional",
+    "informSeekers": "False",
+    "cardInfo": "Seekers must roll two d6 dice to enter any doorway to a separate building for the next 30 minutes. They must roll a combined total of 8 or higher to enter. If they fail, they must wait 2 minutes before trying again.",
+    "extraInfo": "Dice can only be rolled to enter a doorway once the doorway is visible to the seekers. For example, if you are attempting to roll to enter a train, you cannot roll the dice before the train arrives; you must be able to see the train door first. Doorways within a building that lead to other parts of the same building, such as a store within a train station, do not need to pass a dice check. If there is any reasonable dispute as to whether something counts as a separate building, err on the side of doing a dice check. If the curse expires while a doorway is on cooldown, that cooldown also immediately expires."
+  },
+  {
+    "id": 75,
+    "name": "Katy Perry's Curse",
+    "castingCost": "Discard at least 10 min of time bonuses.",
+    "stopsQuestion": "Yes",
+    "informSeekers": "True",
+    "cardInfo": "Before the seekers may ask the next question, they have to film themselves dancing three 2-minute periods, to 3 unique Katy Perry Just Dance songs.",
+    "extraInfo": "The seekers must film themselves in such a way that they are in picture. The seekers have to make a good attempt to dance well."
+  },
+  {
+    "id": 76,
+    "name": "Curse of the Rock",
+    "castingCost": "Discard a card. The seekers have to be 500m from a bigger forest.",
+    "stopsQuestion": "Yes",
+    "informSeekers": "True",
+    "cardInfo": "The hider may take a picture of a boulder, and the seekers may not ask questions until they find a larger boulder. See extra info for how to measure.",
+    "extraInfo": "The boulders have to be detached from the ground. Make an estimate based on the total sum of the three axes with a precision of 50cm rounding down. For example: 1m height + 2m width + 1m depth = 4m of size. The seekers have to find a boulder with a bigger measure. Both the seekers and hiders have to physically be near the boulder to be allowed to photograph. The hider's boulder has to be in their zone."
+  }
 ]
