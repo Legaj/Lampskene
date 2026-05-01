@@ -556,14 +556,7 @@
 
 <!-- SETTINGS PANEL -->
 <div id="settings-panel">
-  <div>
-    <div class="sp-label">Map Layer</div>
-    <div class="sp-pills">
-      <button class="layer-btn"        id="btn-base"  onclick="setBase('tf-transport')">Transit</button>
-      <button class="layer-btn"        id="btn-cycle" onclick="setBase('tf-cycle')">Cycle</button>
-      <button class="layer-btn active" id="btn-osm"   onclick="setBase('osm')">OSM</button>
-    </div>
-  </div>
+  <!-- 1. Live Trains -->
   <div>
     <div class="sp-label">Live Trains</div>
     <button class="sp-btn" id="trains-sp-btn" onclick="toggleLiveTrains()">
@@ -577,18 +570,21 @@
       </div>
     </div>
   </div>
+  <!-- 2. Curses -->
   <div>
     <div class="sp-label">Curses</div>
     <button class="sp-btn sp-active" id="cp-collapse-extra-btn" onclick="_cpToggleCollapseExtra()" style="margin-bottom:0">
       <span>Collapse Extra Info</span><span id="cp-collapse-extra-status">ON</span>
     </button>
   </div>
+  <!-- 3. Layout -->
   <div>
     <div class="sp-label">Layout</div>
     <button class="sp-btn" id="bottom-bar-btn" onclick="toggleBottomBar()">
       <span>📱 Bottom Bar</span><span id="bottom-bar-status">OFF</span>
     </button>
   </div>
+  <!-- 4. Game -->
   <div>
     <div class="sp-label">Game</div>
     <button class="sp-btn" id="switch-mode-btn" onclick="switchMode()">
@@ -601,6 +597,7 @@
       <span>🗑 Reset All Data</span>
     </button>
   </div>
+  <!-- 5. Display -->
   <div>
     <div class="sp-label">Display</div>
     <button class="sp-btn sp-active" id="statusbar-toggle-btn" onclick="toggleStatusBar()" style="margin-bottom:5px">
@@ -616,12 +613,23 @@
       <span>⛵ Pendelbåts</span><span id="pendelbat-layer-status">OFF</span>
     </button>
   </div>
+  <!-- 6. Map Layer (moved down) -->
+  <div>
+    <div class="sp-label">Map Layer</div>
+    <div class="sp-pills">
+      <button class="layer-btn"        id="btn-base"  onclick="setBase('tf-transport')">Transit</button>
+      <button class="layer-btn"        id="btn-cycle" onclick="setBase('tf-cycle')">Cycle</button>
+      <button class="layer-btn active" id="btn-osm"   onclick="setBase('osm')">OSM</button>
+    </div>
+  </div>
+  <!-- 7. Performance -->
   <div>
     <div class="sp-label">Performance</div>
     <button class="sp-btn sp-active" id="perf-btn" onclick="toggleHighPerf()">
       <span>High Perf Zoom</span><span id="perf-status">ON</span>
     </button>
   </div>
+  <!-- 8. Thunderforest Key -->
   <div>
     <div class="sp-label">Thunderforest Key</div>
     <input id="tf-key-input" type="text" placeholder="Paste API key…"
@@ -629,6 +637,7 @@
       oninput="applyTFKey(this.value)" />
     <div style="font-size:9px;color:var(--muted)">Overrides built-in key for Transit/Cycle tiles</div>
   </div>
+  <!-- 9. Appearance -->
   <div>
     <div class="sp-label">Appearance</div>
     <button class="sp-btn" id="theme-sp-btn" onclick="cycleTheme()">
@@ -636,7 +645,6 @@
     </button>
   </div>
 </div>
-
 <!-- CURSE PANEL -->
 <div id="curse-panel">
   <div class="cp-header">
