@@ -115,6 +115,7 @@
     body.bottom-bar #settings-panel { top:auto; bottom:var(--header-h); border-bottom:none; border-top:1px solid var(--border); border-radius:var(--r) var(--r) 0 0; max-height:calc(100vh - var(--header-h) - 8px); overflow-y:auto; -webkit-overflow-scrolling:touch; }
     body.bottom-bar #curse-panel { top:var(--bar-h); bottom:var(--header-h); border-radius:0; }
     body.bottom-bar #rules-panel { top:var(--bar-h); bottom:var(--header-h); border-radius:0; }
+    body.bottom-bar #sl-panel { top:var(--bar-h); bottom:var(--header-h); border-radius:0; }
     body.bottom-bar #curse-fab { display:none!important; }
 
     /* ── SETTINGS PANEL ──────────────────────────────────────────────────────── */
@@ -158,6 +159,52 @@
     .sp-slider::-webkit-slider-thumb { -webkit-appearance:none; width:14px; height:14px; border-radius:50%; background:var(--accent); cursor:pointer; border:none; }
     .sp-slider::-moz-range-thumb { width:14px; height:14px; border-radius:50%; background:var(--accent); cursor:pointer; border:none; }
     .sp-val { font-size:10px; color:var(--text); min-width:22px; text-align:right; }
+
+    /* SL line picker */
+    #sl-panel {
+      position:fixed; top:var(--header-h); right:-400px; bottom:var(--bar-h);
+      width:380px; z-index:889;
+      background:var(--surface); border-left:1px solid var(--border);
+      border-bottom:1px solid var(--border);
+      display:flex; flex-direction:column;
+      transition:right .25s ease;
+      box-shadow:-4px 8px 32px rgba(0,0,0,.4);
+    }
+    #sl-panel.open { right:0; }
+    .sl-header { padding:12px 14px 10px; border-bottom:1px solid var(--border); display:flex; align-items:center; gap:8px; flex-shrink:0; }
+    .sl-header-title { font-family:'Bebas Neue',sans-serif; font-size:18px; letter-spacing:2px; color:var(--text); flex:1; }
+    .sl-close-btn { width:28px; height:28px; border-radius:var(--r); border:1px solid var(--border2); background:transparent; color:var(--text2); cursor:pointer; font-size:13px; display:flex; align-items:center; justify-content:center; transition:all .15s; }
+    .sl-close-btn:hover { border-color:var(--accent2); color:var(--accent2); }
+    .sl-search-wrap { padding:9px 12px; border-bottom:1px solid var(--border); flex-shrink:0; }
+    .sl-search { width:100%; background:var(--surface2); border:1px solid var(--border2); border-radius:var(--r); padding:8px 10px; color:var(--text); font-family:'DM Mono',monospace; font-size:11px; letter-spacing:.5px; outline:none; }
+    .sl-search:focus { border-color:var(--accent); }
+    .sl-search::placeholder { color:var(--muted); }
+    .sl-section { border-bottom:1px solid var(--border); flex-shrink:0; }
+    .sl-section-head { display:flex; align-items:center; justify-content:space-between; padding:8px 12px 5px; }
+    .sl-section-title { font-size:9px; letter-spacing:1.5px; text-transform:uppercase; color:var(--muted); }
+    .sl-mini-btn { padding:4px 8px; border-radius:999px; border:1px solid var(--border2); background:transparent; color:var(--text2); font-family:'DM Mono',monospace; font-size:8px; letter-spacing:1px; text-transform:uppercase; cursor:pointer; }
+    .sl-mini-btn:hover { border-color:var(--accent); color:var(--accent); }
+    #sl-selected-list { padding:0 8px 8px; display:flex; flex-direction:column; gap:5px; max-height:190px; overflow-y:auto; }
+    #sl-search-results { flex:1; overflow-y:auto; padding:8px; display:flex; flex-direction:column; gap:5px; }
+    #sl-selected-list::-webkit-scrollbar, #sl-search-results::-webkit-scrollbar { width:4px; }
+    #sl-selected-list::-webkit-scrollbar-thumb, #sl-search-results::-webkit-scrollbar-thumb { background:var(--border2); border-radius:2px; }
+    .sl-line-item { border-radius:var(--r); border:1px solid var(--border); background:var(--surface2); display:flex; align-items:center; gap:8px; padding:8px 9px; min-height:42px; }
+    .sl-swatch { width:10px; height:10px; border-radius:50%; border:1px solid rgba(255,255,255,.55); flex-shrink:0; }
+    .sl-line-meta { flex:1; min-width:0; }
+    .sl-line-name { color:var(--text); font-size:11px; letter-spacing:.4px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .sl-line-sub { color:var(--muted); font-size:8px; letter-spacing:1px; text-transform:uppercase; margin-top:2px; }
+    .sl-line-action { min-width:62px; padding:6px 8px; border-radius:var(--r); border:1px solid rgba(238,255,85,.3); background:rgba(238,255,85,.08); color:var(--accent); font-family:'DM Mono',monospace; font-size:8px; letter-spacing:1px; text-transform:uppercase; cursor:pointer; }
+    .sl-line-action.remove { border-color:rgba(255,80,80,.28); background:transparent; color:rgba(255,100,100,.72); }
+    .sl-line-action.on { border-color:rgba(85,221,170,.35); color:#55ddaa; background:rgba(85,221,170,.08); }
+    .sl-empty { padding:24px 14px; text-align:center; color:var(--muted); font-size:10px; letter-spacing:1px; text-transform:uppercase; }
+    .sl-stop-popup { min-width:170px; }
+    .sl-stop-name { color:var(--text); font-family:'DM Mono',monospace; font-size:12px; margin-bottom:4px; }
+    .sl-stop-line { color:var(--text2); font-family:'DM Mono',monospace; font-size:10px; margin-bottom:8px; }
+    .sl-popup-btn { width:100%; padding:7px 8px; border-radius:var(--r); border:1px solid rgba(238,255,85,.3); background:rgba(238,255,85,.08); color:var(--accent); font-family:'DM Mono',monospace; font-size:9px; letter-spacing:1px; text-transform:uppercase; cursor:pointer; }
+    @media (max-width:500px) {
+      #sl-panel { width:100%; right:-100%; border-left:none; }
+      #sl-panel.open { right:0; }
+    }
 
     /* ── MAP ─────────────────────────────────────────────────────────────────── */
     #map {
@@ -472,6 +519,7 @@
     body.bottom-bar.statusbar-hidden #sidebar { top:0; bottom:var(--header-h); }
     body.bottom-bar.statusbar-hidden #curse-panel { top:0; }
     body.bottom-bar.statusbar-hidden #rules-panel { top:0; }
+    body.bottom-bar.statusbar-hidden #sl-panel { top:0; }
     body.statusbar-hidden #settings-panel { max-height:calc(100vh - var(--header-h) - 10px - env(safe-area-inset-top,0px)); }
 
     /* ── MOBILE NAV ──────────────────────────────────────────────── */
@@ -528,6 +576,7 @@
     <span id="mode-badge"></span>
   </div>
   <div id="header-right">
+    <button id="sl-btn" class="hdr-btn" onclick="toggleSlPanel()" title="SL lines">SL</button>
     <button id="rules-btn" class="hdr-btn" onclick="toggleRulesPanel()" title="Rulebook">📖</button>
     <button id="curse-btn" class="hdr-btn" onclick="toggleCursePanel()" title="Curses">💀</button>
     <button id="settings-btn" class="hdr-btn" onclick="toggleSettingsPanel()" title="Settings">⚙</button>
@@ -543,6 +592,10 @@
       <span class="mnav-icon">⚙️</span>
       <span class="mnav-label">Settings</span>
     </button>
+    <button class="mnav-btn" id="mnav-sl-btn" onclick="toggleSlPanel()">
+      <span class="mnav-icon">SL</span>
+      <span class="mnav-label">Lines</span>
+    </button>
     <button class="mnav-btn" id="mnav-questions-btn" onclick="toggleSidebar()">
       <span class="mnav-icon">☰</span>
       <span class="mnav-label">Questions</span>
@@ -556,11 +609,21 @@
 
 <!-- SETTINGS PANEL -->
 <div id="settings-panel">
-  <!-- 1. Live Trains -->
+  <div>
+    <div class="sp-label">Map Layer</div>
+    <div class="sp-pills">
+      <button class="layer-btn"        id="btn-base"  onclick="setBase('tf-transport')">Transit</button>
+      <button class="layer-btn"        id="btn-cycle" onclick="setBase('tf-cycle')">Cycle</button>
+      <button class="layer-btn active" id="btn-osm"   onclick="setBase('osm')">OSM</button>
+    </div>
+  </div>
   <div>
     <div class="sp-label">Live Trains</div>
     <button class="sp-btn" id="trains-sp-btn" onclick="toggleLiveTrains()">
       <span>🚆 Live Vehicles</span><span id="trains-sp-status">OFF</span>
+    </button>
+    <button class="sp-btn" id="sl-live-btn" onclick="toggleSlLineLive()" style="margin-top:5px">
+      <span>Live on SL Lines</span><span id="sl-live-status">OFF</span>
     </button>
     <div id="trains-size-row" style="display:none">
       <div class="sp-slider-row">
@@ -570,21 +633,18 @@
       </div>
     </div>
   </div>
-  <!-- 2. Curses -->
   <div>
     <div class="sp-label">Curses</div>
     <button class="sp-btn sp-active" id="cp-collapse-extra-btn" onclick="_cpToggleCollapseExtra()" style="margin-bottom:0">
       <span>Collapse Extra Info</span><span id="cp-collapse-extra-status">ON</span>
     </button>
   </div>
-  <!-- 3. Layout -->
   <div>
     <div class="sp-label">Layout</div>
     <button class="sp-btn" id="bottom-bar-btn" onclick="toggleBottomBar()">
       <span>📱 Bottom Bar</span><span id="bottom-bar-status">OFF</span>
     </button>
   </div>
-  <!-- 4. Game -->
   <div>
     <div class="sp-label">Game</div>
     <button class="sp-btn" id="switch-mode-btn" onclick="switchMode()">
@@ -597,7 +657,6 @@
       <span>🗑 Reset All Data</span>
     </button>
   </div>
-  <!-- 5. Display -->
   <div>
     <div class="sp-label">Display</div>
     <button class="sp-btn sp-active" id="statusbar-toggle-btn" onclick="toggleStatusBar()" style="margin-bottom:5px">
@@ -609,27 +668,30 @@
     <button class="sp-btn" id="transit-layer-btn" onclick="toggleTransitLayer()" style="margin-top:5px">
       <span>🚇 Transit Lines</span><span id="transit-layer-status">OFF</span>
     </button>
-    <button class="sp-btn" id="pendelbat-layer-btn" onclick="togglePendelbatLayer()" style="margin-top:5px">
-      <span>⛵ Pendelbåts</span><span id="pendelbat-layer-status">OFF</span>
+  </div>
+  <div>
+    <div class="sp-label">SL Data</div>
+    <div class="sp-pills">
+      <button class="layer-btn" id="sl-detail-fast" onclick="setSlLineDetail('fast')">Fast</button>
+      <button class="layer-btn" id="sl-detail-medium" onclick="setSlLineDetail('medium')">Raw Lite</button>
+      <button class="layer-btn active" id="sl-detail-data" onclick="setSlLineDetail('data')">Raw</button>
+    </div>
+    <button class="sp-btn" id="sl-bus-all-btn" onclick="toggleSlTypeOverlay('bus')">
+      <span>All Bus Lines</span><span id="sl-bus-all-status">OFF</span>
+    </button>
+    <button class="sp-btn" id="sl-ferry-all-btn" onclick="toggleSlTypeOverlay('ferry')" style="margin-top:5px">
+      <span>All Ferry Lines</span><span id="sl-ferry-all-status">OFF</span>
+    </button>
+    <button class="sp-btn" id="sl-ferry-stops-btn" onclick="toggleSlFerryStops()" style="margin-top:5px">
+      <span>Ferry Stops</span><span id="sl-ferry-stops-status">OFF</span>
     </button>
   </div>
-  <!-- 6. Map Layer (moved down) -->
-  <div>
-    <div class="sp-label">Map Layer</div>
-    <div class="sp-pills">
-      <button class="layer-btn"        id="btn-base"  onclick="setBase('tf-transport')">Transit</button>
-      <button class="layer-btn"        id="btn-cycle" onclick="setBase('tf-cycle')">Cycle</button>
-      <button class="layer-btn active" id="btn-osm"   onclick="setBase('osm')">OSM</button>
-    </div>
-  </div>
-  <!-- 7. Performance -->
   <div>
     <div class="sp-label">Performance</div>
     <button class="sp-btn sp-active" id="perf-btn" onclick="toggleHighPerf()">
       <span>High Perf Zoom</span><span id="perf-status">ON</span>
     </button>
   </div>
-  <!-- 8. Thunderforest Key -->
   <div>
     <div class="sp-label">Thunderforest Key</div>
     <input id="tf-key-input" type="text" placeholder="Paste API key…"
@@ -637,7 +699,6 @@
       oninput="applyTFKey(this.value)" />
     <div style="font-size:9px;color:var(--muted)">Overrides built-in key for Transit/Cycle tiles</div>
   </div>
-  <!-- 9. Appearance -->
   <div>
     <div class="sp-label">Appearance</div>
     <button class="sp-btn" id="theme-sp-btn" onclick="cycleTheme()">
@@ -645,6 +706,27 @@
     </button>
   </div>
 </div>
+
+<!-- SL PANEL -->
+<div id="sl-panel">
+  <div class="sl-header">
+    <span style="font-size:15px;line-height:1">SL</span>
+    <div class="sl-header-title">SL Lines</div>
+    <button class="sl-close-btn" onclick="toggleSlPanel(false)">x</button>
+  </div>
+  <div class="sl-search-wrap">
+    <input id="sl-search-input" class="sl-search" type="search" placeholder="Search line number or name..." oninput="renderSlSearchResults()" />
+  </div>
+  <div class="sl-section">
+    <div class="sl-section-head">
+      <div class="sl-section-title">Displayed</div>
+      <button class="sl-mini-btn" onclick="clearSlDisplayedLines()">Clear</button>
+    </div>
+    <div id="sl-selected-list"><div class="sl-empty">No lines selected</div></div>
+  </div>
+  <div id="sl-search-results"><div class="sl-empty">Loading SL data...</div></div>
+</div>
+
 <!-- CURSE PANEL -->
 <div id="curse-panel">
   <div class="cp-header">
@@ -1098,44 +1180,526 @@ function drawTransitLayer() {
 }
 function clearTransitLayer() { _transitLayers.forEach(l => map && map.removeLayer(l)); _transitLayers = []; }
 
-// ── PENDELBÅTS LAYER ───────────────────────────────────────────
-let _pendelbatLayerOn = false, _pendelbatMarkers = [];
-async function togglePendelbatLayer() {
-  _pendelbatLayerOn = !_pendelbatLayerOn;
-  const btn = document.getElementById('pendelbat-layer-btn');
-  const s   = document.getElementById('pendelbat-layer-status');
-  if (btn) btn.classList.toggle('sp-active', _pendelbatLayerOn);
-  if (s)   s.textContent = _pendelbatLayerOn ? 'ON' : 'OFF';
-  if (_pendelbatLayerOn) await drawPendelbatLayer(); else clearPendelbatLayer();
+// ── HIGH PERF ZOOM ─────────────────────────────────────────────
+// SL DATA LINE DISPLAY
+let _slLoadPromise = null;
+let _slCatalog = [];
+let _slRoutes = {};
+let _slDisplayed = new Set();
+let _slTypeOverlay = { bus:false, ferry:false };
+let _slLineDetail = 'data';
+let _slLayers = {};
+let _slStopMarkers = [];
+let _slFerryStopsOn = false;
+let _slFerryStopMarkers = [];
+let _slFerryStops = [];
+let _slWaySegments = [];
+let _slGeoLoadPromise = null;
+let _slGeoSegmentsByRef = {};
+let _slRenderer = null;
+let _slLineLive = false;
+let _slLiveInterval = null;
+let _slLiveMarkers = {};
+let _slLastVehicles = null;
+
+function toggleSlPanel(force) {
+  const panel = document.getElementById('sl-panel');
+  const btn = document.getElementById('sl-btn');
+  const mbtn = document.getElementById('mnav-sl-btn');
+  const open = typeof force === 'boolean' ? force : !panel.classList.contains('open');
+  panel.classList.toggle('open', open);
+  if (btn) btn.classList.toggle('open', open);
+  if (mbtn) mbtn.classList.toggle('mnav-open', open);
+  if (open) loadSlData().then(() => { renderSlSelectedList(); renderSlSearchResults(); });
 }
-async function drawPendelbatLayer() {
-  clearPendelbatLayer();
-  try {
-    const r = await fetch('pendelbatsbryggor.json');
-    const data = await r.json();
-    const places = data.pendelbatsbryggor || [];
-    for (const p of places) {
-      if (p.latitude && p.longitude) {
-        // Blue anchor marker
-        const marker = L.circleMarker([p.latitude, p.longitude], {
-          radius: 5,
-          fillColor: '#3080d0',
-          fillOpacity: 0.9,
-          color: '#fff',
-          weight: 1.5,
-          opacity: 0.8
-        });
-        const name = p.name || 'Unknown';
-        const lines = p.lines ? ` (${p.lines})` : '';
-        marker.bindTooltip(name + lines, { permanent: false, direction: 'top', className: 'pendelbat-tip' });
-        if (map) { marker.addTo(map); _pendelbatMarkers.push(marker); }
+
+function normalizeRouteRefList(routeRef) {
+  return String(routeRef || '').split(';').map(s => s.trim()).filter(Boolean);
+}
+function slTransportLabel(type) {
+  return ({ bus:'Bus', ferry:'Ferry', subway:'Metro', tram:'Tram', light_rail:'Light rail', train:'Train' })[type] || type || 'Line';
+}
+function slBaseColor(route) {
+  const raw = String(route.colour || '').toLowerCase();
+  if (raw === 'red') return '#d71920';
+  if (raw === 'blue') return '#0070c0';
+  if (raw === 'green') return '#19a045';
+  if (raw && raw[0] === '#') return route.colour;
+  if (route.type === 'bus') return '#0070c0';
+  if (route.type === 'ferry') return '#00a7c8';
+  const n = parseInt(route.ref, 10);
+  if (n === 10 || n === 11) return '#0070c0';
+  if (n === 13 || n === 14) return '#d71920';
+  if (n === 17 || n === 18 || n === 19) return '#19a045';
+  return typeof vehicleColor === 'function' ? vehicleColor(route.ref) : '#888888';
+}
+function escapeHtml(str) {
+  return String(str || '').replace(/[&<>"']/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
+}
+function hexToRgb(hex) {
+  const h = String(hex || '#888888').replace('#','');
+  const full = h.length === 3 ? h.split('').map(c => c + c).join('') : h;
+  const n = parseInt(full, 16);
+  return { r:(n >> 16) & 255, g:(n >> 8) & 255, b:n & 255 };
+}
+function tintColor(hex, step) {
+  const rgb = hexToRgb(hex);
+  const amt = ((step % 5) - 2) * 20;
+  const clamp = v => Math.max(0, Math.min(255, v));
+  return '#' + [clamp(rgb.r + amt), clamp(rgb.g + amt), clamp(rgb.b + amt)].map(v => v.toString(16).padStart(2, '0')).join('');
+}
+function distanceMeters(a, b) {
+  const lat1 = a.lat * Math.PI / 180, lat2 = b.lat * Math.PI / 180;
+  const dLat = lat2 - lat1, dLon = (b.lng - a.lng) * Math.PI / 180;
+  const s = Math.sin(dLat/2) ** 2 + Math.cos(lat1) * Math.cos(lat2) * Math.sin(dLon/2) ** 2;
+  return 6371000 * 2 * Math.atan2(Math.sqrt(s), Math.sqrt(1-s));
+}
+function slPointToSegmentMeters(p, a, b) {
+  const lat0 = ((a.lat + b.lat) / 2) * Math.PI / 180;
+  const mx = 111320 * Math.cos(lat0);
+  const my = 110540;
+  const ax = a.lng * mx, ay = a.lat * my;
+  const bx = b.lng * mx, by = b.lat * my;
+  const px = p.lng * mx, py = p.lat * my;
+  const vx = bx - ax, vy = by - ay;
+  const len2 = vx * vx + vy * vy || 1;
+  const t = Math.max(0, Math.min(1, ((px - ax) * vx + (py - ay) * vy) / len2));
+  const dx = px - (ax + vx * t), dy = py - (ay + vy * t);
+  return { dist:Math.sqrt(dx * dx + dy * dy), t };
+}
+function slWayKind(tags) {
+  if (tags.route === 'ferry' || tags.ferry || tags.waterway === 'ferry') return 'ferry';
+  if (tags.railway) return 'rail';
+  if (tags.highway) return 'road';
+  return '';
+}
+function slWayRefs(tags) {
+  const refs = [];
+  for (const key of ['route_ref','ref','local_ref']) {
+    if (tags[key]) refs.push(...String(tags[key]).split(';').map(s => s.trim()));
+  }
+  const name = String(tags.name || '');
+  const num = name.match(/\b(\d{1,3})\b/g);
+  if (num) refs.push(...num);
+  return Array.from(new Set(refs.filter(Boolean)));
+}
+function slLineAliases(route) {
+  const ref = String(route.ref || '').trim();
+  const name = String(route.name || '').trim();
+  const aliases = new Set([ref, name]);
+  if (ref) {
+    aliases.add('Buss ' + ref);
+    aliases.add('Båt ' + ref);
+    aliases.add('Pendelbåt ' + ref);
+    aliases.add('T' + ref);
+    aliases.add('Tåg ' + ref);
+    aliases.add('Spårvagn ' + ref);
+  }
+  return Array.from(aliases).filter(Boolean).map(s => s.toLowerCase());
+}
+function geoFeatureRefs(props) {
+  const refs = new Set();
+  const add = value => String(value || '').split(';').map(s => s.trim()).filter(Boolean).forEach(v => refs.add(v));
+  add(props.ref);
+  add(props.route_ref);
+  const name = String(props.name || '');
+  const transitName = name.match(/\b(?:Buss|Båt|Pendelbåt|Tåg|Spårvagn|T)\s*([0-9]{1,3})\b/i);
+  if (transitName) refs.add(transitName[1]);
+  return Array.from(refs);
+}
+function isExplicitTransitLineFeature(props) {
+  if (props.ref && (props.type === 'route' || props.route)) return true;
+  if (props.route_ref) return true;
+  const name = String(props.name || '');
+  if (/\b(?:Buss|Båt|Pendelbåt|Tåg|Spårvagn|T)\s*[0-9]{1,3}\b/i.test(name)) return true;
+  return props.route === 'ferry' && props.network === 'SL' && /\b[0-9]{1,3}\b/.test(name);
+}
+function geoCoordsToLatLngs(coords) {
+  return coords.map(c => [c[1], c[0]]);
+}
+function addGeoSegment(mapByRef, ref, coords) {
+  if (!ref || !Array.isArray(coords) || coords.length < 2) return;
+  (mapByRef[ref] || (mapByRef[ref] = [])).push(geoCoordsToLatLngs(coords));
+}
+function loadSlGeoGeometry() {
+  if (_slGeoLoadPromise) return _slGeoLoadPromise;
+  const lineGeoFiles = [
+    'lines-part-1.geojson',
+    'lines-part-2.geojson',
+    'lines-part-3.geojson',
+    'lines-part-4.geojson',
+    'lines-part-5.geojson'
+  ];
+  const fetchGeo = file => fetch(file, { cache:'force-cache' })
+    .then(r => { if (!r.ok) throw new Error(file + ' HTTP ' + r.status); return r.json(); });
+  const fetchSplitGeo = () => Promise.all(lineGeoFiles.map(fetchGeo))
+    .then(parts => ({ type:'FeatureCollection', features:parts.flatMap(part => part.features || []) }));
+  _slGeoLoadPromise = fetchSplitGeo()
+    .catch(() => fetchGeo('lines.geojson'))
+    .catch(() => fetchGeo('line_geometry.geojson'))
+    .then(data => {
+      const byRef = {};
+      for (const feature of (data.features || [])) {
+        const geom = feature.geometry || {};
+        const props = feature.properties || {};
+        if (!isExplicitTransitLineFeature(props)) continue;
+        const refs = geoFeatureRefs(props);
+        if (!refs.length) continue;
+        if (geom.type === 'LineString') {
+          for (const ref of refs) addGeoSegment(byRef, ref, geom.coordinates);
+        } else if (geom.type === 'MultiLineString') {
+          for (const line of geom.coordinates || []) for (const ref of refs) addGeoSegment(byRef, ref, line);
+        }
+      }
+      _slGeoSegmentsByRef = byRef;
+      return byRef;
+    })
+    .catch(err => {
+      showToast('Line geometry: ' + err.message, 3500);
+      _slGeoSegmentsByRef = {};
+      return {};
+    });
+  return _slGeoLoadPromise;
+}
+function simplifyRawSegment(seg, stride) {
+  if (stride <= 1 || seg.length <= 2) return seg;
+  const out = [seg[0]];
+  for (let i = stride; i < seg.length - 1; i += stride) out.push(seg[i]);
+  out.push(seg[seg.length - 1]);
+  return out;
+}
+function orderStopsGreedy(stops, type) {
+  if (stops.length <= 2) return stops.slice();
+  const remaining = stops.slice();
+  let startIdx = 0;
+  for (let i = 1; i < remaining.length; i++) {
+    if (remaining[i].lng < remaining[startIdx].lng || (remaining[i].lng === remaining[startIdx].lng && remaining[i].lat < remaining[startIdx].lat)) startIdx = i;
+  }
+  const ordered = [remaining.splice(startIdx, 1)[0]];
+  const maxStep = type === 'ferry' ? 9000 : 2600;
+  while (remaining.length) {
+    const last = ordered[ordered.length - 1];
+    let best = 0, bestDist = Infinity;
+    for (let i = 0; i < remaining.length; i++) {
+      const d = distanceMeters(last, remaining[i]);
+      if (d < bestDist) { bestDist = d; best = i; }
+    }
+    const next = remaining.splice(best, 1)[0];
+    if (bestDist > maxStep) next._breakBefore = true;
+    ordered.push(next);
+  }
+  return ordered;
+}
+function buildSegmentsFromStops(stops, type) {
+  const ordered = orderStopsGreedy(stops, type);
+  const segments = [];
+  let seg = [];
+  for (const stop of ordered) {
+    if (stop._breakBefore && seg.length > 1) { segments.push(seg); seg = []; }
+    seg.push([stop.lat, stop.lng]);
+  }
+  if (seg.length > 1) segments.push(seg);
+  return segments;
+}
+function loadSlData() {
+  if (_slLoadPromise) return _slLoadPromise;
+  _slLoadPromise = Promise.all([
+    fetch('sl_data.json', { cache:'force-cache' }).then(r => {
+    if (!r.ok) throw new Error('sl_data.json HTTP ' + r.status);
+    return r.json();
+    }),
+    loadSlGeoGeometry()
+  ]).then(([data, geoByRef]) => {
+    const routes = {}, stopBuckets = {}, ferryStops = [], waySegments = [];
+    for (const el of (data.elements || [])) {
+      const t = el.tags || {};
+      if (el.type === 'relation' && t.route_master && t.ref) {
+        const key = String(t.ref).trim();
+        routes[key] = { key, ref:key, name:t.name || (slTransportLabel(t.route_master) + ' ' + key), type:t.route_master, colour:t.colour || '', stops:[], segments:[], modeSegments:{} };
+      } else if (el.type === 'node' && t.route_ref && t.name && Number.isFinite(el.lat) && Number.isFinite(el.lon)) {
+        for (const ref of normalizeRouteRefList(t.route_ref)) {
+          (stopBuckets[ref] || (stopBuckets[ref] = [])).push({ id:el.id, name:t.name, lat:el.lat, lng:el.lon });
+        }
+      }
+      if (el.type === 'node' && Number.isFinite(el.lat) && Number.isFinite(el.lon) && t.name && (t.ferry || t.amenity === 'ferry_terminal' || (t.route_ref && normalizeRouteRefList(t.route_ref).some(ref => routes[ref]?.type === 'ferry')))) {
+        ferryStops.push({ id:el.id, name:t.name, lat:el.lat, lng:el.lon });
+      }
+      if (el.type === 'way' && Array.isArray(el.geometry) && el.geometry.length > 1) {
+        const kind = slWayKind(t);
+        if (kind) {
+          const points = el.geometry.map(p => ({ lat:p.lat, lng:p.lon }));
+          waySegments.push({
+            kind,
+            routeRefs:normalizeRouteRefList(t.route_ref),
+            refs:slWayRefs(t),
+            name:t.name || '',
+            network:t.network || '',
+            route:t.route || '',
+            points,
+            minLat:Math.min(...points.map(p => p.lat)),
+            maxLat:Math.max(...points.map(p => p.lat)),
+            minLng:Math.min(...points.map(p => p.lng)),
+            maxLng:Math.max(...points.map(p => p.lng))
+          });
+        }
       }
     }
-  } catch(e) { showToast('Could not load pendelbatsbryggor.json'); }
+    _slWaySegments = waySegments;
+    for (const key in routes) {
+      const seen = new Set();
+      routes[key].stops = (stopBuckets[key] || []).filter(stop => {
+        const sid = stop.name + '|' + stop.lat.toFixed(5) + '|' + stop.lng.toFixed(5);
+        if (seen.has(sid)) return false;
+        seen.add(sid); return true;
+      });
+      routes[key].baseColor = slBaseColor(routes[key]);
+      routes[key].segments = buildSegmentsFromStops(routes[key].stops, routes[key].type);
+      const rawWays = waySegments.filter(w => {
+        if (routes[key].type === 'ferry') return w.kind === 'ferry' && (w.routeRefs.includes(key) || (w.network === 'SL' && w.refs.includes(key)));
+        if (routes[key].type === 'bus') return w.kind === 'road' && w.routeRefs.includes(key);
+        return w.kind === 'rail' && w.routeRefs.includes(key);
+      });
+      if (routes[key].type === 'ferry') for (const stop of routes[key].stops) ferryStops.push(stop);
+      if (rawWays.length) {
+        routes[key].modeSegments.data = rawWays.map(w => w.points.map(p => [p.lat, p.lng]));
+        routes[key].modeSegments.medium = routes[key].modeSegments.data.map(seg => simplifyRawSegment(seg, 3));
+      }
+      const geoSegments = (geoByRef[key] || []).slice();
+      if (geoSegments.length) {
+        routes[key].modeSegments.data = geoSegments;
+        routes[key].modeSegments.medium = geoSegments.map(seg => simplifyRawSegment(seg, 3));
+      }
+    }
+    _slFerryStops = ferryStops.filter((stop, idx, arr) => arr.findIndex(s => s.name === stop.name && Math.abs(s.lat - stop.lat) < 0.00001 && Math.abs(s.lng - stop.lng) < 0.00001) === idx);
+    if (_slFerryStopsOn) drawSlFerryStops();
+    _slRoutes = routes;
+    _slCatalog = Object.values(routes).sort((a, b) => {
+      const an = parseInt(a.ref, 10), bn = parseInt(b.ref, 10);
+      return (a.type || '').localeCompare(b.type || '') || (isNaN(an) ? 99999 : an) - (isNaN(bn) ? 99999 : bn) || a.ref.localeCompare(b.ref);
+    });
+    renderSlSearchResults(); renderSlSelectedList();
+    return routes;
+  }).catch(err => {
+    const out = document.getElementById('sl-search-results');
+    if (out) out.innerHTML = '<div class="sl-empty">Could not load SL data</div>';
+    showToast('SL data: ' + err.message, 3500);
+    throw err;
+  });
+  return _slLoadPromise;
 }
-function clearPendelbatLayer() { _pendelbatMarkers.forEach(m => map && map.removeLayer(m)); _pendelbatMarkers = []; }
+function selectedSlRoutes() {
+  return Array.from(_slDisplayed).map(ref => _slRoutes[ref]).filter(Boolean);
+}
+function routesForSlMap() {
+  const set = new Set(_slDisplayed);
+  for (const route of _slCatalog) if (_slTypeOverlay[route.type]) set.add(route.ref);
+  return Array.from(set).map(ref => _slRoutes[ref]).filter(Boolean);
+}
+function slLineItem(route, selected) {
+  const stops = route.stops.length ? route.stops.length + ' stops' : 'no stops in file';
+  return `<div class="sl-line-item"><span class="sl-swatch" style="background:${route.baseColor || slBaseColor(route)}"></span><div class="sl-line-meta"><div class="sl-line-name">${escapeHtml(route.ref)} · ${escapeHtml(route.name)}</div><div class="sl-line-sub">${escapeHtml(slTransportLabel(route.type))} · ${stops}</div></div><button class="sl-line-action ${selected ? 'remove' : ''}" onclick="${selected ? `removeSlDisplayedLine('${route.ref}')` : `addSlDisplayedLine('${route.ref}')`}">${selected ? 'Remove' : 'Add'}</button></div>`;
+}
+function renderSlSearchResults() {
+  const out = document.getElementById('sl-search-results');
+  if (!out) return;
+  if (!_slCatalog.length) { out.innerHTML = '<div class="sl-empty">Loading SL data...</div>'; return; }
+  const q = (document.getElementById('sl-search-input')?.value || '').trim().toLowerCase();
+  const rows = _slCatalog.filter(route => !q ? route.stops.length : route.ref.toLowerCase().includes(q) || route.name.toLowerCase().includes(q) || slTransportLabel(route.type).toLowerCase().includes(q)).slice(0, 80);
+  out.innerHTML = rows.length ? rows.map(route => slLineItem(route, _slDisplayed.has(route.ref))).join('') : '<div class="sl-empty">No matching lines</div>';
+}
+function renderSlSelectedList() {
+  const out = document.getElementById('sl-selected-list');
+  if (!out) return;
+  const rows = selectedSlRoutes();
+  out.innerHTML = rows.length ? rows.map(route => slLineItem(route, true)).join('') : '<div class="sl-empty">No lines selected</div>';
+}
+function addSlDisplayedLine(ref) {
+  _slDisplayed.add(String(ref));
+  renderSlSelectedList(); renderSlSearchResults(); redrawSlLineLayers(); updateSlLineLiveMarkers(); saveState();
+}
+function removeSlDisplayedLine(ref) {
+  _slDisplayed.delete(String(ref));
+  renderSlSelectedList(); renderSlSearchResults(); redrawSlLineLayers(); updateSlLineLiveMarkers(); saveState();
+}
+function clearSlDisplayedLines() {
+  _slDisplayed.clear();
+  renderSlSelectedList(); renderSlSearchResults(); redrawSlLineLayers(); updateSlLineLiveMarkers(); saveState();
+}
+function toggleSlTypeOverlay(type) {
+  _slTypeOverlay[type] = !_slTypeOverlay[type];
+  const btn = document.getElementById(type === 'bus' ? 'sl-bus-all-btn' : 'sl-ferry-all-btn');
+  const st = document.getElementById(type === 'bus' ? 'sl-bus-all-status' : 'sl-ferry-all-status');
+  if (btn) btn.classList.toggle('sp-active', _slTypeOverlay[type]);
+  if (st) st.textContent = _slTypeOverlay[type] ? 'ON' : 'OFF';
+  loadSlData().then(redrawSlLineLayers);
+}
+function setSlLineDetail(mode) {
+  _slLineDetail = mode;
+  for (const id of ['fast','medium','data']) {
+    const btn = document.getElementById('sl-detail-' + id);
+    if (btn) btn.classList.toggle('active', id === mode);
+  }
+  redrawSlLineLayers();
+}
+function getSlRouteSegments(route) {
+  if (_slLineDetail === 'fast') return route.segments;
+  if (route.modeSegments && route.modeSegments[_slLineDetail]) return route.modeSegments[_slLineDetail];
+  return [];
+}
+function toggleSlFerryStops() {
+  _slFerryStopsOn = !_slFerryStopsOn;
+  const btn = document.getElementById('sl-ferry-stops-btn');
+  const st = document.getElementById('sl-ferry-stops-status');
+  if (btn) btn.classList.toggle('sp-active', _slFerryStopsOn);
+  if (st) st.textContent = _slFerryStopsOn ? 'ON' : 'OFF';
+  loadSlData().then(drawSlFerryStops);
+}
+function drawSlFerryStops() {
+  clearSlFerryStops();
+  if (!_slFerryStopsOn || !map) return;
+  const seen = new Set();
+  for (const stop of _slFerryStops) {
+    const key = stop.name + '|' + stop.lat.toFixed(5) + '|' + stop.lng.toFixed(5);
+    if (seen.has(key)) continue;
+    seen.add(key);
+    const marker = L.circleMarker([stop.lat, stop.lng], {
+      radius:4,
+      color:'#ffffff',
+      weight:1,
+      opacity:0.95,
+      fillColor:'#00a7c8',
+      fillOpacity:0.9
+    }).bindTooltip(stop.name, { permanent:false, direction:'top', className:'train-tip' });
+    marker.addTo(map);
+    _slFerryStopMarkers.push(marker);
+  }
+}
+function clearSlFerryStops() {
+  for (const m of _slFerryStopMarkers) map && map.removeLayer(m);
+  _slFerryStopMarkers = [];
+}
+function clearSlLineLayers() {
+  for (const id in _slLayers) map && map.removeLayer(_slLayers[id]);
+  _slLayers = {};
+  clearSlStopMarkers();
+}
+function redrawSlLineLayers() {
+  if (!map) return;
+  loadSlData().then(() => {
+    clearSlLineLayers();
+    if (!_slRenderer) _slRenderer = L.canvas({ padding:0.35 });
+    const colorUse = {};
+    let missingRaw = 0;
+    for (const route of routesForSlMap()) {
+      const base = route.baseColor || slBaseColor(route);
+      const idx = colorUse[base] || 0;
+      colorUse[base] = idx + 1;
+      const color = tintColor(base, idx);
+      route._drawColor = color;
+      const group = L.layerGroup();
+      const segments = getSlRouteSegments(route);
+      if (!segments.length && _slLineDetail !== 'fast') missingRaw++;
+      for (const seg of segments) {
+        if (seg.length > 1) L.polyline(seg, { renderer:_slRenderer, color, weight:route.type === 'bus' ? 2.6 : 3.4, opacity:_slDisplayed.has(route.ref) ? .86 : .34, interactive:false }).addTo(group);
+      }
+      group.addTo(map); _slLayers[route.ref] = group;
+    }
+    refreshSlStopMarkers();
+    if (!redrawSlLineLayers._bound) {
+      map.on('moveend zoomend', scheduleSlStopRefresh);
+      redrawSlLineLayers._bound = true;
+    }
+    if (missingRaw && routesForSlMap().length <= 8) showToast(missingRaw + ' selected line' + (missingRaw === 1 ? ' has' : 's have') + ' no raw GeoJSON geometry', 3200);
+  });
+}
+function scheduleSlStopRefresh() {
+  clearTimeout(scheduleSlStopRefresh._tid);
+  scheduleSlStopRefresh._tid = setTimeout(refreshSlStopMarkers, 90);
+}
+function clearSlStopMarkers() {
+  for (const m of _slStopMarkers) map && map.removeLayer(m);
+  _slStopMarkers = [];
+}
+function refreshSlStopMarkers() {
+  if (!map) return;
+  clearSlStopMarkers();
+  if (map.getZoom() < 14) return;
+  const bounds = map.getBounds().pad(0.18);
+  let count = 0;
+  for (const route of routesForSlMap()) {
+    const color = route._drawColor || route.baseColor || slBaseColor(route);
+    for (const stop of route.stops) {
+      if (count >= 450) return;
+      if (!bounds.contains([stop.lat, stop.lng])) continue;
+      const marker = L.circleMarker([stop.lat, stop.lng], { radius:4, color:'#fff', weight:1, opacity:.9, fillColor:color, fillOpacity:.9 });
+      marker.on('click', () => {
+        if (map.getZoom() < 14) return;
+        const selected = _slDisplayed.has(route.ref);
+        marker.bindPopup(`<div class="sl-stop-popup"><div class="sl-stop-name">${escapeHtml(stop.name)}</div><div class="sl-stop-line">${escapeHtml(route.ref)} · ${escapeHtml(route.name)}</div>${selected ? '<button class="sl-popup-btn" disabled>Line displayed</button>' : `<button class="sl-popup-btn" onclick="addSlDisplayedLine('${route.ref}')">Add line</button>`}</div>`).openPopup();
+      });
+      marker.addTo(map); _slStopMarkers.push(marker); count++;
+    }
+  }
+}
+function toggleSlLineLive() {
+  _slLineLive = !_slLineLive;
+  const btn = document.getElementById('sl-live-btn'), st = document.getElementById('sl-live-status');
+  if (btn) btn.classList.toggle('sp-active', _slLineLive);
+  if (st) st.textContent = _slLineLive ? 'ON' : 'OFF';
+  if (_slLineLive) {
+    loadStaticData().then(() => {
+      fetchSlLineVehicles();
+      clearInterval(_slLiveInterval);
+      _slLiveInterval = setInterval(fetchSlLineVehicles, REFRESH_SECS * 1000);
+    });
+  } else {
+    clearInterval(_slLiveInterval); _slLiveInterval = null; clearSlLiveMarkers();
+  }
+}
+function fetchSlLineVehicles() {
+  if (!_slLineLive || !map) return;
+  const cbName = '__slLineVehicleCB';
+  document.getElementById('sl-line-jsonp-script')?.remove();
+  window[cbName] = function(data) {
+    window[cbName] = null;
+    if (_slLineLive && Array.isArray(data)) { _slLastVehicles = data; updateSlLineLiveMarkers(); }
+  };
+  const script = document.createElement('script');
+  script.id = 'sl-line-jsonp-script';
+  script.src = WORKER_URL + '?cb=' + cbName + '&t=' + Date.now();
+  script.onerror = function() { window[cbName] = null; showToast('SL line live failed', 2500); };
+  document.head.appendChild(script);
+}
+function updateSlLineLiveMarkers() {
+  if (!_slLineLive || !_slLastVehicles || typeof resolveVehicle === 'undefined') return;
+  const wanted = new Set(routesForSlMap().map(r => r.ref));
+  const seen = new Set();
+  for (const v of _slLastVehicles) {
+    const info = resolveVehicle(v);
+    if (!info.line || !wanted.has(String(info.line))) continue;
+    seen.add(v.id);
+    const route = _slRoutes[String(info.line)];
+    const color = route?._drawColor || route?.baseColor || (typeof vehicleColor === 'function' ? vehicleColor(info.line) : '#0070c0');
+    const tip = info.line + (v.bearing >= 0 && typeof bearingToCompass === 'function' ? ' ' + bearingToCompass(v.bearing) : '');
+    if (_slLiveMarkers[v.id]) {
+      _slLiveMarkers[v.id].setLatLng([v.lat, v.lng]);
+      _slLiveMarkers[v.id].setTooltipContent(tip);
+      if (v.bearing >= 0 && typeof arrowIcon === 'function') _slLiveMarkers[v.id].setIcon(arrowIcon(color, v.bearing));
+    } else {
+      const marker = v.bearing >= 0 && typeof arrowIcon === 'function'
+        ? L.marker([v.lat, v.lng], { icon:arrowIcon(color, v.bearing), zIndexOffset:20 })
+        : L.circleMarker([v.lat, v.lng], { radius:5, fillColor:color, fillOpacity:.95, color:'#fff', weight:1.5 });
+      marker.bindTooltip(tip, { permanent:false, direction:'top', className:'train-tip' }).addTo(map);
+      _slLiveMarkers[v.id] = marker;
+    }
+  }
+  for (const id in _slLiveMarkers) if (!seen.has(id)) { map.removeLayer(_slLiveMarkers[id]); delete _slLiveMarkers[id]; }
+}
+function clearSlLiveMarkers() {
+  for (const id in _slLiveMarkers) map && map.removeLayer(_slLiveMarkers[id]);
+  _slLiveMarkers = {};
+}
 
-// ── HIGH PERF ZOOM ─────────────────────────────────────────────
 let _highPerf = true;
 function toggleHighPerf() {
   _highPerf = !_highPerf;
@@ -1244,6 +1808,7 @@ function saveState() {
       endgamePinLocked: typeof endgamePinLocked!=='undefined'?endgamePinLocked:false,
       mapCenter: map ? [map.getCenter().lat, map.getCenter().lng] : null,
       mapZoom: map ? map.getZoom() : 12,
+      slDisplayed: Array.from(_slDisplayed || []),
       questions: questions.map(q => {
         const s = { ...q };
         delete s.marker; delete s.markerA; delete s.markerB;
@@ -1271,6 +1836,14 @@ function loadSavedState() {
 function restoreState(state) {
   if (!state) return;
   if (state.mapCenter && map) map.setView(state.mapCenter, state.mapZoom || 12);
+  if (Array.isArray(state.slDisplayed) && state.slDisplayed.length) {
+    _slDisplayed = new Set(state.slDisplayed.map(String));
+    loadSlData().then(() => {
+      renderSlSelectedList();
+      renderSlSearchResults();
+      redrawSlLineLayers();
+    });
+  }
   if (state.hiderPin && mode === 'hider') {
     placeHiderPin(state.hiderPin[0], state.hiderPin[1]);
     if (state.hiderPinLocked) { hiderPinLocked = false; toggleHiderLock(); }
