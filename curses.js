@@ -42,7 +42,7 @@ function _cpParseCsvRows(text) {
 
 function _cpNormalizeCurse(row) {
   const stopsValue = String(row.stopsQuestion || '').toLowerCase();
-  const questionEffect = row.questionEffect || (stopsValue === 'yes' ? 'Stops Question' : stopsValue === 'no' ? 'Allows Question' : 'Hinders Asking');
+  const questionEffect = row.questionEffect || (stopsValue === 'yes' ? 'Stops Question' : stopsValue === 'no' ? 'Allows Question' : row.stopsQuestion || 'Hinders Asking');
   return Object.assign({}, row, {
     id:parseInt(row.id, 10),
     questionEffect,
@@ -61,13 +61,14 @@ function _cpParseCursesCsv(text) {
 }
 
 // ── LOAD ──────────────────────────────────────────────────────────────────────
-async function _cpLoad() {
-  if (_CURSES) return true;
+async function _cpLoad(force=false) {
+  if (_CURSES && !force) return true;
   try {
-    const r = await fetch('curses.csv', { cache:'force-cache' });
+    const r = await fetch('curses.csv?v=' + Date.now(), { cache:'no-store' });
     if (!r.ok) throw new Error('HTTP ' + r.status);
     _CURSES = _cpParseCursesCsv(await r.text());
     _cpRestoreState();
+    _cpSyncDeckToCurses();
     return true;
   } catch (e) {
     showToast('Could not load curses.csv - ' + e.message);
@@ -78,7 +79,7 @@ async function _cpLoad() {
 // ── TOGGLE ────────────────────────────────────────────────────────────────────
 async function toggleCursePanel() {
   if (_cpOpen) { _cpClose(); return; }
-  const ok = await _cpLoad();
+  const ok = await _cpLoad(true);
   if (!ok) return;
   document.getElementById('settings-panel')?.classList.remove('open');
   document.getElementById('settings-btn')?.classList.remove('open');
@@ -467,11 +468,21 @@ function _cpRestoreState() {
   } catch(e) {}
 }
 
+function _cpSyncDeckToCurses() {
+  if (!_CURSES) return;
+  const validIds = new Set(_CURSES.map(c => c.id));
+  const before = _cpDeck.length;
+  _cpDeck = _cpDeck.filter(id => validIds.has(id));
+  if (_cpDeck.length !== before) _cpSaveState();
+}
+
 // ── HELPERS ───────────────────────────────────────────────────────────────────
 function _cpStopColor(v) {
-  v = _cpQuestionEffect(v).toLowerCase();
-  if (v === 'stops question') return '#e8557a';
-  if (v === 'allows question') return '#55ddaa';
+  const effect = _cpQuestionEffect(v);
+  const group = _cpQuestionGroup(effect);
+  if (group === 'red') return '#e8557a';
+  if (group === 'green') return '#55ddaa';
+  if (group === 'orange') return '#ff8a2a';
   return '#f5d020';
 }
 
@@ -482,12 +493,23 @@ function _cpQuestionEffect(cOrValue) {
   const v = raw.toLowerCase();
   if (v === 'yes' || v === 'stops question' || v === 'stops q') return 'Stops Question';
   if (v === 'no' || v === 'allows question' || v === 'allows q') return 'Allows Question';
+  if (v.includes('acquired') || v.includes('conditional') || v.includes('until done')) return raw || 'Conditional';
+  if (v === 'hinders asking' || v === 'hinders') return 'Hinders Asking';
   return 'Hinders Asking';
+}
+
+function _cpQuestionGroup(effect) {
+  const v = String(effect || '').toLowerCase();
+  if (v === 'stops question') return 'red';
+  if (v === 'allows question') return 'green';
+  if (v.includes('acquired') || v.includes('conditional') || v.includes('until done')) return 'orange';
+  return 'yellow';
 }
 
 function _cpQuestionBadge(c, compact) {
   const effect = _cpQuestionEffect(c);
-  const cls = effect === 'Stops Question' ? 'cp-badge-red' : effect === 'Allows Question' ? 'cp-badge-green' : 'cp-badge-yellow';
+  const group = _cpQuestionGroup(effect);
+  const cls = group === 'red' ? 'cp-badge-red' : group === 'green' ? 'cp-badge-green' : group === 'orange' ? 'cp-badge-orange' : 'cp-badge-yellow';
   const label = compact ? effect.replace(' Question', ' Q') : effect;
   const style = compact ? ' style="font-size:7px;padding:2px 5px"' : '';
   return `<span class="cp-badge ${cls}"${style}>${label}</span>`;
