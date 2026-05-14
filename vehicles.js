@@ -15,14 +15,14 @@ let _lastVehicles = null;
 
 // ── Static data from Neocities ────────────────────────────────
 function loadStaticData() {
-  return fetch('/routes.txt', { cache: 'force-cache' })
+  return fetch('routes.txt', { cache: 'force-cache' })
     .then(r => { if (!r.ok) throw new Error('routes.txt HTTP ' + r.status); return r.text(); })
     .then(csv => { _routeMap = parseRoutesCsv(csv); console.log('routes.txt:', Object.keys(_routeMap).length, 'routes'); loadTripsInBackground(); })
     .catch(err => { console.warn('routes.txt missing:', err.message); _routeMap = {}; });
 }
 
 function loadTripsInBackground() {
-  fetch('/trips.txt', { cache: 'force-cache' })
+  fetch('trips.txt', { cache: 'force-cache' })
     .then(r => { if (!r.ok) throw new Error('trips.txt HTTP ' + r.status); return r.text(); })
     .then(csv => { _tripMap = parseTripsCsv(csv); console.log('trips.txt:', Object.keys(_tripMap).length, 'trips'); if (_lastVehicles) { renderTrainMarkers(_lastVehicles); showToast('Line info updated', 1500); } })
     .catch(err => { console.warn('trips.txt missing:', err.message); _tripMap = {}; });

@@ -93,7 +93,7 @@
     #mode-badge.seeker { border-color:var(--accent2); color:var(--accent2); }
     #mode-badge.hider  { border-color:var(--accent); color:var(--accent); }
 
-    /* Header icon buttons (rules, curse, settings) */
+    /* Header icon buttons (SL, curse, settings) */
     .hdr-btn {
       width:36px; height:36px; border-radius:var(--r); border:1px solid var(--border2);
       background:var(--surface2); color:var(--text); cursor:pointer; font-size:16px;
@@ -113,8 +113,10 @@
     body.bottom-bar #sidebar { top:var(--bar-h); bottom:var(--header-h); }
     body.bottom-bar #statusbar { top:0; bottom:auto; border-top:none; border-bottom:1px solid var(--border); }
     body.bottom-bar #settings-panel { top:auto; bottom:var(--header-h); border-bottom:none; border-top:1px solid var(--border); border-radius:var(--r) var(--r) 0 0; max-height:calc(100vh - var(--header-h) - 8px); overflow-y:auto; -webkit-overflow-scrolling:touch; }
+    @media (max-width:768px) {
+      body.bottom-bar #settings-panel { top:0; bottom:var(--header-h); max-height:none; border-radius:0; }
+    }
     body.bottom-bar #curse-panel { top:var(--bar-h); bottom:var(--header-h); border-radius:0; }
-    body.bottom-bar #rules-panel { top:var(--bar-h); bottom:var(--header-h); border-radius:0; }
     body.bottom-bar #sl-panel { top:var(--bar-h); bottom:var(--header-h); border-radius:0; }
     body.bottom-bar #curse-fab { display:none!important; }
 
@@ -420,7 +422,10 @@
     .cp-item-header:hover { background:rgba(255,255,255,.04); }
     .cp-num  { font-size:9px; color:var(--muted); letter-spacing:1px; min-width:20px; flex-shrink:0; }
     .cp-name { flex:1; font-size:11px; letter-spacing:.4px; color:var(--text); line-height:1.3; }
+    .cp-dot-row { display:flex; align-items:center; gap:4px; flex-shrink:0; }
     .cp-dot  { width:7px; height:7px; border-radius:50%; flex-shrink:0; }
+    .cp-dot-info { background:#7ab4f5; }
+    .cp-dot-hidden { background:#f5f7ff; border:1px solid var(--border2); box-sizing:border-box; }
     .cp-chevron { color:var(--muted); transition:transform .2s; flex-shrink:0; }
     .cp-expanded .cp-chevron { transform:rotate(180deg); }
     .cp-item-body { display:none; padding:2px 10px 10px; border-top:1px solid var(--border); }
@@ -431,6 +436,7 @@
     .cp-badge { font-size:8px; font-weight:500; letter-spacing:.8px; text-transform:uppercase; padding:3px 7px; border-radius:999px; border:1px solid transparent; }
     .cp-badge-red    { border-color:rgba(232,85,122,.4); color:#e8557a; background:rgba(232,85,122,.1); }
     .cp-badge-green  { border-color:rgba(85,221,170,.4); color:#55ddaa; background:rgba(85,221,170,.1); }
+    .cp-badge-yellow { border-color:rgba(245,208,32,.42); color:#f5d020; background:rgba(245,208,32,.1); }
     .cp-badge-orange { border-color:var(--radar-border); color:var(--radar); background:var(--radar-bg); }
     .cp-badge-blue   { border-color:rgba(91,156,246,.35); color:#7ab4f5; background:rgba(91,156,246,.1); }
     .cp-badge-dim    { border-color:var(--border2); color:var(--muted); background:transparent; }
@@ -447,46 +453,11 @@
     .cp-extra-toggle { display:flex; align-items:center; gap:5px; background:transparent; border:none; color:var(--muted); font-family:'DM Mono',monospace; font-size:9px; letter-spacing:1px; cursor:pointer; padding:0; text-transform:uppercase; }
     .cp-extra-toggle:hover { color:var(--text2); }
     .cp-extra-content { }
-
-    /* ── RULES PANEL ─────────────────────────────────────────────────────────── */
-    #rules-panel {
-      position:fixed; top:var(--header-h); right:-420px; bottom:var(--bar-h);
-      width:400px; z-index:888;
-      background:var(--surface); border-left:1px solid var(--border);
-      display:flex; flex-direction:column;
-      transition:right .25s ease;
-      box-shadow:-4px 8px 32px rgba(0,0,0,.4);
+    .cp-compact-info { padding:0 10px 8px; display:flex; flex-wrap:wrap; gap:5px; align-items:flex-start; }
+    .cp-compact-cost { width:100%; color:var(--text2); font-size:9.5px; line-height:1.45; letter-spacing:.15px; text-transform:none; }
+    @media (max-width:480px) {
+      .cp-compact-cost { font-size:9px; line-height:1.4; }
     }
-    #rules-panel.open { right:0; }
-    @media (max-width:500px) {
-      #rules-panel { width:100%; right:-100%; border-left:none; }
-      #rules-panel.open { right:0; }
-    }
-    .rl-header { padding:12px 14px 10px; border-bottom:1px solid var(--border); flex-shrink:0; }
-    .rl-header-top { display:flex; align-items:center; gap:8px; margin-bottom:10px; }
-    .rl-header-title { font-family:'Bebas Neue',sans-serif; font-size:18px; letter-spacing:2px; color:var(--text); flex:1; }
-    .rl-close-btn { width:28px; height:28px; border-radius:var(--r); border:1px solid var(--border2); background:transparent; color:var(--text2); cursor:pointer; font-size:13px; display:flex; align-items:center; justify-content:center; transition:all .15s; }
-    .rl-close-btn:hover { border-color:var(--accent2); color:var(--accent2); }
-    .rl-search { width:100%; background:var(--surface2); border:1px solid var(--border2); border-radius:var(--r); padding:7px 10px; color:var(--text); font-family:'DM Mono',monospace; font-size:11px; outline:none; }
-    .rl-search:focus { border-color:var(--accent); }
-    .rl-search::placeholder { color:var(--muted); }
-    #rules-content { flex:1; overflow-y:auto; padding:8px; }
-    #rules-content::-webkit-scrollbar { width:4px; }
-    #rules-content::-webkit-scrollbar-thumb { background:var(--border2); border-radius:2px; }
-    .rl-section { border-radius:var(--r); border:1px solid var(--border); background:var(--surface2); overflow:hidden; margin-bottom:6px; }
-    .rl-section-header { display:flex; align-items:center; gap:8px; padding:10px 12px; cursor:pointer; user-select:none; flex-wrap:wrap; }
-    .rl-section-header:hover { background:rgba(255,255,255,.04); }
-    .rl-icon { font-size:16px; flex-shrink:0; }
-    .rl-title { font-family:'Bebas Neue',sans-serif; font-size:16px; letter-spacing:2px; color:var(--text); flex-shrink:0; }
-    .rl-summary { font-size:9px; color:var(--muted); letter-spacing:.5px; flex:1; min-width:100%; margin-top:-4px; margin-left:24px; }
-    .rl-chevron { color:var(--muted); transition:transform .2s; flex-shrink:0; margin-left:auto; }
-    .rl-open .rl-chevron { transform:rotate(180deg); }
-    .rl-section-body { padding:0 12px 12px; border-top:1px solid var(--border); }
-    .rl-main-content { font-size:11px; color:var(--text2); line-height:1.7; letter-spacing:.2px; margin-top:10px; }
-    .rl-subsection { margin-top:12px; padding-top:10px; border-top:1px solid var(--border); }
-    .rl-sub-title { font-size:10px; font-weight:500; letter-spacing:1px; text-transform:uppercase; color:var(--accent2); margin-bottom:5px; }
-    .rl-sub-content { font-size:10.5px; color:var(--text2); line-height:1.65; letter-spacing:.2px; }
-    .rl-empty { padding:32px; text-align:center; color:var(--muted); font-size:11px; }
 
     /* ── FLOATING ACTION BUTTON (mobile curses) ──────────────────────────────── */
     #curse-fab {
@@ -518,7 +489,6 @@
     body.bottom-bar.statusbar-hidden #map { top:0; bottom:var(--header-h); }
     body.bottom-bar.statusbar-hidden #sidebar { top:0; bottom:var(--header-h); }
     body.bottom-bar.statusbar-hidden #curse-panel { top:0; }
-    body.bottom-bar.statusbar-hidden #rules-panel { top:0; }
     body.bottom-bar.statusbar-hidden #sl-panel { top:0; }
     body.statusbar-hidden #settings-panel { max-height:calc(100vh - var(--header-h) - 10px - env(safe-area-inset-top,0px)); }
 
@@ -576,24 +546,19 @@
     <span id="mode-badge"></span>
   </div>
   <div id="header-right">
-    <button id="sl-btn" class="hdr-btn" onclick="toggleSlPanel()" title="SL lines">SL</button>
-    <button id="rules-btn" class="hdr-btn" onclick="toggleRulesPanel()" title="Rulebook">📖</button>
+    <button id="sl-btn" class="hdr-btn" onclick="toggleSlPanel()" title="SL lines">🚌</button>
     <button id="curse-btn" class="hdr-btn" onclick="toggleCursePanel()" title="Curses">💀</button>
     <button id="settings-btn" class="hdr-btn" onclick="toggleSettingsPanel()" title="Settings">⚙</button>
   </div>
 
   <!-- Mobile Navigation Bar (bottom-bar mode) -->
   <div id="mobile-nav">
-    <button class="mnav-btn" id="mnav-rules-btn" onclick="toggleRulesPanel()">
-      <span class="mnav-icon">📖</span>
-      <span class="mnav-label">Rules</span>
-    </button>
     <button class="mnav-btn" id="mnav-settings-btn" onclick="toggleSettingsPanel()">
       <span class="mnav-icon">⚙️</span>
       <span class="mnav-label">Settings</span>
     </button>
     <button class="mnav-btn" id="mnav-sl-btn" onclick="toggleSlPanel()">
-      <span class="mnav-icon">SL</span>
+      <span class="mnav-icon">🚌</span>
       <span class="mnav-label">Lines</span>
     </button>
     <button class="mnav-btn" id="mnav-questions-btn" onclick="toggleSidebar()">
@@ -768,21 +733,6 @@
       <div class="cp-empty-icon">💀</div>
       <div class="cp-empty-text">Loading curses…</div>
     </div>
-  </div>
-</div>
-
-<!-- RULES PANEL -->
-<div id="rules-panel">
-  <div class="rl-header">
-    <div class="rl-header-top">
-      <span style="font-size:15px">📖</span>
-      <span class="rl-header-title">RULEBOOK</span>
-      <button class="rl-close-btn" onclick="_closeRulesPanel()">✕</button>
-    </div>
-    <input class="rl-search" placeholder="Search rules…" oninput="_rlSearch(this.value)" />
-  </div>
-  <div id="rules-content">
-    <div class="rl-empty">Loading…</div>
   </div>
 </div>
 
@@ -1196,6 +1146,7 @@ let _slFerryStops = [];
 let _slWaySegments = [];
 let _slGeoLoadPromise = null;
 let _slGeoSegmentsByRef = {};
+let _slGeoStopsByRef = {};
 let _slRenderer = null;
 let _slLineLive = false;
 let _slLiveInterval = null;
@@ -1307,6 +1258,22 @@ function geoFeatureRefs(props) {
   if (transitName) refs.add(transitName[1]);
   return Array.from(refs);
 }
+function geoRelationRefs(props) {
+  const refs = new Set();
+  const add = value => String(value || '').split(';').map(s => s.trim()).filter(Boolean).forEach(v => refs.add(v));
+  for (const rel of (props['@relations'] || [])) {
+    const tags = rel.reltags || {};
+    add(tags.ref);
+    const m = String(tags.name || '').match(/\b(?:Buss|BÃ¥t|PendelbÃ¥t|TÃ¥g|SpÃ¥rvagn|T)\s*([0-9]{1,3})\b/i);
+    if (m) refs.add(m[1]);
+  }
+  return Array.from(refs);
+}
+function geoStopFeatureRefs(props) {
+  const refs = new Set(geoRelationRefs(props));
+  for (const ref of normalizeRouteRefList(props.route_ref)) refs.add(ref);
+  return Array.from(refs);
+}
 function isExplicitTransitLineFeature(props) {
   if (props.ref && (props.type === 'route' || props.route)) return true;
   if (props.route_ref) return true;
@@ -1320,6 +1287,12 @@ function geoCoordsToLatLngs(coords) {
 function addGeoSegment(mapByRef, ref, coords) {
   if (!ref || !Array.isArray(coords) || coords.length < 2) return;
   (mapByRef[ref] || (mapByRef[ref] = [])).push(geoCoordsToLatLngs(coords));
+}
+function addGeoStop(mapByRef, ref, feature) {
+  const coords = feature.geometry && feature.geometry.coordinates;
+  const props = feature.properties || {};
+  if (!ref || !Array.isArray(coords) || coords.length < 2 || !props.name) return;
+  (mapByRef[ref] || (mapByRef[ref] = [])).push({ id:props['@id'] || props.sl_stop_id || props.name, name:props.name, lat:coords[1], lng:coords[0] });
 }
 function loadSlGeoGeometry() {
   if (_slGeoLoadPromise) return _slGeoLoadPromise;
@@ -1339,9 +1312,14 @@ function loadSlGeoGeometry() {
     .catch(() => fetchGeo('line_geometry.geojson'))
     .then(data => {
       const byRef = {};
+      const stopsByRef = {};
       for (const feature of (data.features || [])) {
         const geom = feature.geometry || {};
         const props = feature.properties || {};
+        if (geom.type === 'Point') {
+          for (const ref of geoStopFeatureRefs(props)) addGeoStop(stopsByRef, ref, feature);
+          continue;
+        }
         if (!isExplicitTransitLineFeature(props)) continue;
         const refs = geoFeatureRefs(props);
         if (!refs.length) continue;
@@ -1352,12 +1330,14 @@ function loadSlGeoGeometry() {
         }
       }
       _slGeoSegmentsByRef = byRef;
-      return byRef;
+      _slGeoStopsByRef = stopsByRef;
+      return { segments:byRef, stops:stopsByRef };
     })
     .catch(err => {
       showToast('Line geometry: ' + err.message, 3500);
       _slGeoSegmentsByRef = {};
-      return {};
+      _slGeoStopsByRef = {};
+      return { segments:{}, stops:{} };
     });
   return _slGeoLoadPromise;
 }
@@ -1409,7 +1389,9 @@ function loadSlData() {
     return r.json();
     }),
     loadSlGeoGeometry()
-  ]).then(([data, geoByRef]) => {
+  ]).then(([data, geoData]) => {
+    const geoByRef = geoData.segments || {};
+    const geoStopsByRef = geoData.stops || {};
     const routes = {}, stopBuckets = {}, ferryStops = [], waySegments = [];
     for (const el of (data.elements || [])) {
       const t = el.tags || {};
@@ -1447,7 +1429,8 @@ function loadSlData() {
     _slWaySegments = waySegments;
     for (const key in routes) {
       const seen = new Set();
-      routes[key].stops = (stopBuckets[key] || []).filter(stop => {
+      const sourceStops = (geoStopsByRef[key] && geoStopsByRef[key].length) ? geoStopsByRef[key] : (stopBuckets[key] || []);
+      routes[key].stops = sourceStops.filter(stop => {
         const sid = stop.name + '|' + stop.lat.toFixed(5) + '|' + stop.lng.toFixed(5);
         if (seen.has(sid)) return false;
         seen.add(sid); return true;
@@ -1943,8 +1926,8 @@ function resetAllData() {
 <script src="matching-area-data.js"></script>
 <script src="sl-line-voronoi-data.js?v=1"></script>
 <script src="questions.js?v=60"></script>
-<script src="vehicles.js?v=2"></script>
-<script src="curses.js?v=2"></script>
+<script src="vehicles.js?v=3"></script>
+<script src="curses.js?v=3"></script>
 <script>
 // ── FAB badge wiring (needs curses.js loaded) ──────────────────
 // Patch _cpAddToDeck and _cpRemove to keep badge up to date

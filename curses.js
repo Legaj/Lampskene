@@ -18,17 +18,59 @@ let _cpShowCost  = false;  // show casting cost when collapsed (default OFF)
 
 const _CP_SAVE_KEY = 'jetlag_curses_v1';
 
+function _cpParseCsvRows(text) {
+  const rows = [];
+  let row = [], cell = '', inQuotes = false;
+  for (let i = 0; i < text.length; i++) {
+    const ch = text[i], next = text[i + 1];
+    if (inQuotes && ch === '"' && next === '"') { cell += '"'; i++; continue; }
+    if (ch === '"') { inQuotes = !inQuotes; continue; }
+    if (!inQuotes && ch === ',') { row.push(cell); cell = ''; continue; }
+    if (!inQuotes && (ch === '\n' || ch === '\r')) {
+      if (ch === '\r' && next === '\n') i++;
+      row.push(cell);
+      if (row.some(v => v !== '')) rows.push(row);
+      row = []; cell = '';
+      continue;
+    }
+    cell += ch;
+  }
+  row.push(cell);
+  if (row.some(v => v !== '')) rows.push(row);
+  return rows;
+}
+
+function _cpNormalizeCurse(row) {
+  const stopsValue = String(row.stopsQuestion || '').toLowerCase();
+  const questionEffect = row.questionEffect || (stopsValue === 'yes' ? 'Stops Question' : stopsValue === 'no' ? 'Allows Question' : 'Hinders Asking');
+  return Object.assign({}, row, {
+    id:parseInt(row.id, 10),
+    questionEffect,
+    informSeekers:String(row.informSeekers || '').toLowerCase() === 'true' ? 'True' : 'False'
+  });
+}
+
+function _cpParseCursesCsv(text) {
+  const rows = _cpParseCsvRows(text);
+  const headers = rows.shift() || [];
+  return rows.map(values => {
+    const row = {};
+    headers.forEach((key, idx) => row[key] = values[idx] || '');
+    return _cpNormalizeCurse(row);
+  }).filter(c => Number.isFinite(c.id));
+}
+
 // ── LOAD ──────────────────────────────────────────────────────────────────────
 async function _cpLoad() {
   if (_CURSES) return true;
   try {
-    const r = await fetch('curses.json');
+    const r = await fetch('curses.csv', { cache:'force-cache' });
     if (!r.ok) throw new Error('HTTP ' + r.status);
-    _CURSES = await r.json();
+    _CURSES = _cpParseCursesCsv(await r.text());
     _cpRestoreState();
     return true;
   } catch (e) {
-    showToast('Could not load curses.json — ' + e.message);
+    showToast('Could not load curses.csv - ' + e.message);
     return false;
   }
 }
@@ -192,18 +234,11 @@ function _cpDeckCardHTML(c, idx) {
   const expanded = _cpDeckExpanded.has(idx);
 
   // Build compact-info line shown when collapsed
-  const stopV = (c.stopsQuestion || '').toLowerCase();
-  const stopClass = stopV === 'yes' ? 'cp-badge-red' : stopV === 'no' ? 'cp-badge-green' : 'cp-badge-orange';
-  const stopLabel = stopV === 'yes' ? '⛔ Stops Q' : stopV === 'no' ? '✅ Allows Q' : `⚡ ${c.stopsQuestion}`;
-  const informBadge = c.informSeekers === 'True'
-    ? '<span class="cp-badge cp-badge-blue" style="font-size:7px;padding:2px 5px">📢 Inform</span>'
-    : '<span class="cp-badge cp-badge-dim" style="font-size:7px;padding:2px 5px">🔇 Hidden</span>';
-
   let compactInfo = '';
   if (!expanded) {
     const parts = [];
     if (_cpShowStops) {
-      parts.push(`<span class="cp-badge ${stopClass}" style="font-size:7px;padding:2px 5px">${stopLabel}</span>${informBadge}`);
+      parts.push(_cpQuestionBadge(c, true) + _cpInformBadge(c, true));
     }
     if (_cpShowCost && c.castingCost) {
       parts.push(`<div class="cp-compact-cost">${_esc(c.castingCost)}</div>`);
@@ -216,7 +251,7 @@ function _cpDeckCardHTML(c, idx) {
       <div class="cp-item-header" onclick="_cpToggleDeckCard(${idx})">
         <span class="cp-num">#${String(c.id).padStart(2,'0')}</span>
         <span class="cp-name">${_esc(c.name)}</span>
-        <div class="cp-dot" style="background:${_cpStopColor(c.stopsQuestion)}" title="Stops question: ${c.stopsQuestion}"></div>
+        ${_cpDotHTML(c)}
         <svg class="cp-chevron" width="12" height="12" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path d="m6 9 6 6 6-6"/></svg>
       </div>
       ${compactInfo}
@@ -273,7 +308,7 @@ function _cpBrowseItemHTML(c) {
       <div class="cp-item-header" onclick="_cpToggleBrowseItem(${c.id})">
         <span class="cp-num">#${String(c.id).padStart(2,'0')}</span>
         <span class="cp-name">${_esc(c.name)}</span>
-        <div class="cp-dot" style="background:${_cpStopColor(c.stopsQuestion)}" title="Stops question: ${c.stopsQuestion}"></div>
+        ${_cpDotHTML(c)}
         <svg class="cp-chevron" width="12" height="12" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path d="m6 9 6 6 6-6"/></svg>
       </div>
       <div class="cp-item-body">
@@ -295,13 +330,6 @@ function _cpToggleBrowseItem(id) {
 
 // ── SHARED CARD BODY ──────────────────────────────────────────────────────────
 function _cpCardBodyHTML(c, context, deckIdx) {
-  const stopV = (c.stopsQuestion || '').toLowerCase();
-  const stopClass = stopV === 'yes' ? 'cp-badge-red' : stopV === 'no' ? 'cp-badge-green' : 'cp-badge-orange';
-  const stopLabel = stopV === 'yes' ? '⛔ Stops Question' : stopV === 'no' ? '✅ Allows Question' : `⚡ ${c.stopsQuestion}`;
-  const informBadge = c.informSeekers === 'True'
-    ? '<span class="cp-badge cp-badge-blue">📢 Inform Seekers</span>'
-    : '<span class="cp-badge cp-badge-dim">🔇 Hidden</span>';
-
   const hasExtra = c.extraInfo && c.extraInfo.trim();
   const extraSection = hasExtra ? `
     <div style="margin-top:8px">
@@ -324,8 +352,8 @@ function _cpCardBodyHTML(c, context, deckIdx) {
     <div class="cp-text">${_esc(c.castingCost).replace(/\n/g,'<br>')}</div>` : ''}
     ${extraSection}
     <div class="cp-badges" style="margin-top:10px">
-      <span class="cp-badge ${stopClass}">${stopLabel}</span>
-      ${informBadge}
+      ${_cpQuestionBadge(c, false)}
+      ${_cpInformBadge(c, false)}
     </div>
     ${context === 'deck' && deckIdx !== null && !_cpLocked ? `
     <button class="cp-remove-btn" style="margin-top:8px" onclick="event.stopPropagation();_cpRemove(${deckIdx})">✕ Remove from Deck</button>` : ''}`;
@@ -441,10 +469,42 @@ function _cpRestoreState() {
 
 // ── HELPERS ───────────────────────────────────────────────────────────────────
 function _cpStopColor(v) {
-  v = (v || '').toLowerCase();
-  if (v === 'yes') return '#e8557a';
-  if (v === 'no')  return '#55ddaa';
-  return 'var(--radar)';
+  v = _cpQuestionEffect(v).toLowerCase();
+  if (v === 'stops question') return '#e8557a';
+  if (v === 'allows question') return '#55ddaa';
+  return '#f5d020';
+}
+
+function _cpQuestionEffect(cOrValue) {
+  const raw = typeof cOrValue === 'object'
+    ? String(cOrValue.questionEffect || cOrValue.stopsQuestion || '')
+    : String(cOrValue || '');
+  const v = raw.toLowerCase();
+  if (v === 'yes' || v === 'stops question' || v === 'stops q') return 'Stops Question';
+  if (v === 'no' || v === 'allows question' || v === 'allows q') return 'Allows Question';
+  return 'Hinders Asking';
+}
+
+function _cpQuestionBadge(c, compact) {
+  const effect = _cpQuestionEffect(c);
+  const cls = effect === 'Stops Question' ? 'cp-badge-red' : effect === 'Allows Question' ? 'cp-badge-green' : 'cp-badge-yellow';
+  const label = compact ? effect.replace(' Question', ' Q') : effect;
+  const style = compact ? ' style="font-size:7px;padding:2px 5px"' : '';
+  return `<span class="cp-badge ${cls}"${style}>${label}</span>`;
+}
+
+function _cpInformBadge(c, compact) {
+  const visible = c.informSeekers === 'True';
+  const cls = visible ? 'cp-badge-blue' : 'cp-badge-dim';
+  const label = visible ? 'Inform Seekers' : 'Hidden';
+  const style = compact ? ' style="font-size:7px;padding:2px 5px"' : '';
+  return `<span class="cp-badge ${cls}"${style}>${label}</span>`;
+}
+
+function _cpDotHTML(c) {
+  const effect = _cpQuestionEffect(c);
+  const inform = c.informSeekers === 'True';
+  return `<div class="cp-dot-row"><div class="cp-dot" style="background:${_cpStopColor(c)}" title="${effect}"></div><div class="cp-dot ${inform ? 'cp-dot-info' : 'cp-dot-hidden'}" title="${inform ? 'Inform seekers' : 'Hidden from seekers'}"></div></div>`;
 }
 
 function _esc(str) {
@@ -453,128 +513,4 @@ function _esc(str) {
     .replace(/</g,'&lt;')
     .replace(/>/g,'&gt;')
     .replace(/"/g,'&quot;');
-}
-
-// ── RULES PANEL ───────────────────────────────────────────────────────────────
-let _RULES = null;
-let _rulesOpen = false;
-
-async function _loadRules() {
-  if (_RULES) return true;
-  try {
-    const r = await fetch('rules.json');
-    if (!r.ok) throw new Error('HTTP ' + r.status);
-    _RULES = await r.json();
-    return true;
-  } catch (e) {
-    showToast('Could not load rules.json');
-    return false;
-  }
-}
-
-async function toggleRulesPanel() {
-  if (_rulesOpen) { _closeRulesPanel(); return; }
-  const ok = await _loadRules();
-  if (!ok) return;
-  if (_cpOpen) _cpClose();
-  document.getElementById('settings-panel')?.classList.remove('open');
-  document.getElementById('settings-btn')?.classList.remove('open');
-  _rulesOpen = true;
-  _renderRulesPanel();
-  document.getElementById('rules-panel').classList.add('open');
-  document.getElementById('rules-btn').classList.add('open');
-}
-
-function _closeRulesPanel() {
-  _rulesOpen = false;
-  document.getElementById('rules-panel').classList.remove('open');
-  document.getElementById('rules-btn').classList.remove('open');
-}
-
-document.addEventListener('click', function(e) {
-  if (!_rulesOpen) return;
-  const panel = document.getElementById('rules-panel');
-  const btn   = document.getElementById('rules-btn');
-  if (panel && btn && !panel.contains(e.target) && !btn.contains(e.target)) {
-    _closeRulesPanel();
-  }
-}, true);
-
-function _renderRulesPanel() {
-  if (!_RULES) return;
-  const container = document.getElementById('rules-content');
-  if (!container) return;
-
-  container.innerHTML = _RULES.sections.map(sec => `
-    <div class="rl-section" id="rl-sec-${sec.id}">
-      <div class="rl-section-header" onclick="_rlToggle('${sec.id}')">
-        <span class="rl-icon">${sec.icon}</span>
-        <span class="rl-title">${_esc(sec.title)}</span>
-        <span class="rl-summary">${_esc(sec.summary)}</span>
-        <svg class="rl-chevron" width="12" height="12" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path d="m6 9 6 6 6-6"/></svg>
-      </div>
-      <div class="rl-section-body" id="rl-body-${sec.id}" style="display:none">
-        ${sec.content ? `<div class="rl-main-content">${_esc(sec.content).replace(/\n\n/g,'</p><p>').replace(/\n/g,'<br>')}</div>` : ''}
-        ${(sec.subsections||[]).map(sub => `
-          <div class="rl-subsection">
-            <div class="rl-sub-title">${_esc(sub.title)}</div>
-            <div class="rl-sub-content">${_esc(sub.content).replace(/\n\n/g,'</p><p>').replace(/\n/g,'<br>')}</div>
-          </div>
-        `).join('')}
-      </div>
-    </div>
-  `).join('');
-}
-
-function _rlToggle(id) {
-  const body = document.getElementById(`rl-body-${id}`);
-  const sec  = document.getElementById(`rl-sec-${id}`);
-  if (!body) return;
-  const open = body.style.display === 'none';
-  body.style.display = open ? 'block' : 'none';
-  sec.classList.toggle('rl-open', open);
-}
-
-function _rlSearch(query) {
-  if (!_RULES) return;
-  const q = query.trim().toLowerCase();
-  if (!q) { _renderRulesPanel(); return; }
-  const container = document.getElementById('rules-content');
-  if (!container) return;
-
-  const results = [];
-  for (const sec of _RULES.sections) {
-    const matchSec = sec.title.toLowerCase().includes(q) || (sec.content||'').toLowerCase().includes(q);
-    const matchSubs = (sec.subsections||[]).filter(sub =>
-      sub.title.toLowerCase().includes(q) || sub.content.toLowerCase().includes(q)
-    );
-    if (matchSec || matchSubs.length) {
-      results.push({ sec, matchSubs: matchSubs.length ? matchSubs : sec.subsections });
-    }
-  }
-
-  if (!results.length) {
-    container.innerHTML = `<div class="rl-empty">No results for "<strong>${_esc(query)}</strong>"</div>`;
-    return;
-  }
-
-  container.innerHTML = results.map(({ sec, matchSubs }) => `
-    <div class="rl-section rl-open" id="rl-sec-${sec.id}">
-      <div class="rl-section-header" onclick="_rlToggle('${sec.id}')">
-        <span class="rl-icon">${sec.icon}</span>
-        <span class="rl-title">${_esc(sec.title)}</span>
-        <span class="rl-summary">${_esc(sec.summary)}</span>
-        <svg class="rl-chevron" width="12" height="12" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5" style="transform:rotate(180deg)"><path d="m6 9 6 6 6-6"/></svg>
-      </div>
-      <div class="rl-section-body" id="rl-body-${sec.id}" style="display:block">
-        ${sec.content ? `<div class="rl-main-content">${_esc(sec.content).replace(/\n/g,'<br>')}</div>` : ''}
-        ${(matchSubs||[]).map(sub => `
-          <div class="rl-subsection">
-            <div class="rl-sub-title">${_esc(sub.title)}</div>
-            <div class="rl-sub-content">${_esc(sub.content).replace(/\n/g,'<br>')}</div>
-          </div>
-        `).join('')}
-      </div>
-    </div>
-  `).join('');
 }
