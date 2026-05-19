@@ -82,9 +82,19 @@ function addQuestion(type) {
   if (type === 'radar') {
     const q = { id, type, lat: center.lat, lng: center.lng, radius: '', unit: 'M', zone: 'pending', locked: false };
     questions.push(q); renderSeekerRadarCard(q); placeSeekerPin(q);
+    // Auto-activate 60s move window
+    q._moveWindowUntil = Date.now() + 60000;
+    applyQuestionMoveLocks();
+    showToast('Pins unlocked for 60 seconds');
+    setTimeout(() => { if (q._moveWindowUntil && Date.now() >= q._moveWindowUntil) { q._moveWindowUntil = 0; applyQuestionMoveLocks(); } }, 61000);
   } else if (type === 'thermo') {
     const q = { id, type, latA: center.lat+0.005, lngA: center.lng-0.008, latB: center.lat-0.005, lngB: center.lng+0.008, closer: 'pending', locked: false };
     questions.push(q); renderSeekerThermoCard(q); placeThermoPin(q,'A'); placeThermoPin(q,'B'); updateThermoDistance(q);
+    // Auto-activate 60s move window
+    q._moveWindowUntil = Date.now() + 60000;
+    applyQuestionMoveLocks();
+    showToast('Pins unlocked for 60 seconds');
+    setTimeout(() => { if (q._moveWindowUntil && Date.now() >= q._moveWindowUntil) { q._moveWindowUntil = 0; applyQuestionMoveLocks(); } }, 61000);
   }
   if (!sidebarOpen) toggleSidebar();
 }
@@ -107,6 +117,7 @@ function renderSeekerRadarCard(q) {
   const ql = document.getElementById('question-list');
   const card = document.createElement('div');
   card.className = 'q-card radar'; card.id = `q-card-${q.id}`;
+  const locked = q.locked || false;
   card.innerHTML = `
     <div class="q-card-header">
       <svg width="13" height="16" viewBox="0 0 34 40" style="flex-shrink:0"><path d="M17 38C17 38 2 22 2 13A15 15 0 0 1 32 13C32 22 17 38 17 38Z" fill="#ff9950" stroke="rgba(0,0,0,.25)" stroke-width="1.5"/><circle cx="17" cy="13" r="5.5" fill="rgba(255,255,255,.3)"/></svg>
@@ -126,7 +137,13 @@ function renderSeekerRadarCard(q) {
       <div class="icon-btns">
         <button class="icon-btn go-btn" onclick="goToSeekerPin(${q.id}); if(sidebarOpen)toggleSidebar();">📍 Go to Pin</button>
         <button class="icon-btn" onclick="setMyLocation_radar(${q.id})">📱 My Loc</button>
-        <button class="icon-btn" id="lock-btn-${q.id}" onclick="toggleSeekerLock(${q.id})">🔒 Lock</button>
+      </div>
+      <div class="icon-btns" id="lock-row-${q.id}">
+        <button class="icon-btn" id="lock-btn-${q.id}" onclick="toggleSeekerLock(${q.id})">${locked ? '🔓 Locked' : '🔒 Lock'}</button>
+        <button class="icon-btn move-window-btn" id="move-window-btn-${q.id}" onclick="openMoveWindow(${q.id})">Move 60s</button>
+      </div>
+      <div id="remove-row-${q.id}" ${locked ? 'style="display:none"' : ''}>
+        <button class="remove-btn" id="remove-btn-${q.id}" onclick="removeQuestion(${q.id})">✕ Remove Question</button>
       </div>
       <div><div class="q-label">Hider is…</div>
         <div class="zone-toggle">
@@ -136,7 +153,6 @@ function renderSeekerRadarCard(q) {
         </div>
       </div>
       <button class="copy-btn" id="copy-btn-${q.id}" onclick="copyCode(${q.id})">📋 Copy Question Code</button>
-      <button class="remove-btn" id="remove-btn-${q.id}" onclick="removeQuestion(${q.id})">✕ Remove Question</button>
     </div>`;
   ql.appendChild(card);
 }
@@ -161,6 +177,7 @@ function renderSeekerThermoCard(q) {
   const ql = document.getElementById('question-list');
   const card = document.createElement('div');
   card.className = 'q-card thermo'; card.id = `q-card-${q.id}`;
+  const borderOn = q.thermoBorder || false;
   card.innerHTML = `
     <div class="q-card-header"><span style="font-size:14px">🌡️</span><span class="q-title">Thermometer</span><span class="q-num">#${q.id}</span></div>
     <div class="q-card-body">
@@ -173,6 +190,9 @@ function renderSeekerThermoCard(q) {
         <button class="icon-btn go-btn" onclick="goToThermoPin(${q.id},'B'); if(sidebarOpen)toggleSidebar();">📍 B</button>
         <button class="icon-btn" onclick="setMyLocation_thermoA(${q.id})">📱 Loc A</button>
         <button class="icon-btn" onclick="setMyLocation_thermoB(${q.id})">📱 Loc B</button>
+      </div>
+      <div class="icon-btns">
+        <button class="icon-btn" id="tborder-btn-${q.id}" onclick="toggleThermoBorder(${q.id})" style="${borderOn ? 'border-color:#f5d020;color:#f5d020;background:rgba(245,208,32,.12)' : ''}">📏 Border</button>
         <button class="icon-btn" id="tlock-btn-${q.id}" onclick="toggleThermoLock(${q.id})">🔒 Lock</button>
       </div>
       <div><div class="q-label">Hider is closer to…</div>
@@ -206,6 +226,7 @@ function toggleThermoLock(id){
   applyQuestionMoveLocks();
 }
 function setCloser(id,closer){const q=questions.find(x=>x.id===id);q.closer=closer;document.getElementById(`cpend-${id}`).className='closer-btn'+(closer==='pending'?' active-pend':'');document.getElementById(`ca-${id}`).className='closer-btn'+(closer==='A'?' active-a':'');document.getElementById(`cb-${id}`).className='closer-btn'+(closer==='B'?' active-b':'');redrawQuestionOverlay(q);}
+function toggleThermoBorder(id){const q=questions.find(x=>x.id===id);if(!q)return;q.thermoBorder=!q.thermoBorder;const btn=document.getElementById(`tborder-btn-${id}`);if(btn){btn.style.borderColor=q.thermoBorder?'#f5d020':'';btn.style.color=q.thermoBorder?'#f5d020':'';btn.style.background=q.thermoBorder?'rgba(245,208,32,.12)':'';}redrawThermoBorders();if(typeof saveState!=='undefined')saveState();}
 function copyThermoCode(id){const q=questions.find(x=>x.id===id);const code=`THM-${q.latA.toFixed(5)}-${q.lngA.toFixed(5)}-${q.latB.toFixed(5)}-${q.lngB.toFixed(5)}`;const btn=document.getElementById(`tcopy-btn-${id}`);navigator.clipboard.writeText(code).then(()=>{btn.textContent='✅ Copied!';setTimeout(()=>{btn.textContent='📋 Copy Question Code';},2200);}).catch(()=>showToast(code,5000));}
 
 function setZone(id,zone){
@@ -322,16 +343,17 @@ function setThermoBordersEnabled(on, save = true) {
 }
 function toggleThermoBorders() { setThermoBordersEnabled(!_thermoBordersOn); }
 function redrawThermoBorders() {
-  if (_thermoBorderLayer) { _thermoBorderLayer.clearLayers(); if (!_thermoBordersOn) return; }
-  if (!_thermoBordersOn || !map) return;
+  if (_thermoBorderLayer) _thermoBorderLayer.clearLayers();
+  if (!map) return;
   if (!_thermoBorderLayer) _thermoBorderLayer = L.layerGroup().addTo(map);
   for (const q of questions.filter(x => x.type === 'thermo')) {
+    if (!q.thermoBorder) continue;
     const pA = map.latLngToLayerPoint(L.latLng(q.latA,q.lngA)), pB = map.latLngToLayerPoint(L.latLng(q.latB,q.lngB));
     const mx = (pA.x+pB.x)/2, my = (pA.y+pB.y)/2, dx = pB.x-pA.x, dy = pB.y-pA.y, len = Math.hypot(dx,dy) || 1;
     const bx = -dy/len, by = dx/len, p = overlayPad();
     const p1 = map.layerPointToLatLng(L.point(mx + bx*p, my + by*p));
     const p2 = map.layerPointToLatLng(L.point(mx - bx*p, my - by*p));
-    L.polyline([p1,p2], { color:'#f5d020', weight:2.5, opacity:.9, dashArray:'8 8', interactive:false }).addTo(_thermoBorderLayer);
+    L.polyline([p1,p2], { color:'#1a1a1a', weight:2.5, opacity:.9, dashArray:'8 8', interactive:false }).addTo(_thermoBorderLayer);
   }
 }
 

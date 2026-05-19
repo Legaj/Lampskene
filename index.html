@@ -34,12 +34,28 @@
     body.light .leaflet-control-zoom a:hover{background:var(--surface2)!important;color:var(--accent2)!important;}
     body.light .leaflet-control-attribution{background:rgba(240,242,247,.85)!important;color:var(--muted)!important;}
     body.bambu {
-      --bg: #f5f0e8; --surface: #ede8dc; --surface2: #e2dcd0;
-      --border: #c8bfaa; --border2: #b5a990;
-      --accent: #7a5c2e; --accent2: #9b3a1a;
-      --text: #2a1f0e; --text2: #4a3820; --muted: #8a7560;
-      --radar: #c4621a; --radar-bg: rgba(196,98,26,.08); --radar-border: rgba(196,98,26,.3);
+      --bg: #f5f0e8; --surface: #ede8dc; --surface2: #ddd6c8;
+      --border: #b8ad98; --border2: #a59880;
+      --accent: #6a4c20; --accent2: #8b2e12;
+      --text: #1a1208; --text2: #3a2e1a; --muted: #7a6a50;
+      --radar: #b45210; --radar-bg: rgba(180,82,16,.08); --radar-border: rgba(180,82,16,.3);
     }
+    /* Boost colored text contrast on bamboo */
+    body.bambu .thermo-dist { color:#c49400!important; }
+    body.bambu .closer-btn.active-a { color:#c49400!important; }
+    body.bambu .closer-btn.active-b { color:#c46000!important; }
+    body.bambu .closer-btn.active-pend { color:#a08000!important; }
+    body.bambu .zone-btn.active-in { color:#4a9a5a!important; }
+    body.bambu .zone-btn.active-out { color:#4a7ab5!important; }
+    body.bambu .zone-btn.active-pend { color:#b45210!important; }
+    body.bambu .q-card.thermo .q-title { color:#c49400!important; }
+    body.bambu .q-card.matching .q-title { color:#2a8a58!important; }
+    body.bambu .q-card.measuring .q-title { color:#0686a4!important; }
+    body.bambu .copy-btn { color:#944208!important; }
+    body.bambu .icon-btn { color:#3a2e1a!important; }
+    body.bambu .cp-badge-yellow { color:#a08000!important; background:rgba(160,128,0,.15)!important; border-color:rgba(160,128,0,.5)!important; }
+    body.bambu .answer-badge.inside { color:#4a9a5a!important; border-color:rgba(74,154,90,.4)!important; }
+    body.bambu .answer-badge.outside { color:#4a7ab5!important; border-color:rgba(74,122,181,.4)!important; }
     body.bambu .leaflet-control-zoom a{background:#ede8dc!important;color:#2a1f0e!important;border-bottom:1px solid var(--border)!important;}
     body.bambu .leaflet-control-zoom a:hover{background:var(--surface2)!important;color:var(--accent2)!important;}
     body.bambu .leaflet-control-attribution{background:rgba(245,240,232,.85)!important;color:var(--muted)!important;}
@@ -333,7 +349,7 @@
     .move-window-btn { display:none; }
     body.move-lock-enabled .move-window-btn { display:block; }
     .move-window-btn.running { border-color:#55ddaa; color:#55ddaa; background:rgba(85,221,170,.1); }
-    .thermo-border-line { stroke:#f5d020; stroke-width:2.5; stroke-dasharray:8 8; stroke-linecap:round; opacity:.9; }
+    .thermo-border-line { stroke:#1a1a1a; stroke-width:2.5; stroke-dasharray:8 8; stroke-linecap:round; opacity:.9; }
     .coord-disp { font-size:9px; color:var(--text2); letter-spacing:.5px; min-height:13px; }
     .answer-badge { padding:7px 10px; border-radius:var(--r); font-size:10px; letter-spacing:.5px; text-align:center; font-weight:500; }
     .answer-badge.inside  { background:rgba(90,210,120,.14); color:#7ae89a; border:1px solid rgba(90,210,120,.3); }
@@ -630,9 +646,6 @@
     <button class="sp-btn" id="seeker-code-menu-btn" onclick="toggleSeekerQuestionCodeMenu()" style="margin-top:5px">
       <span>Seeker Code Input</span><span id="seeker-code-menu-status">OFF</span>
     </button>
-    <button class="sp-btn" id="thermo-border-btn" onclick="toggleThermoBorders()" style="margin-top:5px">
-      <span>Thermometer Borders</span><span id="thermo-border-status">OFF</span>
-    </button>
     <button class="sp-btn" onclick="resetAllData()" style="margin-top:5px;border-color:rgba(220,80,80,.4);color:#e05555;">
       <span>🗑 Reset All Data</span>
     </button>
@@ -715,6 +728,13 @@
       <button class="sl-mini-btn" onclick="clearSlDisplayedLines()">Clear</button>
     </div>
     <div id="sl-selected-list"><div class="sl-empty">No lines selected</div></div>
+  </div>
+  <div class="sl-section" id="sl-stations-section" style="display:none">
+    <div class="sl-section-head">
+      <div class="sl-section-title" style="color:var(--accent2)">Selected Stations</div>
+      <button class="sl-mini-btn" onclick="clearSlSelectedStations()">Clear</button>
+    </div>
+    <div id="sl-selected-stations-list"><div class="sl-empty">No stations selected</div></div>
   </div>
   <div id="sl-search-results"><div class="sl-empty">Loading SL data...</div></div>
 </div>
@@ -812,6 +832,7 @@
   <div class="status-item">LAT <span class="val" id="s-lat">59.3293</span></div>
   <div class="status-item">LNG <span class="val" id="s-lng">18.0686</span></div>
   <div class="status-item">ZOOM <span class="val" id="s-zoom">12</span></div>
+  <div class="status-item">VER <span class="val" id="s-version">1.0</span></div>
   <div class="status-item" id="train-countdown">🚆 <span class="val" id="s-countdown">—</span></div>
 </div>
 
@@ -854,6 +875,9 @@ let outlineCircles = {};
 // ── MAP INIT ───────────────────────────────────────────────────
 function initMap() {
   map = L.map('map', { center: [59.3293, 18.0686], zoom: 12, zoomControl: true });
+  map.on('zoomend', () => {
+    if (_slSelectedStations.size > 0) refreshSlStationMarkers();
+  });
   const tileOpts = { detectRetina:true, maxZoom:19, maxNativeZoom:19 };
   layers = {
     'tf-transport': L.tileLayer(`https://tile.thunderforest.com/transport/{z}/{x}/{y}.png?apikey=${TF_KEY}`,
@@ -1164,6 +1188,8 @@ let _slLoadPromise = null;
 let _slCatalog = [];
 let _slRoutes = {};
 let _slDisplayed = new Set();
+let _slStations = [];
+let _slSelectedStations = new Set();
 let _slTypeOverlay = { bus:false, ferry:false, subway:false, tram:false, light_rail:false, train:false };
 let _slBlueZoneBusOn = false;
 let _slLineDetail = 'data';
@@ -1489,6 +1515,18 @@ function loadSlData() {
       const an = parseInt(a.ref, 10), bn = parseInt(b.ref, 10);
       return (a.type || '').localeCompare(b.type || '') || (isNaN(an) ? 99999 : an) - (isNaN(bn) ? 99999 : bn) || a.ref.localeCompare(b.ref);
     });
+    // Collect all unique stations
+    const stationMap = {};
+    for (const route of _slCatalog) {
+      for (const stop of route.stops) {
+        const key = stop.name + '|' + stop.lat.toFixed(5) + '|' + stop.lng.toFixed(5);
+        if (!stationMap[key]) {
+          stationMap[key] = { name: stop.name, lat: stop.lat, lng: stop.lng, routes: [] };
+        }
+        if (!stationMap[key].routes.includes(route.ref)) stationMap[key].routes.push(route.ref);
+      }
+    }
+    _slStations = Object.values(stationMap).sort((a, b) => a.name.localeCompare(b.name));
     renderSlSearchResults(); renderSlSelectedList();
     return routes;
   }).catch(err => {
@@ -1512,6 +1550,12 @@ function routesForSlMap() {
   }
   return Array.from(set).map(ref => _slRoutes[ref]).filter(Boolean);
 }
+function isRouteInBlueZoneOverlay(ref) {
+  if (!_slBlueZoneBusOn) return false;
+  const route = _slRoutes[ref];
+  if (!route || route.type !== 'bus') return false;
+  return slRouteHasStopInBlueZone(route);
+}
 function slRouteHasStopInBlueZone(route) {
   if (!route || !route.stops || !route.stops.length || typeof isLatLngInBlueZone !== 'function') return false;
   return route.stops.some(stop => isLatLngInBlueZone(stop.lat, stop.lng));
@@ -1520,18 +1564,103 @@ function slLineItem(route, selected) {
   const stops = route.stops.length ? route.stops.length + ' stops' : 'no stops in file';
   return `<div class="sl-line-item"><span class="sl-swatch" style="background:${route.baseColor || slBaseColor(route)}"></span><div class="sl-line-meta"><div class="sl-line-name">${escapeHtml(route.ref)} · ${escapeHtml(route.name)}</div><div class="sl-line-sub">${escapeHtml(slTransportLabel(route.type))} · ${stops}</div></div><button class="sl-line-action ${selected ? 'remove' : ''}" onclick="${selected ? `removeSlDisplayedLine('${route.ref}')` : `addSlDisplayedLine('${route.ref}')`}">${selected ? 'Remove' : 'Add'}</button></div>`;
 }
+function slStationItem(station) {
+  const selected = _slSelectedStations.has(station.name);
+  const routes = station.routes.slice(0, 5).join(', ');
+  const more = station.routes.length > 5 ? ' +' + (station.routes.length - 5) : '';
+  return `<div class="sl-line-item"><span class="sl-swatch" style="background:#ff9950"></span><div class="sl-line-meta"><div class="sl-line-name">${escapeHtml(station.name)}</div><div class="sl-line-sub">${escapeHtml(routes)}${more}</div></div><button class="sl-line-action ${selected ? 'on' : ''}" onclick="${selected ? `removeSlSelectedStation('${escapeHtml(station.name)}')` : `addSlSelectedStation('${escapeHtml(station.name)}', ${station.lat}, ${station.lng})`}">${selected ? 'Remove' : 'Select'}</button></div>`;
+}
 function renderSlSearchResults() {
   const out = document.getElementById('sl-search-results');
   if (!out) return;
   if (!_slCatalog.length) { out.innerHTML = '<div class="sl-empty">Loading SL data...</div>'; return; }
   const q = (document.getElementById('sl-search-input')?.value || '').trim().toLowerCase();
-  const rows = _slCatalog.filter(route => !q ? route.stops.length : (
+  if (!q) { out.innerHTML = '<div class="sl-empty">Search for lines or stations...</div>'; return; }
+  const routeRows = _slCatalog.filter(route => (
     route.ref.toLowerCase().includes(q) ||
     route.name.toLowerCase().includes(q) ||
     slTransportLabel(route.type).toLowerCase().includes(q) ||
     route.stops.some(stop => String(stop.name || '').toLowerCase().includes(q))
-  )).slice(0, 80);
-  out.innerHTML = rows.length ? rows.map(route => slLineItem(route, _slDisplayed.has(route.ref))).join('') : '<div class="sl-empty">No matching lines</div>';
+  )).slice(0, 50);
+  const stationRows = _slStations.filter(st => st.name.toLowerCase().includes(q) || st.routes.some(r => r.toLowerCase().includes(q))).slice(0, 30);
+  let html = '';
+  if (stationRows.length) {
+    html += '<div class="sl-section-title" style="padding:8px 4px 4px;color:var(--accent2)">Stations (' + stationRows.length + ')</div>';
+    html += stationRows.map(st => slStationItem(st)).join('');
+  }
+  if (routeRows.length) {
+    if (html) html += '<div style="height:8px"></div>';
+    html += '<div class="sl-section-title" style="padding:8px 4px 4px;color:var(--accent2)">Lines (' + routeRows.length + ')</div>';
+    html += routeRows.map(route => slLineItem(route, _slDisplayed.has(route.ref))).join('');
+  }
+  out.innerHTML = html || '<div class="sl-empty">No matching results</div>';
+}
+let _slStationMarkers = [];
+function refreshSlStationMarkers() {
+  for (const m of _slStationMarkers) map && map.removeLayer(m);
+  _slStationMarkers = [];
+  if (!map) return;
+  for (const name of _slSelectedStations) {
+    const station = _slStations.find(s => s.name === name);
+    if (!station) continue;
+    const zoom = map.getZoom();
+    const radius = zoom >= 16 ? 6 : zoom >= 14 ? 5 : 4;
+    const marker = L.circleMarker([station.lat, station.lng], {
+      radius: radius,
+      color: '#ff9950',
+      weight: 2,
+      fillColor: '#ff9950',
+      fillOpacity: 0.6
+    });
+    if (zoom >= 14) {
+      marker.bindTooltip(name, { permanent: false, direction: 'top', className: 'train-tip' });
+    }
+    marker.on('click', () => {
+      map.setView([station.lat, station.lng], Math.max(zoom, 15));
+    });
+    marker.addTo(map);
+    _slStationMarkers.push(marker);
+  }
+}
+function slSelectedStationItem(name) {
+  const station = _slStations.find(s => s.name === name);
+  if (!station) return '';
+  const routes = (station.routes || []).slice(0, 3).join(', ');
+  return `<div class="sl-line-item"><span class="sl-swatch" style="background:#ff9950"></span><div class="sl-line-meta"><div class="sl-line-name">${escapeHtml(name)}</div><div class="sl-line-sub">${escapeHtml(routes)}</div></div><button class="sl-line-action on" onclick="removeSlSelectedStation('${escapeHtml(name)}')">Remove</button></div>`;
+}
+function renderSlSelectedStations() {
+  const section = document.getElementById('sl-stations-section');
+  const out = document.getElementById('sl-selected-stations-list');
+  if (!out) return;
+  const names = Array.from(_slSelectedStations);
+  if (names.length) {
+    section.style.display = '';
+    out.innerHTML = names.map(name => slSelectedStationItem(name)).join('');
+  } else {
+    section.style.display = 'none';
+    out.innerHTML = '<div class="sl-empty">No stations selected</div>';
+  }
+}
+function addSlSelectedStation(name, lat, lng) {
+  _slSelectedStations.add(name);
+  refreshSlStationMarkers();
+  renderSlSelectedStations();
+  renderSlSearchResults();
+  saveState();
+}
+function removeSlSelectedStation(name) {
+  _slSelectedStations.delete(name);
+  refreshSlStationMarkers();
+  renderSlSelectedStations();
+  renderSlSearchResults();
+  saveState();
+}
+function clearSlSelectedStations() {
+  _slSelectedStations.clear();
+  refreshSlStationMarkers();
+  renderSlSelectedStations();
+  renderSlSearchResults();
+  saveState();
 }
 function renderSlSelectedList() {
   const out = document.getElementById('sl-selected-list');
