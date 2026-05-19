@@ -40,8 +40,10 @@ function placeHiderPin(lat, lng) {
   if (hiderPin) map.removeLayer(hiderPin);
   if (hiderZoneCircle) { map.removeLayer(hiderZoneCircle); hiderZoneCircle = null; }
   hiderPin = L.marker([lat, lng], { icon: tearDropIcon('#e8557a', 34), draggable: true }).addTo(map);
+  hiderPin.on('dragstart', e => rememberPinStart({ id: 'hider', type: 'hider' }, 'hider', e.target.getLatLng()));
   hiderPin.on('dragend', e => {
     const p = e.target.getLatLng();
+    recordPinMove({ id: 'hider', type: 'hider' }, 'hider', _lastPinStart, p);
     document.getElementById('hider-pin-coords').textContent = `${p.lat.toFixed(5)}, ${p.lng.toFixed(5)}`;
     updateHiderZoneCircle(); checkAllHiderRadars(); checkAllHiderThermos(); if(typeof checkAllHiderMatching!=="undefined")checkAllHiderMatching(); if(typeof checkAllHiderMeasuring!=="undefined")checkAllHiderMeasuring();
   });
@@ -90,12 +92,15 @@ function addQuestion(type) {
 function placeSeekerPin(q) {
   if (q.marker) map.removeLayer(q.marker);
   q.marker = L.marker([q.lat, q.lng], { icon: tearDropIcon('#ff9950', 32), draggable: !q.locked }).addTo(map);
+  q.marker.on('dragstart', e => rememberPinStart(q, 'radar', e.target.getLatLng()));
   q.marker.on('dragend', e => {
     const p = e.target.getLatLng(); q.lat = p.lat; q.lng = p.lng;
+    recordPinMove(q, 'radar', q._pinStart, p);
     const el = document.getElementById(`coord-disp-${q.id}`);
     if (el) el.textContent = `Pin: ${q.lat.toFixed(5)}, ${q.lng.toFixed(5)}`;
     redrawQuestionOverlay(q); redrawOutlineCircle(q); if(typeof saveState!=='undefined')saveState();
   });
+  applyQuestionMoveLocks();
 }
 
 function renderSeekerRadarCard(q) {
@@ -144,6 +149,7 @@ function toggleSeekerLock(id) {
   const btn=document.getElementById(`lock-btn-${id}`); const rb=document.getElementById(`remove-btn-${id}`);
   if(q.locked){btn.textContent='🔓 Locked';btn.classList.add('locked');if(q.marker)q.marker.dragging.disable();if(rb){rb.disabled=true;rb.style.opacity='0.25';rb.style.pointerEvents='none';}showToast(`Radar #${id} locked 🔒`); if(typeof saveState!=='undefined')saveState(); if(typeof applyHideLockedPins!=='undefined')applyHideLockedPins();}
   else{btn.textContent='🔒 Lock';btn.classList.remove('locked');if(q.marker)q.marker.dragging.enable();if(rb){rb.disabled=false;rb.style.opacity='';rb.style.pointerEvents='';}if(typeof applyHideLockedPins!=='undefined')applyHideLockedPins();}
+  applyQuestionMoveLocks();
 }
 
 // ── THERMOMETER SEEKER ────────────────────────────────────────
@@ -186,7 +192,9 @@ function placeThermoPin(q, pin) {
   const lat=pin==='A'?q.latA:q.latB, lng=pin==='A'?q.lngA:q.lngB, color=pin==='A'?'#f5d020':'#f59520', key=pin==='A'?'markerA':'markerB';
   if(q[key]) map.removeLayer(q[key]);
   q[key]=L.marker([lat,lng],{icon:tearDropIcon(color,30),draggable:!q.locked}).addTo(map);
-  q[key].on('dragend',e=>{const p=e.target.getLatLng();if(pin==='A'){q.latA=p.lat;q.lngA=p.lng;}else{q.latB=p.lat;q.lngB=p.lng;}updateThermoDistance(q);const el=document.getElementById(`coord-${pin.toLowerCase()}-${q.id}`);if(el)el.textContent=`${p.lat.toFixed(4)}, ${p.lng.toFixed(4)}`;redrawQuestionOverlay(q);if(typeof saveState!=='undefined')saveState();});
+  q[key].on('dragstart', e => rememberPinStart(q, pin === 'A' ? 'thermoA' : 'thermoB', e.target.getLatLng()));
+  q[key].on('dragend',e=>{const p=e.target.getLatLng();recordPinMove(q, pin === 'A' ? 'thermoA' : 'thermoB', q._pinStart, p);if(pin==='A'){q.latA=p.lat;q.lngA=p.lng;}else{q.latB=p.lat;q.lngB=p.lng;}updateThermoDistance(q);const el=document.getElementById(`coord-${pin.toLowerCase()}-${q.id}`);if(el)el.textContent=`${p.lat.toFixed(4)}, ${p.lng.toFixed(4)}`;redrawQuestionOverlay(q);redrawThermoBorders();if(typeof saveState!=='undefined')saveState();});
+  applyQuestionMoveLocks();
 }
 function updateThermoDistance(q){const dist=map.distance([q.latA,q.lngA],[q.latB,q.lngB]);const el=document.getElementById(`thermo-dist-${q.id}`);if(el)el.textContent=dist>=1000?`${(dist/1000).toFixed(2)} km`:`${Math.round(dist)} m`;}
 function goToThermoPin(id,pin){const q=questions.find(x=>x.id===id);map.setView([pin==='A'?q.latA:q.latB,pin==='A'?q.lngA:q.lngB],14);}
@@ -195,6 +203,7 @@ function toggleThermoLock(id){
   const btn=document.getElementById(`tlock-btn-${id}`);const rb=document.getElementById(`remove-btn-${id}`);
   if(q.locked){btn.textContent='🔓 Locked';btn.classList.add('locked');if(q.markerA)q.markerA.dragging.disable();if(q.markerB)q.markerB.dragging.disable();if(rb){rb.disabled=true;rb.style.opacity='0.25';rb.style.pointerEvents='none';}showToast(`Thermometer #${id} locked 🔒`); if(typeof saveState!=='undefined')saveState(); if(typeof applyHideLockedPins!=='undefined')applyHideLockedPins();}
   else{btn.textContent='🔒 Lock';btn.classList.remove('locked');if(q.markerA)q.markerA.dragging.enable();if(q.markerB)q.markerB.dragging.enable();if(rb){rb.disabled=false;rb.style.opacity='';rb.style.pointerEvents='';}if(typeof applyHideLockedPins!=='undefined')applyHideLockedPins();}
+  applyQuestionMoveLocks();
 }
 function setCloser(id,closer){const q=questions.find(x=>x.id===id);q.closer=closer;document.getElementById(`cpend-${id}`).className='closer-btn'+(closer==='pending'?' active-pend':'');document.getElementById(`ca-${id}`).className='closer-btn'+(closer==='A'?' active-a':'');document.getElementById(`cb-${id}`).className='closer-btn'+(closer==='B'?' active-b':'');redrawQuestionOverlay(q);}
 function copyThermoCode(id){const q=questions.find(x=>x.id===id);const code=`THM-${q.latA.toFixed(5)}-${q.lngA.toFixed(5)}-${q.latB.toFixed(5)}-${q.lngB.toFixed(5)}`;const btn=document.getElementById(`tcopy-btn-${id}`);navigator.clipboard.writeText(code).then(()=>{btn.textContent='✅ Copied!';setTimeout(()=>{btn.textContent='📋 Copy Question Code';},2200);}).catch(()=>showToast(code,5000));}
@@ -211,6 +220,165 @@ function setZone(id,zone){
 function buildCode(q){return `RAD-${q.lat.toFixed(5)}-${q.lng.toFixed(5)}-${q.radius}${q.unit}`;}
 function copyCode(id){const q=questions.find(x=>x.id===id);if(!q.radius){showToast('Set a radius first!');return;}const code=buildCode(q);const btn=document.getElementById(`copy-btn-${id}`);navigator.clipboard.writeText(code).then(()=>{btn.textContent='✅ Copied!';btn.classList.add('copied');setTimeout(()=>{btn.textContent='📋 Copy Question Code';btn.classList.remove('copied');},2200);}).catch(()=>showToast(code,5000));}
 function getRadiusMeters(q){const v=parseFloat(q.radius);if(!v||isNaN(v))return null;return q.unit==='KM'?v*1000:v;}
+
+const _pinUndoStack = [];
+let _lastPinStart = null;
+let _moveLockEnabled = false;
+let _thermoBordersOn = false;
+let _thermoBorderLayer = null;
+let _thermoBorderMapHooked = false;
+
+function rememberPinStart(q, pin, latlng) {
+  const start = { id: q.id, type: q.type, pin, lat: latlng.lat, lng: latlng.lng };
+  q._pinStart = start;
+  _lastPinStart = start;
+}
+function recordPinMove(q, pin, before, after) {
+  if (!before || !after) return;
+  if (Math.abs(before.lat - after.lat) < 1e-9 && Math.abs(before.lng - after.lng) < 1e-9) return;
+  _pinUndoStack.push({ id: q.id, type: q.type, pin, before: { lat: before.lat, lng: before.lng } });
+  if (_pinUndoStack.length > 60) _pinUndoStack.shift();
+  updateUndoPinButton();
+}
+function updateUndoPinButton() {
+  const btn = document.getElementById('undo-pin-btn');
+  if (btn) btn.disabled = !_pinUndoStack.length;
+}
+function undoLastPinMove() {
+  const move = _pinUndoStack.pop();
+  updateUndoPinButton();
+  if (!move) return;
+  applyPinMove(move, move.before);
+  showToast('Pin moved back');
+}
+function applyPinMove(move, pos) {
+  if (move.type === 'hider' && hiderPin) {
+    hiderPin.setLatLng([pos.lat, pos.lng]);
+    document.getElementById('hider-pin-coords').textContent = `${pos.lat.toFixed(5)}, ${pos.lng.toFixed(5)}`;
+    updateHiderZoneCircle(); checkAllHiderRadars(); return;
+  }
+  const q = questions.find(x => x.id === move.id);
+  if (!q) return;
+  if (move.pin === 'radar') { q.lat = pos.lat; q.lng = pos.lng; q.marker?.setLatLng([pos.lat,pos.lng]); const el=document.getElementById(`coord-disp-${q.id}`); if(el)el.textContent=`Pin: ${pos.lat.toFixed(5)}, ${pos.lng.toFixed(5)}`; redrawOutlineCircle(q); }
+  if (move.pin === 'thermoA') { q.latA = pos.lat; q.lngA = pos.lng; q.markerA?.setLatLng([pos.lat,pos.lng]); const el=document.getElementById(`coord-a-${q.id}`); if(el)el.textContent=`${pos.lat.toFixed(4)}, ${pos.lng.toFixed(4)}`; updateThermoDistance(q); }
+  if (move.pin === 'thermoB') { q.latB = pos.lat; q.lngB = pos.lng; q.markerB?.setLatLng([pos.lat,pos.lng]); const el=document.getElementById(`coord-b-${q.id}`); if(el)el.textContent=`${pos.lat.toFixed(4)}, ${pos.lng.toFixed(4)}`; updateThermoDistance(q); }
+  if (move.pin === 'matching') { q.lat = pos.lat; q.lng = pos.lng; q.marker?.setLatLng([pos.lat,pos.lng]); const el=document.getElementById(`match-coord-${q.id}`); if(el)el.textContent=`${pos.lat.toFixed(4)}, ${pos.lng.toFixed(4)}`; updateMatchingNearest(q); }
+  if (move.pin === 'measuring') { q.lat = pos.lat; q.lng = pos.lng; q.marker?.setLatLng([pos.lat,pos.lng]); const el=document.getElementById(`meas-coord-${q.id}`); if(el)el.textContent=`${pos.lat.toFixed(4)}, ${pos.lng.toFixed(4)}`; updateMeasuringNearest(q); }
+  if (move.pin === 'angleCenter') { q.center = { lat: pos.lat, lng: pos.lng }; q._centerMarker?.setLatLng([pos.lat,pos.lng]); angleQuestionUpdateGeometry(q); renderAngleCard(q); }
+  if (move.pin === 'angleDirection') { q.direction = { lat: pos.lat, lng: pos.lng }; q._dirMarker?.setLatLng([pos.lat,pos.lng]); angleQuestionUpdateGeometry(q); renderAngleCard(q); }
+  redrawQuestionOverlay(q); redrawThermoBorders();
+  if (typeof saveState !== 'undefined') saveState();
+}
+function questionMarkers(q) { return [q.marker, q.markerA, q.markerB, q._centerMarker, q._dirMarker].filter(Boolean); }
+function questionMoveAllowed(q) { return !q.locked && (!_moveLockEnabled || (q._moveWindowUntil && Date.now() < q._moveWindowUntil)); }
+function applyQuestionMoveLocks() {
+  document.body.classList.toggle('move-lock-enabled', _moveLockEnabled);
+  for (const q of questions || []) for (const m of questionMarkers(q)) {
+    try { if (m.dragging) questionMoveAllowed(q) ? m.dragging.enable() : m.dragging.disable(); } catch(e) {}
+  }
+  refreshMoveWindowButtons();
+}
+function setMoveLockEnabled(on, save = true) {
+  _moveLockEnabled = !!on;
+  const btn = document.getElementById('move-lock-setting-btn'), st = document.getElementById('move-lock-setting-status');
+  if (btn) btn.classList.toggle('sp-active', _moveLockEnabled);
+  if (st) st.textContent = _moveLockEnabled ? 'ON' : 'OFF';
+  applyQuestionMoveLocks();
+  if (save && typeof saveState !== 'undefined') saveState();
+}
+function toggleMoveLockSetting() { setMoveLockEnabled(!_moveLockEnabled); }
+function openMoveWindow(id) {
+  const q = questions.find(x => String(x.id) === String(id));
+  if (!q || q.locked) return;
+  q._moveWindowUntil = Date.now() + 60000;
+  applyQuestionMoveLocks();
+  showToast('Pins unlocked for 60 seconds');
+  setTimeout(() => { if (q._moveWindowUntil && Date.now() >= q._moveWindowUntil) { q._moveWindowUntil = 0; applyQuestionMoveLocks(); } }, 61000);
+}
+function refreshMoveWindowButtons() {
+  for (const q of questions || []) {
+    if (q.hiderMode) continue;
+    const card = document.getElementById(q.type === 'angle' ? `angle-card-${q.id}` : `q-card-${q.id}`);
+    const row = card?.querySelector('.icon-btns');
+    if (!row) continue;
+    let btn = document.getElementById(`move-window-btn-${q.id}`);
+    if (!btn) { btn = document.createElement('button'); btn.id = `move-window-btn-${q.id}`; btn.className = 'icon-btn move-window-btn'; btn.onclick = () => openMoveWindow(q.id); row.appendChild(btn); }
+    const left = Math.max(0, Math.ceil(((q._moveWindowUntil || 0) - Date.now()) / 1000));
+    btn.style.display = (_moveLockEnabled && !q.locked) ? '' : 'none';
+    btn.textContent = left ? `Move ${left}s` : 'Move 60s';
+    btn.classList.toggle('running', left > 0);
+  }
+}
+setInterval(refreshMoveWindowButtons, 1000);
+
+function setThermoBordersEnabled(on, save = true) {
+  _thermoBordersOn = !!on;
+  const btn = document.getElementById('thermo-border-btn'), st = document.getElementById('thermo-border-status');
+  if (btn) btn.classList.toggle('sp-active', _thermoBordersOn);
+  if (st) st.textContent = _thermoBordersOn ? 'ON' : 'OFF';
+  if (map && !_thermoBorderMapHooked) { map.on('moveend zoomend', redrawThermoBorders); _thermoBorderMapHooked = true; }
+  redrawThermoBorders();
+  if (save && typeof saveState !== 'undefined') saveState();
+}
+function toggleThermoBorders() { setThermoBordersEnabled(!_thermoBordersOn); }
+function redrawThermoBorders() {
+  if (_thermoBorderLayer) { _thermoBorderLayer.clearLayers(); if (!_thermoBordersOn) return; }
+  if (!_thermoBordersOn || !map) return;
+  if (!_thermoBorderLayer) _thermoBorderLayer = L.layerGroup().addTo(map);
+  for (const q of questions.filter(x => x.type === 'thermo')) {
+    const pA = map.latLngToLayerPoint(L.latLng(q.latA,q.lngA)), pB = map.latLngToLayerPoint(L.latLng(q.latB,q.lngB));
+    const mx = (pA.x+pB.x)/2, my = (pA.y+pB.y)/2, dx = pB.x-pA.x, dy = pB.y-pA.y, len = Math.hypot(dx,dy) || 1;
+    const bx = -dy/len, by = dx/len, p = overlayPad();
+    const p1 = map.layerPointToLatLng(L.point(mx + bx*p, my + by*p));
+    const p2 = map.layerPointToLatLng(L.point(mx - bx*p, my - by*p));
+    L.polyline([p1,p2], { color:'#f5d020', weight:2.5, opacity:.9, dashArray:'8 8', interactive:false }).addTo(_thermoBorderLayer);
+  }
+}
+
+function _pointInThermoBlue(q, lat, lng) {
+  if (q.closer !== 'A' && q.closer !== 'B') return false;
+  const dA = map.distance([q.latA,q.lngA], [lat,lng]);
+  const dB = map.distance([q.latB,q.lngB], [lat,lng]);
+  return q.closer === 'A' ? dB < dA : dA < dB;
+}
+function _nearestPointLoc(lat, lng, locs) {
+  let best = null, bestD = Infinity;
+  for (const loc of locs) {
+    if (!Number.isFinite(loc.lat) || !Number.isFinite(loc.lng)) continue;
+    const d = map.distance([lat,lng], [loc.lat,loc.lng]);
+    if (d < bestD) { bestD = d; best = loc; }
+  }
+  return best;
+}
+function isLatLngInBlueZone(lat, lng) {
+  if (!map || typeof questions === 'undefined') return false;
+  for (const q of questions) {
+    if (q.type === 'radar') {
+      const r = getRadiusMeters(q); if (!r || (q.zone !== 'inside' && q.zone !== 'outside')) continue;
+      const inside = map.distance([q.lat,q.lng], [lat,lng]) <= r;
+      if ((q.zone === 'inside' && !inside) || (q.zone === 'outside' && inside)) return true;
+    } else if (q.type === 'thermo') {
+      if (_pointInThermoBlue(q, lat, lng)) return true;
+    } else if (q.type === 'angle') {
+      if (q.zone !== 'inside' && q.zone !== 'outside') continue;
+      const inside = isInCone(q, { lat, lng });
+      if ((q.zone === 'inside' && !inside) || (q.zone === 'outside' && inside)) return true;
+    } else if (q.type === 'matching') {
+      if (q.answer !== 'yes' && q.answer !== 'no') continue;
+      const locs = getAllMatchingData()[q.subcat] || [];
+      const nearest = _nearestPointLoc(lat, lng, locs);
+      if (!nearest) continue;
+      const same = String(nearest.id) === String(q.nearestId);
+      if ((q.answer === 'yes' && !same) || (q.answer === 'no' && same)) return true;
+    } else if (q.type === 'measuring') {
+      if (q.answer === 'pending' || !q.seekerDist) continue;
+      const locs = getMeasuringLocs(q.subcat);
+      const insideAny = locs.some(loc => map.distance([lat,lng], [loc.lat,loc.lng]) <= q.seekerDist);
+      if ((q.answer === 'closer' && !insideAny) || (q.answer === 'further' && insideAny)) return true;
+    }
+  }
+  return false;
+}
 
 function redrawOutlineCircle(q){
   if(outlineCircles[q.id]){map.removeLayer(outlineCircles[q.id]);delete outlineCircles[q.id];}
@@ -241,6 +409,17 @@ let _rebuildPending = false;
 const BLUE = '#4882dc';
 const NS   = 'http://www.w3.org/2000/svg';
 const OPAD = 10000;
+
+function overlayPad() {
+  if (!map || !map.getSize) return OPAD;
+  const s = map.getSize();
+  return Math.max(OPAD, s.x * 8, s.y * 8);
+}
+
+function overlayWorldD() {
+  const p = overlayPad();
+  return `M${-p},${-p} L${p},${-p} L${p},${p} L${-p},${p} Z`;
+}
 
 // ── Signed area helper to detect winding ─────────────────────
 // Returns positive for CW in screen y-down space, negative for CCW
@@ -300,7 +479,7 @@ function circlePxPts(lat, lng, r) {
 // YES constraint (blue outside shape): worldD + ccwShape hole, nonzero fill
 // The "hole" must be CCW in screen space. ensureCCW guarantees it.
 function addYesPath(shapePts) {
-  const worldD = `M${-OPAD},${-OPAD} L${OPAD},${-OPAD} L${OPAD},${OPAD} L${-OPAD},${OPAD} Z`;
+  const worldD = overlayWorldD();
   // Force shapePts to CCW (negative signed area) for use as hole
   const ccw = polySignedArea(shapePts) > 0 ? [...shapePts].reverse() : shapePts;
   const d = worldD + ' ' + ptsToD(ccw, false);
@@ -314,7 +493,7 @@ function addYesPath(shapePts) {
 
 function addYesPathMulti(shapePtsArray) {
   if (!shapePtsArray || !shapePtsArray.length) return;
-  const worldD = `M${-OPAD},${-OPAD} L${OPAD},${-OPAD} L${OPAD},${OPAD} L${-OPAD},${OPAD} Z`;
+  const worldD = overlayWorldD();
   const holesD = shapePtsArray.map(shapePts => {
     const ccw = polySignedArea(shapePts) > 0 ? [...shapePts].reverse() : shapePts;
     return ptsToD(ccw, false);
@@ -375,7 +554,8 @@ function geoCirclePoly(lat,lng,r){ return circlePxPts(lat,lng,r); } // alias
 function geoPolyToD(pts){ return ptsToD(pts,false); }               // alias
 
 function voronoiCell(loc, allLocs){
-  let cell=[[-OPAD,-OPAD],[OPAD,-OPAD],[OPAD,OPAD],[-OPAD,OPAD]];
+  const p = overlayPad();
+  let cell=[[-p,-p],[p,-p],[p,p],[-p,p]];
   const mPx=map.latLngToLayerPoint(L.latLng(loc.lat,loc.lng));
   for(const other of allLocs){
     if(other.id===loc.id) continue;
@@ -426,6 +606,7 @@ function rebuildAll(){
   if(!map || !_overlaySvg) return;
   _overlaySvg.innerHTML = ''; // clear and rebuild
   if(_closerSvg) _closerSvg.innerHTML = '';
+  const pad = overlayPad();
 
   const allData = getAllMatchingData();
   const closerCirclesPts = [];
@@ -452,9 +633,9 @@ function rebuildAll(){
       const inclPin = q.closer==='A' ? pA : pB;
       const indir   = ((inclPin.x-mx)*nx + (inclPin.y-my)*ny) >= 0 ? 1 : -1;
       const exdir   = -indir; // direction toward EXCLUDED half-plane
-      const c1x=mx+bx*OPAD, c1y=my+by*OPAD, c2x=mx-bx*OPAD, c2y=my-by*OPAD;
-      const c3x=c2x+nx*exdir*OPAD*2, c3y=c2y+ny*exdir*OPAD*2;
-      const c4x=c1x+nx*exdir*OPAD*2, c4y=c1y+ny*exdir*OPAD*2;
+      const c1x=mx+bx*pad, c1y=my+by*pad, c2x=mx-bx*pad, c2y=my-by*pad;
+      const c3x=c2x+nx*exdir*pad*2, c3y=c2y+ny*exdir*pad*2;
+      const c4x=c1x+nx*exdir*pad*2, c4y=c1y+ny*exdir*pad*2;
       const excludedQuad = [[c1x,c1y],[c2x,c2y],[c3x,c3y],[c4x,c4y]];
       addNoPath(excludedQuad); // blue in the excluded half-plane
     }
@@ -488,7 +669,7 @@ function rebuildAll(){
         if(locs.length <= 1) continue;
         const ml = locs.find(x => x.id === q.nearestId); if(!ml) continue;
         const mPx = map.latLngToLayerPoint(L.latLng(ml.lat, ml.lng));
-        let cell = [[-OPAD,-OPAD],[OPAD,-OPAD],[OPAD,OPAD],[-OPAD,OPAD]];
+        let cell = [[-pad,-pad],[pad,-pad],[pad,pad],[-pad,pad]];
         for(const other of locs){
           if(other.id === ml.id) continue;
           const oPx = map.latLngToLayerPoint(L.latLng(other.lat, other.lng));
@@ -549,18 +730,12 @@ function rebuildAll(){
   // Blue rect + white circles in the lower layer → white shows through as map.
   // Main overlay (radar, thermo, matching) renders on top, unaffected by white.
   if(closerCirclesPts.length && _closerSvg){
-    const bgRect = document.createElementNS(NS,'rect');
-    bgRect.setAttribute('x',-OPAD); bgRect.setAttribute('y',-OPAD);
-    bgRect.setAttribute('width',OPAD*2); bgRect.setAttribute('height',OPAD*2);
-    bgRect.setAttribute('fill',BLUE);
-    _closerSvg.appendChild(bgRect);
-    for(const pts of closerCirclesPts){
-      const cp = document.createElementNS(NS,'path');
-      cp.setAttribute('d', ptsToD(pts, false));
-      cp.setAttribute('fill','white');
-      cp.setAttribute('stroke','none');
-      _closerSvg.appendChild(cp);
-    }
+    const path = document.createElementNS(NS,'path');
+    path.setAttribute('d', overlayWorldD() + ' ' + closerCirclesPts.map(pts => ptsToD(pts, false)).join(' '));
+    path.setAttribute('fill',BLUE);
+    path.setAttribute('fill-rule','evenodd');
+    path.setAttribute('stroke','none');
+    _closerSvg.appendChild(path);
   }
 }
 
@@ -674,6 +849,7 @@ function decodeAndAdd(){
     questions.push(q);
     renderHiderAngleCard(q);
     checkHiderAngle(q);
+    showAnglePreview(q);
     map.setView([centerLat, centerLng], 13);
     document.getElementById('hider-code-field').value = '';
     showToast('Angle question added!');
@@ -802,12 +978,15 @@ function addMatchingQuestion() {
 function placeSeekerMatchingPin(q) {
   if (q.marker) map.removeLayer(q.marker);
   q.marker = L.marker([q.lat, q.lng], { icon: tearDropIcon('#4ade80', 32), draggable: !q.locked }).addTo(map);
+  q.marker.on('dragstart', e => rememberPinStart(q, 'matching', e.target.getLatLng()));
   q.marker.on('dragend', e => {
     const p = e.target.getLatLng(); q.lat = p.lat; q.lng = p.lng;
+    recordPinMove(q, 'matching', q._pinStart, p);
     const coordEl = document.getElementById(`match-coord-${q.id}`);
     if (coordEl) coordEl.textContent = `${q.lat.toFixed(4)}, ${q.lng.toFixed(4)}`;
     updateMatchingNearest(q);
   });
+  applyQuestionMoveLocks();
 }
 
 function updateMatchingNearest(q) {
@@ -910,6 +1089,7 @@ function toggleMatchingLock(id) {
     showMatchingLocMarkers(q);
     showAreaFeatures(q);
   }
+  applyQuestionMoveLocks();
 }
 
 function copyMatchingCode(id) {
@@ -1367,12 +1547,15 @@ function addMeasuringQuestion() {
 function placeSeekerMeasuringPin(q) {
   if (q.marker) map.removeLayer(q.marker);
   q.marker = L.marker([q.lat, q.lng], { icon: tearDropIcon('#06b6d4', 32), draggable: !q.locked }).addTo(map);
+  q.marker.on('dragstart', e => rememberPinStart(q, 'measuring', e.target.getLatLng()));
   q.marker.on('dragend', e => {
     const p = e.target.getLatLng(); q.lat = p.lat; q.lng = p.lng;
+    recordPinMove(q, 'measuring', q._pinStart, p);
     const el = document.getElementById(`meas-coord-${q.id}`);
     if (el) el.textContent = `${q.lat.toFixed(4)}, ${q.lng.toFixed(4)}`;
     updateMeasuringNearest(q);
   });
+  applyQuestionMoveLocks();
 }
 
 function updateMeasuringNearest(q) {
@@ -1421,6 +1604,7 @@ function toggleMeasuringLock(id) {
     if (rb) { rb.disabled=false; rb.style.opacity=''; rb.style.pointerEvents=''; }
     showMeasuringLocMarkers(q);
   }
+  applyQuestionMoveLocks();
 }
 
 function copyMeasuringCode(id) {
@@ -1683,7 +1867,13 @@ function seekerDecodeAndAdd() {
       x.type === 'radar' && !x.hiderMode &&
       Math.abs(x.lat - lat) < 0.0001 && Math.abs(x.lng - lng) < 0.0001
     );
-    if (!q) { showToast('No matching Radar question found'); return; }
+    if (!q) {
+      qCounter++;
+      const nq = { id:qCounter, type:'radar', lat, lng, radius:rad, unit, zone:'pending', locked:false };
+      questions.push(nq); renderSeekerRadarCard(nq); placeSeekerPin(nq);
+      requestAnimationFrame(() => { const el=document.getElementById(`rad-inp-${nq.id}`); if(el)el.value=rad; document.getElementById(`unit-m-${nq.id}`)?.classList.toggle('active', unit==='M'); document.getElementById(`unit-km-${nq.id}`)?.classList.toggle('active', unit==='KM'); redrawOutlineCircle(nq); });
+      map.setView([lat,lng],14); if(!sidebarOpen)toggleSidebar(); field.value=''; showToast('Radar question code added'); if(typeof saveState!=='undefined')saveState(); return;
+    }
     // Determine answer: the seeker now knows where the hider answered from
     // But a radar code alone doesn't carry the answer — it's the question code
     // We need the hider to have answered it. The hider answer is embedded in
@@ -1706,7 +1896,12 @@ function seekerDecodeAndAdd() {
       x.type === 'thermo' && !x.hiderMode &&
       Math.abs(x.latA - latA) < 0.0001 && Math.abs(x.lngA - lngA) < 0.0001
     );
-    if (!q) { showToast('No matching Thermometer question found'); return; }
+    if (!q) {
+      qCounter++;
+      const nq = { id:qCounter, type:'thermo', latA,lngA,latB,lngB, closer:'pending', locked:false };
+      questions.push(nq); renderSeekerThermoCard(nq); placeThermoPin(nq,'A'); placeThermoPin(nq,'B'); updateThermoDistance(nq);
+      map.setView([(latA+latB)/2,(lngA+lngB)/2],13); if(!sidebarOpen)toggleSidebar(); field.value=''; showToast('Thermometer question code added'); if(typeof saveState!=='undefined')saveState(); return;
+    }
     map.setView([(latA+latB)/2, (lngA+lngB)/2], 13);
     showToast(`Thermometer #${q.id} found — set A/B from the card`);
     if (!sidebarOpen) toggleSidebar();
@@ -1729,7 +1924,14 @@ function seekerDecodeAndAdd() {
       x.type === 'matching' && !x.hiderMode &&
       Math.abs(x.lat - seekerLat) < 0.0001 && Math.abs(x.lng - seekerLng) < 0.0001
     );
-    if (!q) { showToast('No matching Matching question found'); return; }
+    if (!q) {
+      qCounter++;
+      const locs = getAllMatchingData()[subcat] || [];
+      const loc = locs.find(x => x.id === nearestId) || { name: nearestId };
+      const nq = { id:qCounter, type:'matching', lat:seekerLat, lng:seekerLng, subcat, nearestId, nearestName:loc.name, answer:'pending', locked:false };
+      questions.push(nq); renderSeekerMatchingCard(nq); placeSeekerMatchingPin(nq); showMatchingLocMarkers(nq); showAreaFeatures(nq);
+      map.setView([seekerLat,seekerLng],14); if(!sidebarOpen)toggleSidebar(); field.value=''; showToast('Matching question code added'); if(typeof saveState!=='undefined')saveState(); return;
+    }
     const answer = (nearestId === (q.nearestId || '').toLowerCase()) ? 'yes' : 'no';
     setMatchingAnswer(q.id, answer);
     showToast(`Matching #${q.id}: ${answer === 'yes' ? '✅ Yes — same nearest' : '❌ No — different nearest'}`);
@@ -1756,7 +1958,15 @@ function seekerDecodeAndAdd() {
       x.type === 'measuring' && !x.hiderMode &&
       Math.abs(x.lat - seekerLat) < 0.0001 && Math.abs(x.lng - seekerLng) < 0.0001
     );
-    if (!q) { showToast('No matching Measuring question found'); return; }
+    if (!q) {
+      qCounter++;
+      const locs = getMeasuringLocs(subcat);
+      const loc = locs.find(x => x.id === measMatch[4]) || { name: measMatch[4] };
+      const nq = { id:qCounter, type:'measuring', lat:seekerLat, lng:seekerLng, subcat, nearestId:measMatch[4], nearestName:loc.name, seekerDist, answer:answerHint || 'pending', locked:false };
+      questions.push(nq); renderSeekerMeasuringCard(nq); placeSeekerMeasuringPin(nq); showMeasuringLocMarkers(nq);
+      if (answerHint) requestAnimationFrame(() => setMeasuringAnswer(nq.id, answerHint));
+      map.setView([seekerLat,seekerLng],14); if(!sidebarOpen)toggleSidebar(); field.value=''; showToast('Measuring question code added'); if(typeof saveState!=='undefined')saveState(); return;
+    }
     if (answerHint) {
       setMeasuringAnswer(q.id, answerHint);
       showToast(`Measuring #${q.id}: ${answerHint === 'closer' ? '🟢 Closer' : '🔴 Further'}`);
@@ -1765,6 +1975,26 @@ function seekerDecodeAndAdd() {
     }
     if (!sidebarOpen) toggleSidebar();
     field.value = '';
+    if(typeof saveState!=='undefined') saveState();
+    return;
+  }
+
+  const angleMatch = raw.match(/^ANG-([\-\d.]+)-([\-\d.]+)-([\-\d.]+)-([\-\d.]+)-(\d+)-([A-Za-z]+)-(\d+)$/i);
+  if (angleMatch) {
+    const centerLat = parseFloat(angleMatch[1]), centerLng = parseFloat(angleMatch[2]);
+    const dirLat = parseFloat(angleMatch[3]), dirLng = parseFloat(angleMatch[4]);
+    const modeRaw = angleMatch[6].toLowerCase();
+    qCounter++;
+    const q = {
+      id: 'aq' + qCounter, type:'angle',
+      center:{ lat:centerLat, lng:centerLng }, direction:{ lat:dirLat, lng:dirLng },
+      angle:parseInt(angleMatch[5],10), mode:modeRaw === 'excluderadius' ? 'excludeRadius' : modeRaw,
+      excludeRadius:parseInt(angleMatch[7],10) || 0, zone:'pending', locked:false
+    };
+    questions.push(q); renderAngleCard(q); angleQuestionSetupMap(q);
+    showAnglePreview(q);
+    map.setView([centerLat, centerLng], 13); if(!sidebarOpen)toggleSidebar(); field.value='';
+    showToast('Angle question code added');
     if(typeof saveState!=='undefined') saveState();
     return;
   }
@@ -2069,9 +2299,10 @@ function angleQuestionSetupMap(q) {
   // Center pin (drag)
   q._centerMarker = L.marker([q.center.lat, q.center.lng], {
     icon: tearDropIcon('#9A00C9', 32), draggable: !q.locked
-  }).addTo(groups.markers).on('dragend', e => {
+  }).addTo(groups.markers).on('dragstart', e => rememberPinStart(q, 'angleCenter', e.target.getLatLng())).on('dragend', e => {
     if (!q.locked) {
       const latlng = e.target.getLatLng();
+      recordPinMove(q, 'angleCenter', q._pinStart, latlng);
       q.center = { lat: latlng.lat, lng: latlng.lng };
       angleQuestionUpdateGeometry(q);
       redrawQuestionOverlay();
@@ -2084,9 +2315,10 @@ function angleQuestionSetupMap(q) {
   // Direction pin (drag)
   q._dirMarker = L.marker([q.direction.lat, q.direction.lng], {
     icon: tearDropIcon('#BB77DD', 32), draggable: !q.locked
-  }).addTo(groups.markers).on('dragend', e => {
+  }).addTo(groups.markers).on('dragstart', e => rememberPinStart(q, 'angleDirection', e.target.getLatLng())).on('dragend', e => {
     if (!q.locked) {
       const latlng = e.target.getLatLng();
+      recordPinMove(q, 'angleDirection', q._pinStart, latlng);
       q.direction = { lat: latlng.lat, lng: latlng.lng };
       angleQuestionUpdateGeometry(q);
       redrawQuestionOverlay();
@@ -2099,6 +2331,7 @@ function angleQuestionSetupMap(q) {
   angleQuestionUpdateGeometry(q);
   q._mapMoveHandler = () => angleQuestionUpdateGeometry(q);
   if (map && map.on) map.on('moveend zoomend viewreset', q._mapMoveHandler);
+  applyQuestionMoveLocks();
 }
 
 function angleQuestionUpdateGeometry(q) {
@@ -2234,6 +2467,7 @@ function setAngleQuestionAngle(id, a) {
   if (!q) return;
   q.angle = parseInt(a, 10) || q.angle;
   angleQuestionUpdateGeometry(q);
+  showAnglePreview(q);
   redrawQuestionOverlay();
   renderAngleCard(q);
   if (typeof saveState !== 'undefined') saveState();
@@ -2244,6 +2478,7 @@ function setAngleQuestionMode(id, m) {
   q.mode = m;
   if (m!=='excludeRadius') q.excludeRadius = 40;
   angleQuestionUpdateGeometry(q);
+  showAnglePreview(q);
   redrawQuestionOverlay();
   renderAngleCard(q);
   if (typeof saveState !== 'undefined') saveState();
@@ -2263,11 +2498,30 @@ function setAngleZone(id, z) {
   renderAngleCard(q);
   if (typeof saveState !== 'undefined') saveState();
 }
+
+let _anglePreviewLayer = null;
+let _anglePreviewTimer = null;
+function showAnglePreview(q, ms = 60000) {
+  if (!map || !q) return;
+  if (!_anglePreviewLayer) _anglePreviewLayer = L.layerGroup().addTo(map);
+  _anglePreviewLayer.clearLayers();
+  const cones = getAngleCones(q);
+  cones.forEach(co => {
+    const center = latlngToXY(q.center, q.center);
+    const r = getAngleDrawRadiusMeters(q);
+    const innerR = q.mode === 'excludeRadius' ? Math.max(0, parseFloat(q.excludeRadius) || 0) : 0;
+    const pts = coneSectorPoints(center, co.theta, co.width, r, 36, innerR).map(pt => L.latLng(xyToLatLng(q.center, pt)));
+    L.polygon(pts, { color:'#9a4dff', fillColor:'#9a4dff', fillOpacity:.16, weight:3, dashArray:'8 8', interactive:false }).addTo(_anglePreviewLayer);
+  });
+  clearTimeout(_anglePreviewTimer);
+  _anglePreviewTimer = setTimeout(() => _anglePreviewLayer?.clearLayers(), ms);
+}
 function setAngleExcludeRadius(id, v) {
   const q = questions.find(x=>x.id===id);
   if (!q) return;
   q.excludeRadius = Math.max(0, parseInt(v, 10) || 0);
   angleQuestionUpdateGeometry(q);
+  showAnglePreview(q);
   redrawQuestionOverlay();
   renderAngleCard(q);
   if (typeof saveState !== 'undefined') saveState();
@@ -2285,6 +2539,7 @@ function toggleAngleLock(id) {
     else q._dirMarker.dragging.enable();
   }
   renderAngleCard(q);
+  applyQuestionMoveLocks();
   showToast(`Angle #${id} ${q.locked ? 'locked 🔒' : 'unlocked'}`);
   if (typeof saveState !== 'undefined') saveState();
   if (typeof applyHideLockedPins !== 'undefined') applyHideLockedPins();

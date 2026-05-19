@@ -101,6 +101,7 @@
     }
     .hdr-btn:hover { border-color:var(--accent); color:var(--accent); }
     .hdr-btn.open { border-color:var(--accent2); color:var(--accent2); background:var(--border); }
+    .hdr-btn:disabled { opacity:.35; cursor:default; border-color:var(--border2); color:var(--muted); }
     #settings-btn.open { border-color:var(--accent); color:var(--accent); background:var(--border); }
 
     /* ── BOTTOM BAR MODE ─────────────────────────────────────────────────────── */
@@ -329,6 +330,10 @@
     .copy-btn.copied { background:rgba(90,210,120,.15); border-color:rgba(90,210,120,.4); color:#7ae89a; }
     .remove-btn { width:100%; padding:7px; background:transparent; border:1px solid rgba(255,80,80,.25); border-radius:var(--r); color:rgba(255,100,100,.6); font-family:'DM Mono',monospace; font-size:9px; letter-spacing:1px; text-transform:uppercase; cursor:pointer; transition:all .15s; text-align:center; margin-top:2px; }
     .remove-btn:hover { background:rgba(255,80,80,.12); border-color:rgba(255,80,80,.5); color:#ff6464; }
+    .move-window-btn { display:none; }
+    body.move-lock-enabled .move-window-btn { display:block; }
+    .move-window-btn.running { border-color:#55ddaa; color:#55ddaa; background:rgba(85,221,170,.1); }
+    .thermo-border-line { stroke:#f5d020; stroke-width:2.5; stroke-dasharray:8 8; stroke-linecap:round; opacity:.9; }
     .coord-disp { font-size:9px; color:var(--text2); letter-spacing:.5px; min-height:13px; }
     .answer-badge { padding:7px 10px; border-radius:var(--r); font-size:10px; letter-spacing:.5px; text-align:center; font-weight:500; }
     .answer-badge.inside  { background:rgba(90,210,120,.14); color:#7ae89a; border:1px solid rgba(90,210,120,.3); }
@@ -548,6 +553,7 @@
   <div id="header-right">
     <button id="sl-btn" class="hdr-btn" onclick="toggleSlPanel()" title="SL lines">🚌</button>
     <button id="curse-btn" class="hdr-btn" onclick="toggleCursePanel()" title="Curses">💀</button>
+    <button id="undo-pin-btn" class="hdr-btn" onclick="undoLastPinMove()" title="Go back one pin move" disabled>↩</button>
     <button id="settings-btn" class="hdr-btn" onclick="toggleSettingsPanel()" title="Settings">⚙</button>
   </div>
 
@@ -618,6 +624,15 @@
     <button class="sp-btn sp-active" id="hide-locked-btn" onclick="toggleHideLockedPins()" style="margin-top:5px">
       <span>Hide Locked Pins</span><span id="hide-locked-status">ON</span>
     </button>
+    <button class="sp-btn" id="move-lock-setting-btn" onclick="toggleMoveLockSetting()" style="margin-top:5px">
+      <span>60s Move Lock</span><span id="move-lock-setting-status">OFF</span>
+    </button>
+    <button class="sp-btn" id="seeker-code-menu-btn" onclick="toggleSeekerQuestionCodeMenu()" style="margin-top:5px">
+      <span>Seeker Code Input</span><span id="seeker-code-menu-status">OFF</span>
+    </button>
+    <button class="sp-btn" id="thermo-border-btn" onclick="toggleThermoBorders()" style="margin-top:5px">
+      <span>Thermometer Borders</span><span id="thermo-border-status">OFF</span>
+    </button>
     <button class="sp-btn" onclick="resetAllData()" style="margin-top:5px;border-color:rgba(220,80,80,.4);color:#e05555;">
       <span>🗑 Reset All Data</span>
     </button>
@@ -646,6 +661,18 @@
     </button>
     <button class="sp-btn" id="sl-ferry-all-btn" onclick="toggleSlTypeOverlay('ferry')" style="margin-top:5px">
       <span>All Ferry Lines</span><span id="sl-ferry-all-status">OFF</span>
+    </button>
+    <button class="sp-btn" id="sl-subway-all-btn" onclick="toggleSlTypeOverlay('subway')" style="margin-top:5px">
+      <span>All Metro Lines</span><span id="sl-subway-all-status">OFF</span>
+    </button>
+    <button class="sp-btn" id="sl-tram-all-btn" onclick="toggleSlTypeOverlay('tram')" style="margin-top:5px">
+      <span>All Tram Lines</span><span id="sl-tram-all-status">OFF</span>
+    </button>
+    <button class="sp-btn" id="sl-train-all-btn" onclick="toggleSlTypeOverlay('train')" style="margin-top:5px">
+      <span>All Train Lines</span><span id="sl-train-all-status">OFF</span>
+    </button>
+    <button class="sp-btn" id="sl-blue-zone-bus-btn" onclick="toggleSlBlueZoneBusLines()" style="margin-top:5px">
+      <span>Bus Lines In Blue</span><span id="sl-blue-zone-bus-status">OFF</span>
     </button>
     <button class="sp-btn" id="sl-ferry-stops-btn" onclick="toggleSlFerryStops()" style="margin-top:5px">
       <span>Ferry Stops</span><span id="sl-ferry-stops-status">OFF</span>
@@ -680,7 +707,7 @@
     <button class="sl-close-btn" onclick="toggleSlPanel(false)">x</button>
   </div>
   <div class="sl-search-wrap">
-    <input id="sl-search-input" class="sl-search" type="search" placeholder="Search line number or name..." oninput="renderSlSearchResults()" />
+    <input id="sl-search-input" class="sl-search" type="search" placeholder="Search line, name, type, or stop..." oninput="renderSlSearchResults()" />
   </div>
   <div class="sl-section">
     <div class="sl-section-head">
@@ -756,8 +783,8 @@
         <button class="type-option" onclick="addMeasuringQuestion()"><span class="dot" style="background:#06b6d4"></span> 📏 Measuring</button>
         <button class="type-option" onclick="addAngleQuestion('default')"><span class="dot" style="background:#9a4dff"></span> 🟪 Angle</button>
       </div>
-      <div class="code-input-wrap" style="margin-top:6px">
-        <div class="q-label">Paste answer code from hider</div>
+      <div class="code-input-wrap" id="seeker-code-input-wrap" style="margin-top:6px;display:none">
+        <div class="q-label">Paste a question/answer code</div>
         <div class="code-input-row">
           <input class="code-input" id="seeker-code-field" placeholder="RAD-… / THM-… / MAT-… / MEA-…" />
           <button class="decode-btn" onclick="seekerDecodeAndAdd()">Add</button>
@@ -904,6 +931,7 @@ function chooseMode(m) {
     initMap();
     if (m === 'seeker') {
       document.getElementById('seeker-footer').style.display = 'block';
+      applySeekerQuestionCodeMenu();
     } else {
       document.getElementById('hider-footer').style.display = 'block';
       addHiderLocationCard();
@@ -1136,7 +1164,8 @@ let _slLoadPromise = null;
 let _slCatalog = [];
 let _slRoutes = {};
 let _slDisplayed = new Set();
-let _slTypeOverlay = { bus:false, ferry:false };
+let _slTypeOverlay = { bus:false, ferry:false, subway:false, tram:false, light_rail:false, train:false };
+let _slBlueZoneBusOn = false;
 let _slLineDetail = 'data';
 let _slLayers = {};
 let _slStopMarkers = [];
@@ -1476,7 +1505,16 @@ function selectedSlRoutes() {
 function routesForSlMap() {
   const set = new Set(_slDisplayed);
   for (const route of _slCatalog) if (_slTypeOverlay[route.type]) set.add(route.ref);
+  if (_slBlueZoneBusOn) {
+    for (const route of _slCatalog) {
+      if (route.type === 'bus' && slRouteHasStopInBlueZone(route)) set.add(route.ref);
+    }
+  }
   return Array.from(set).map(ref => _slRoutes[ref]).filter(Boolean);
+}
+function slRouteHasStopInBlueZone(route) {
+  if (!route || !route.stops || !route.stops.length || typeof isLatLngInBlueZone !== 'function') return false;
+  return route.stops.some(stop => isLatLngInBlueZone(stop.lat, stop.lng));
 }
 function slLineItem(route, selected) {
   const stops = route.stops.length ? route.stops.length + ' stops' : 'no stops in file';
@@ -1487,7 +1525,12 @@ function renderSlSearchResults() {
   if (!out) return;
   if (!_slCatalog.length) { out.innerHTML = '<div class="sl-empty">Loading SL data...</div>'; return; }
   const q = (document.getElementById('sl-search-input')?.value || '').trim().toLowerCase();
-  const rows = _slCatalog.filter(route => !q ? route.stops.length : route.ref.toLowerCase().includes(q) || route.name.toLowerCase().includes(q) || slTransportLabel(route.type).toLowerCase().includes(q)).slice(0, 80);
+  const rows = _slCatalog.filter(route => !q ? route.stops.length : (
+    route.ref.toLowerCase().includes(q) ||
+    route.name.toLowerCase().includes(q) ||
+    slTransportLabel(route.type).toLowerCase().includes(q) ||
+    route.stops.some(stop => String(stop.name || '').toLowerCase().includes(q))
+  )).slice(0, 80);
   out.innerHTML = rows.length ? rows.map(route => slLineItem(route, _slDisplayed.has(route.ref))).join('') : '<div class="sl-empty">No matching lines</div>';
 }
 function renderSlSelectedList() {
@@ -1510,11 +1553,20 @@ function clearSlDisplayedLines() {
 }
 function toggleSlTypeOverlay(type) {
   _slTypeOverlay[type] = !_slTypeOverlay[type];
-  const btn = document.getElementById(type === 'bus' ? 'sl-bus-all-btn' : 'sl-ferry-all-btn');
-  const st = document.getElementById(type === 'bus' ? 'sl-bus-all-status' : 'sl-ferry-all-status');
+  const idType = type === 'light_rail' ? 'light-rail' : type;
+  const btn = document.getElementById(`sl-${idType}-all-btn`);
+  const st = document.getElementById(`sl-${idType}-all-status`);
   if (btn) btn.classList.toggle('sp-active', _slTypeOverlay[type]);
   if (st) st.textContent = _slTypeOverlay[type] ? 'ON' : 'OFF';
   loadSlData().then(redrawSlLineLayers);
+}
+function toggleSlBlueZoneBusLines() {
+  _slBlueZoneBusOn = !_slBlueZoneBusOn;
+  const btn = document.getElementById('sl-blue-zone-bus-btn');
+  const st = document.getElementById('sl-blue-zone-bus-status');
+  if (btn) btn.classList.toggle('sp-active', _slBlueZoneBusOn);
+  if (st) st.textContent = _slBlueZoneBusOn ? 'ON' : 'OFF';
+  loadSlData().then(() => { renderSlSelectedList(); redrawSlLineLayers(); });
 }
 function setSlLineDetail(mode) {
   _slLineDetail = mode;
@@ -1716,6 +1768,21 @@ function toggleHideLockedPins() {
   applyHideLockedPins();
 }
 
+let _seekerQuestionCodeMenu = false;
+function toggleSeekerQuestionCodeMenu() {
+  _seekerQuestionCodeMenu = !_seekerQuestionCodeMenu;
+  applySeekerQuestionCodeMenu();
+  if (typeof saveState !== 'undefined') saveState();
+}
+function applySeekerQuestionCodeMenu() {
+  const wrap = document.getElementById('seeker-code-input-wrap');
+  const btn = document.getElementById('seeker-code-menu-btn');
+  const st = document.getElementById('seeker-code-menu-status');
+  if (wrap) wrap.style.display = (mode === 'seeker' && _seekerQuestionCodeMenu) ? 'block' : 'none';
+  if (btn) btn.classList.toggle('sp-active', _seekerQuestionCodeMenu);
+  if (st) st.textContent = _seekerQuestionCodeMenu ? 'ON' : 'OFF';
+}
+
 // ── TF KEY ─────────────────────────────────────────────────────
 function applyTFKey(key) {
   key = key.trim();
@@ -1792,6 +1859,11 @@ function saveState() {
       mapCenter: map ? [map.getCenter().lat, map.getCenter().lng] : null,
       mapZoom: map ? map.getZoom() : 12,
       slDisplayed: Array.from(_slDisplayed || []),
+      slTypeOverlay: _slTypeOverlay,
+      slBlueZoneBusOn: _slBlueZoneBusOn,
+      seekerQuestionCodeMenu: _seekerQuestionCodeMenu,
+      moveLockEnabled: typeof _moveLockEnabled !== 'undefined' ? _moveLockEnabled : false,
+      thermoBordersOn: typeof _thermoBordersOn !== 'undefined' ? _thermoBordersOn : false,
       questions: questions.map(q => {
         const s = { ...q };
         delete s.marker; delete s.markerA; delete s.markerB;
@@ -1799,6 +1871,7 @@ function saveState() {
         delete s._centerMarker; delete s._dirMarker; delete s._seekerMarker;
         delete s._cone; delete s._cone2; delete s._cone3; delete s._excludeCircle;
         delete s._line; delete s._distTip; delete s._mapMoveHandler;
+        delete s._pinStart; delete s._moveWindowUntil;
         return s;
       })
     };
@@ -1818,9 +1891,23 @@ function loadSavedState() {
 
 function restoreState(state) {
   if (!state) return;
+  if (state.slTypeOverlay && typeof state.slTypeOverlay === 'object') _slTypeOverlay = Object.assign(_slTypeOverlay, state.slTypeOverlay);
+  if (typeof state.slBlueZoneBusOn === 'boolean') _slBlueZoneBusOn = state.slBlueZoneBusOn;
+  if (typeof state.seekerQuestionCodeMenu === 'boolean') { _seekerQuestionCodeMenu = state.seekerQuestionCodeMenu; applySeekerQuestionCodeMenu(); }
+  if (typeof state.moveLockEnabled === 'boolean' && typeof setMoveLockEnabled === 'function') setMoveLockEnabled(state.moveLockEnabled, false);
+  if (typeof state.thermoBordersOn === 'boolean' && typeof setThermoBordersEnabled === 'function') setThermoBordersEnabled(state.thermoBordersOn, false);
+  for (const t in _slTypeOverlay) {
+    const idType = t === 'light_rail' ? 'light-rail' : t;
+    document.getElementById(`sl-${idType}-all-btn`)?.classList.toggle('sp-active', !!_slTypeOverlay[t]);
+    const st = document.getElementById(`sl-${idType}-all-status`);
+    if (st) st.textContent = _slTypeOverlay[t] ? 'ON' : 'OFF';
+  }
+  document.getElementById('sl-blue-zone-bus-btn')?.classList.toggle('sp-active', _slBlueZoneBusOn);
+  const bzst = document.getElementById('sl-blue-zone-bus-status');
+  if (bzst) bzst.textContent = _slBlueZoneBusOn ? 'ON' : 'OFF';
   if (state.mapCenter && map) map.setView(state.mapCenter, state.mapZoom || 12);
-  if (Array.isArray(state.slDisplayed) && state.slDisplayed.length) {
-    _slDisplayed = new Set(state.slDisplayed.map(String));
+  if ((Array.isArray(state.slDisplayed) && state.slDisplayed.length) || _slBlueZoneBusOn || Object.values(_slTypeOverlay).some(Boolean)) {
+    _slDisplayed = new Set((state.slDisplayed || []).map(String));
     loadSlData().then(() => {
       renderSlSelectedList();
       renderSlSearchResults();
