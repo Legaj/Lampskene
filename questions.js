@@ -374,6 +374,10 @@ function _nearestPointLoc(lat, lng, locs) {
 }
 function isLatLngInBlueZone(lat, lng) {
   if (!map || typeof questions === 'undefined') return false;
+  if (typeof isGameAreaRestrictionReady === 'function' &&
+      typeof isLatLngInsideGameArea === 'function' &&
+      isGameAreaRestrictionReady() &&
+      !isLatLngInsideGameArea(lat, lng)) return true;
   for (const q of questions) {
     if (q.type === 'radar') {
       const r = getRadiusMeters(q); if (!r || (q.zone !== 'inside' && q.zone !== 'outside')) continue;
@@ -417,7 +421,7 @@ function redrawOutlineCircle(q){
 //   - Overlapping blue areas paint the same opaque blue = no stacking, one tone ✓
 //   - YES constraint  → worldRect + ccwHole  (blue outside the valid shape)
 //   - NO/exclusive    → the shape itself filled (blue inside)
-//   - measuring closer → SVG mask (union of circles, black holes = transparent)
+//   - measuring closer -> SVG mask in the main overlay (union of circles stays transparent)
 //
 // "if a pixel is blue in ANY question → value 1 → blue"
 // White = value 0 in ALL questions = inside the valid shape of EVERY yes-constraint
@@ -425,12 +429,24 @@ function redrawOutlineCircle(q){
 
 let _overlaySvg = null;
 let _voronoiSvg = null;
-let _closerSvg  = null; // separate layer for measuring-closer (below main overlay)
 let _rebuildPending = false;
+let _rebuildFrame = null;
+let _maskCounter = 0;
+let _blueOverlayOpacity = 0.30;
 
 const BLUE = '#4882dc';
 const NS   = 'http://www.w3.org/2000/svg';
 const OPAD = 10000;
+
+function setBlueOverlayOpacity(value) {
+  const n = Math.max(0.08, Math.min(0.65, Number(value) || 0.30));
+  _blueOverlayOpacity = n;
+  if (_overlaySvg) _overlaySvg.setAttribute('opacity', String(n));
+}
+
+function getBlueOverlayOpacity() {
+  return _blueOverlayOpacity;
+}
 
 function overlayPad() {
   if (!map || !map.getSize) return OPAD;
@@ -543,6 +559,56 @@ function addNoPath(outerPts, innerPtsArray) {
   _overlaySvg.appendChild(path);
 }
 
+// Measuring "closer" means the valid area is inside ANY matching-location circle.
+// Draw a full blue world rect for the invalid area, then punch the union of all
+// circles out with a mask. Unlike evenodd holes, duplicate/overlapping circles
+// do not cancel each other in a mask.
+function addMaskedWorldPath(holePtsArray) {
+  if (!holePtsArray || !holePtsArray.length) return;
+  const p = overlayPad();
+  let defs = _overlaySvg.querySelector('defs');
+  if (!defs) {
+    defs = document.createElementNS(NS, 'defs');
+    _overlaySvg.insertBefore(defs, _overlaySvg.firstChild);
+  }
+
+  const maskId = `measure-closer-mask-${++_maskCounter}`;
+  const mask = document.createElementNS(NS, 'mask');
+  mask.setAttribute('id', maskId);
+  mask.setAttribute('maskUnits', 'userSpaceOnUse');
+  mask.setAttribute('x', -p);
+  mask.setAttribute('y', -p);
+  mask.setAttribute('width', p * 2);
+  mask.setAttribute('height', p * 2);
+  mask.style.maskType = 'luminance';
+
+  const rect = document.createElementNS(NS, 'rect');
+  rect.setAttribute('x', -p);
+  rect.setAttribute('y', -p);
+  rect.setAttribute('width', p * 2);
+  rect.setAttribute('height', p * 2);
+  rect.setAttribute('fill', 'white');
+  mask.appendChild(rect);
+
+  const holes = document.createElementNS(NS, 'path');
+  holes.setAttribute('d', holePtsArray.map(pts => {
+    const cw = polySignedArea(pts) < 0 ? [...pts].reverse() : pts;
+    return ptsToD(cw, false);
+  }).join(' '));
+  holes.setAttribute('fill', 'black');
+  holes.setAttribute('fill-rule', 'nonzero');
+  holes.setAttribute('stroke', 'none');
+  mask.appendChild(holes);
+  defs.appendChild(mask);
+
+  const path = document.createElementNS(NS, 'path');
+  path.setAttribute('d', overlayWorldD());
+  path.setAttribute('fill', BLUE);
+  path.setAttribute('stroke', 'none');
+  path.setAttribute('mask', `url(#${maskId})`);
+  _overlaySvg.appendChild(path);
+}
+
 // ── S-H geometry helpers ──────────────────────────────────────
 function _shSide(ax,ay,bx,by,px,py){ return (bx-ax)*(py-ay)-(by-ay)*(px-ax); }
 function _shClipEdge(subj,ax,ay,bx,by){
@@ -593,17 +659,12 @@ const SVG_PAD = 600; // kept for worldD size reference
 
 function ensureOverlay(){
   if(_overlaySvg) return;
-  // _closerSvg must be appended first so it sits below _overlaySvg in the pane
-  _closerSvg = document.createElementNS(NS,'svg');
-  _closerSvg.style.cssText='position:absolute;top:0;left:0;width:1px;height:1px;pointer-events:none;overflow:visible;';
-  _closerSvg.setAttribute('opacity','0.30');
-  map.getPanes().overlayPane.appendChild(_closerSvg);
-
   _overlaySvg = document.createElementNS(NS,'svg');
   _overlaySvg.style.cssText='position:absolute;top:0;left:0;width:1px;height:1px;pointer-events:none;overflow:visible;';
-  _overlaySvg.setAttribute('opacity','0.30');
+  _overlaySvg.setAttribute('opacity', String(_blueOverlayOpacity));
   map.getPanes().overlayPane.appendChild(_overlaySvg);
-  map.on('move zoom viewreset zoomend moveend', scheduleRebuild);
+  map.on('zoom viewreset zoomend', rebuildImmediately);
+  map.on('move moveend', scheduleRebuild);
 }
 function ensureMasterOverlay(){ ensureOverlay(); }
 function ensureVoronoiSvg(){
@@ -617,7 +678,18 @@ function ensureVoronoiSvg(){
 function scheduleRebuild(){
   if(_rebuildPending) return;
   _rebuildPending = true;
-  requestAnimationFrame(() => { _rebuildPending = false; rebuildAll(); rebuildVoronoiLines(); });
+  _rebuildFrame = requestAnimationFrame(runRebuild);
+}
+function runRebuild(){
+  _rebuildPending = false;
+  _rebuildFrame = null;
+  rebuildAll();
+  rebuildVoronoiLines();
+}
+function rebuildImmediately(){
+  if(!map || !_overlaySvg) return;
+  if(_rebuildFrame !== null) cancelAnimationFrame(_rebuildFrame);
+  runRebuild();
 }
 function redrawQuestionOverlay(){ ensureOverlay(); scheduleRebuild(); }
 function clearQuestionOverlay(){  scheduleRebuild(); }
@@ -627,7 +699,7 @@ function rebuildMasterPath(){ scheduleRebuild(); }
 function rebuildAll(){
   if(!map || !_overlaySvg) return;
   _overlaySvg.innerHTML = ''; // clear and rebuild
-  if(_closerSvg) _closerSvg.innerHTML = '';
+  _maskCounter = 0;
   const pad = overlayPad();
 
   const allData = getAllMatchingData();
@@ -748,17 +820,9 @@ function rebuildAll(){
   }
 
   // ── Measuring CLOSER ─────────────────────────────────────────
-  // Rendered in _closerSvg which sits BELOW _overlaySvg in the DOM.
-  // Blue rect + white circles in the lower layer → white shows through as map.
-  // Main overlay (radar, thermo, matching) renders on top, unaffected by white.
-  if(closerCirclesPts.length && _closerSvg){
-    const path = document.createElementNS(NS,'path');
-    path.setAttribute('d', overlayWorldD() + ' ' + closerCirclesPts.map(pts => ptsToD(pts, false)).join(' '));
-    path.setAttribute('fill',BLUE);
-    path.setAttribute('fill-rule','evenodd');
-    path.setAttribute('stroke','none');
-    _closerSvg.appendChild(path);
-  }
+  // Blue outside the union of all matching-location circles. The holes are
+  // masked, so duplicate/overlapping circles never toggle back to blue.
+  addMaskedWorldPath(closerCirclesPts);
 }
 
 function circleD(lat,lng,r){return ptsToD(circlePxPts(lat,lng,r),false);}

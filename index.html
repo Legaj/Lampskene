@@ -538,6 +538,131 @@
       #mode-badge { display:none; }
       #sidebar { width:100%; }
     }
+
+    /* ── REVAMP LAYER: calmer defaults, mobile sheet, advanced controls ── */
+    :root {
+      --ui-scale: 1;
+      --panel-w: 320px;
+      --sheet-radius: 14px;
+      --touch-h: 42px;
+    }
+    body.density-compact { --ui-scale:.92; --touch-h:36px; }
+    body.density-roomy { --ui-scale:1.08; --touch-h:48px; }
+    body:not(.advanced-mode) .advanced-only { display:none!important; }
+    body.advanced-mode #advanced-mode-btn { border-color:var(--accent); color:var(--accent); background:rgba(238,255,85,.1); }
+
+    .settings-head {
+      display:flex; align-items:center; justify-content:space-between; gap:8px;
+      padding-bottom:8px; border-bottom:1px solid var(--border);
+    }
+    .settings-title { font-family:'Bebas Neue',sans-serif; font-size:18px; letter-spacing:2px; color:var(--text); }
+    .settings-sub { font-size:8px; letter-spacing:1px; text-transform:uppercase; color:var(--muted); margin-top:2px; }
+    .settings-grid { display:grid; grid-template-columns:1fr 1fr; gap:6px; }
+    .sp-btn.danger { border-color:rgba(220,80,80,.4)!important; color:#e05555!important; }
+    .sp-btn.danger:hover { background:rgba(220,80,80,.12); }
+    .comfort-hint { font-size:9px; color:var(--muted); line-height:1.45; margin-top:5px; }
+
+    #sidebar { width:var(--panel-w); box-shadow:8px 0 28px rgba(0,0,0,.28); }
+    #sidebar-grip { display:none; }
+    #question-tools {
+      padding:8px 10px 0; border-bottom:1px solid var(--border);
+      display:flex; flex-direction:column; gap:7px; flex-shrink:0;
+    }
+    #question-search {
+      width:100%; min-height:var(--touch-h); background:var(--surface2);
+      border:1px solid var(--border2); border-radius:var(--r);
+      color:var(--text); font-family:'DM Mono',monospace; font-size:10px;
+      letter-spacing:.4px; outline:none; padding:0 10px;
+    }
+    #question-search:focus { border-color:var(--accent); }
+    .q-filter-row { display:grid; grid-template-columns:repeat(4,1fr); gap:5px; }
+    .q-filter {
+      min-height:32px; border:1px solid var(--border2); background:var(--surface2);
+      color:var(--text2); border-radius:var(--r); font-family:'DM Mono',monospace;
+      font-size:8px; letter-spacing:.7px; text-transform:uppercase; cursor:pointer;
+    }
+    .q-filter.active { border-color:var(--accent); color:var(--accent); background:rgba(238,255,85,.08); }
+    #question-count {
+      font-size:9px; color:var(--muted); letter-spacing:1px; text-transform:uppercase;
+      padding:0 2px 8px;
+    }
+    #question-list.empty::before {
+      content:'No questions yet';
+      color:var(--muted); border:1px dashed var(--border2); border-radius:var(--r);
+      padding:22px 12px; text-align:center; font-size:10px; letter-spacing:1px;
+      text-transform:uppercase;
+    }
+    #question-list.no-filter-match::before {
+      content:'No matching questions';
+      color:var(--muted); border:1px dashed var(--border2); border-radius:var(--r);
+      padding:22px 12px; text-align:center; font-size:10px; letter-spacing:1px;
+      text-transform:uppercase;
+    }
+    .q-card, .sl-line-item, .cp-item { border-radius:8px; }
+    .q-card {
+      box-shadow:0 1px 0 rgba(255,255,255,.04) inset, 0 10px 24px rgba(0,0,0,.10);
+      transform:translateZ(0);
+    }
+    .q-card-header { min-height:calc(38px * var(--ui-scale)); }
+    .q-card-body { gap:calc(8px * var(--ui-scale)); }
+    .icon-btn, .zone-btn, .closer-btn, .unit-btn, .copy-btn, .remove-btn, .decode-btn, .type-option, .sp-btn {
+      min-height:var(--touch-h);
+    }
+    .icon-btn, .zone-btn, .closer-btn, .unit-btn { display:flex; align-items:center; justify-content:center; }
+    .coord-disp, .answer-badge, .q-label { overflow-wrap:anywhere; }
+
+    #quick-actions {
+      position:fixed; right:14px; bottom:calc(var(--bar-h) + 14px); z-index:790;
+      display:flex; flex-direction:column; gap:8px; pointer-events:none;
+    }
+    .quick-btn {
+      width:44px; height:44px; border-radius:50%; border:1px solid var(--border2);
+      background:var(--surface); color:var(--text); box-shadow:0 8px 24px rgba(0,0,0,.28);
+      display:flex; align-items:center; justify-content:center; cursor:pointer;
+      font-size:17px; pointer-events:auto; transition:transform .12s, border-color .12s, color .12s;
+    }
+    .quick-btn:active { transform:scale(.94); }
+    .quick-btn.primary { background:var(--accent2); color:white; border-color:transparent; }
+    body.bottom-bar #quick-actions { bottom:calc(var(--header-h) + 14px); }
+    body.statusbar-hidden:not(.bottom-bar) #quick-actions { bottom:14px; }
+    body.sidebar-open #quick-actions, body.settings-open #quick-actions { display:none; }
+    body.bottom-bar #curse-fab { display:none!important; }
+
+    @media (min-width:769px) {
+      #quick-actions { display:none; }
+    }
+    @media (max-width:768px) {
+      #header { padding-left:max(8px, env(safe-area-inset-left)); padding-right:max(8px, env(safe-area-inset-right)); }
+      #sidebar {
+        left:8px; right:8px; width:auto; top:auto;
+        bottom:calc(var(--bar-h) + env(safe-area-inset-bottom,0px));
+        max-height:min(78dvh, 720px); border:1px solid var(--border);
+        border-bottom:none; border-radius:var(--sheet-radius) var(--sheet-radius) 0 0;
+        transform:translateY(110%); transition:transform .24s ease;
+        box-shadow:0 -12px 36px rgba(0,0,0,.38);
+      }
+      #sidebar.open { transform:translateY(0); }
+      body.bottom-bar #sidebar { bottom:calc(var(--header-h) + env(safe-area-inset-bottom,0px)); top:auto; }
+      body.statusbar-hidden:not(.bottom-bar) #sidebar { bottom:0; }
+      body.bottom-bar.statusbar-hidden #sidebar { bottom:var(--header-h); top:auto; }
+      #sidebar-grip {
+        display:block; width:42px; height:4px; border-radius:999px;
+        background:var(--border2); margin:8px auto 0; flex-shrink:0;
+      }
+      #sidebar-header { padding:9px 14px 8px; }
+      #question-list { padding:9px 10px 12px; }
+      #settings-panel, #sl-panel, #curse-panel {
+        width:100%; right:-100%; border-left:none;
+      }
+      #settings-panel.open, #sl-panel.open, #curse-panel.open { right:0; }
+      .mode-cards { width:100%; padding:0 20px; }
+      .mode-card { flex:1; min-width:0; height:152px; }
+      #mode-screen h1 { font-size:46px; letter-spacing:4px; }
+      #toast {
+        width:calc(100% - 32px); max-width:420px; white-space:normal; text-align:center;
+        bottom:calc(var(--header-h) + 18px + env(safe-area-inset-bottom,0px));
+      }
+    }
     @media (min-width:769px) { #curse-fab { display:none!important; } }
   </style>
 </head>
@@ -596,6 +721,15 @@
 
 <!-- SETTINGS PANEL -->
 <div id="settings-panel">
+  <div class="settings-head">
+    <div>
+      <div class="settings-title">Settings</div>
+      <div class="settings-sub">Simple first, advanced when needed</div>
+    </div>
+    <button class="sp-btn" id="advanced-mode-btn" onclick="toggleAdvancedMode()" style="width:auto;min-width:86px;justify-content:center">
+      <span>Advanced</span><span id="advanced-mode-status">OFF</span>
+    </button>
+  </div>
   <div>
     <div class="sp-label">Map Layer</div>
     <div class="sp-pills">
@@ -603,9 +737,37 @@
       <button class="layer-btn"        id="btn-cycle" onclick="setBase('tf-cycle')">Cycle</button>
       <button class="layer-btn active" id="btn-osm"   onclick="setBase('osm')">OSM</button>
     </div>
+    <div class="sp-label" style="margin-top:8px">Game Area</div>
+    <div class="sp-pills">
+      <button class="layer-btn active" id="area-mode-normal" onclick="setGameAreaMode('normal')">Normal</button>
+      <button class="layer-btn" id="area-mode-medium" onclick="setGameAreaMode('medium')">Medium</button>
+      <button class="layer-btn" id="area-mode-small" onclick="setGameAreaMode('small')">Small</button>
+    </div>
   </div>
   <div>
-    <div class="sp-label">Live Trains</div>
+    <div class="sp-label">Comfort</div>
+    <div class="settings-grid">
+      <button class="sp-btn" id="density-btn" onclick="cycleDensity()">
+        <span>Density</span><span id="density-status">Comfort</span>
+      </button>
+      <button class="sp-btn" onclick="toggleStatusBar()">
+        <span>Status</span><span id="statusbar-toggle-status">ON</span>
+      </button>
+    </div>
+    <div class="sp-slider-row advanced-only">
+      <label>Panel</label>
+      <input type="range" class="sp-slider" id="panel-width-slider" min="290" max="420" value="320" oninput="setPanelWidth(this.value)">
+      <span class="sp-val" id="panel-width-val">320</span>
+    </div>
+    <div class="sp-slider-row">
+      <label>Blue</label>
+      <input type="range" class="sp-slider" id="blue-opacity-slider" min="12" max="55" value="30" oninput="setBlueOpacitySetting(this.value)">
+      <span class="sp-val" id="blue-opacity-val">30%</span>
+    </div>
+    <div class="comfort-hint advanced-only">Advanced mode keeps the heavy map and debug-style controls visible.</div>
+  </div>
+  <div class="advanced-only">
+    <div class="sp-label">Live Transit</div>
     <button class="sp-btn" id="trains-sp-btn" onclick="toggleLiveTrains()">
       <span>🚆 Live Vehicles</span><span id="trains-sp-status">OFF</span>
     </button>
@@ -626,7 +788,7 @@
       <span>Collapse Extra Info</span><span id="cp-collapse-extra-status">ON</span>
     </button>
   </div>
-  <div>
+  <div class="advanced-only">
     <div class="sp-label">Layout</div>
     <button class="sp-btn" id="bottom-bar-btn" onclick="toggleBottomBar()">
       <span>📱 Bottom Bar</span><span id="bottom-bar-status">OFF</span>
@@ -646,15 +808,12 @@
     <button class="sp-btn" id="seeker-code-menu-btn" onclick="toggleSeekerQuestionCodeMenu()" style="margin-top:5px">
       <span>Seeker Code Input</span><span id="seeker-code-menu-status">OFF</span>
     </button>
-    <button class="sp-btn" onclick="resetAllData()" style="margin-top:5px;border-color:rgba(220,80,80,.4);color:#e05555;">
+    <button class="sp-btn danger advanced-only" onclick="resetAllData()" style="margin-top:5px;">
       <span>🗑 Reset All Data</span>
     </button>
   </div>
-  <div>
+  <div class="advanced-only">
     <div class="sp-label">Display</div>
-    <button class="sp-btn sp-active" id="statusbar-toggle-btn" onclick="toggleStatusBar()" style="margin-bottom:5px">
-      <span>📊 Status Bar</span><span id="statusbar-toggle-status">ON</span>
-    </button>
     <button class="sp-btn" id="info-toggle-btn" onclick="toggleStatusInfo()">
       <span>Status Info</span><span id="info-toggle-status">OFF</span>
     </button>
@@ -662,7 +821,7 @@
       <span>🚇 Transit Lines</span><span id="transit-layer-status">OFF</span>
     </button>
   </div>
-  <div>
+  <div class="advanced-only">
     <div class="sp-label">SL Data</div>
     <div class="sp-pills">
       <button class="layer-btn" id="sl-detail-fast" onclick="setSlLineDetail('fast')">Fast</button>
@@ -691,13 +850,13 @@
       <span>Ferry Stops</span><span id="sl-ferry-stops-status">OFF</span>
     </button>
   </div>
-  <div>
+  <div class="advanced-only">
     <div class="sp-label">Performance</div>
     <button class="sp-btn sp-active" id="perf-btn" onclick="toggleHighPerf()">
       <span>High Perf Zoom</span><span id="perf-status">ON</span>
     </button>
   </div>
-  <div>
+  <div class="advanced-only">
     <div class="sp-label">Thunderforest Key</div>
     <input id="tf-key-input" type="text" placeholder="Paste API key…"
       style="width:100%;box-sizing:border-box;background:var(--surface2);border:1px solid var(--border);color:var(--text);border-radius:6px;padding:6px 8px;font-size:10px;margin-bottom:4px;"
@@ -788,9 +947,20 @@
 
 <!-- SIDEBAR -->
 <div id="sidebar">
+  <div id="sidebar-grip"></div>
   <div id="sidebar-header">
     <span class="sh-title">Questions</span>
     <button id="sidebar-close" onclick="toggleSidebar()">✕</button>
+  </div>
+  <div id="question-tools">
+    <input id="question-search" type="search" placeholder="Search questions..." oninput="filterQuestionList(this.value)" />
+    <div class="q-filter-row">
+      <button class="q-filter active" id="qf-all" onclick="setQuestionFilter('all')">All</button>
+      <button class="q-filter" id="qf-open" onclick="setQuestionFilter('open')">Open</button>
+      <button class="q-filter" id="qf-locked" onclick="setQuestionFilter('locked')">Locked</button>
+      <button class="q-filter" id="qf-answered" onclick="setQuestionFilter('answered')">Done</button>
+    </div>
+    <div id="question-count">0 questions</div>
   </div>
   <div id="question-list"></div>
   <div id="sidebar-footer">
@@ -842,6 +1012,12 @@
   <span class="fab-badge" id="fab-badge">0</span>
 </button>
 
+<div id="quick-actions" aria-label="Quick actions">
+  <button class="quick-btn" onclick="quickCenterActive()" title="Center active pin">⌖</button>
+  <button class="quick-btn" onclick="undoLastPinMove()" title="Undo pin move">↩</button>
+  <button class="quick-btn primary" onclick="quickAddOrCode()" title="Add or answer question">＋</button>
+</div>
+
 <div id="toast"></div>
 
 <script>
@@ -872,6 +1048,16 @@ let hiderZoneCircle = null;
 const HIDER_ZONE_RADIUS = 500;
 let outlineCircles = {};
 
+const GAME_AREA_CONFIG = {
+  normal: { label:'Normal', file:null },
+  medium: { label:'Medium', file:'game-area-medium.geojson' },
+  small:  { label:'Small',  file:'game-area-small.geojson' }
+};
+let _gameAreaMode = 'normal';
+let _gameAreaLayer = null;
+let _gameAreaOutlineLayer = null;
+let _gameAreaGeoCache = {};
+
 // ── MAP INIT ───────────────────────────────────────────────────
 function initMap() {
   map = L.map('map', { center: [59.3293, 18.0686], zoom: 12, zoomControl: true });
@@ -891,6 +1077,7 @@ function initMap() {
   layers[activeLayerKey].on('load', () => document.getElementById('map').classList.add('ready'));
   setTimeout(() => document.getElementById('map').classList.add('ready'), 800);
   map.on('move zoomend', updateStatus);
+  updateGameAreaOverlay();
   updateStatus();
 }
 
@@ -899,8 +1086,167 @@ function setBase(key) {
   map.removeLayer(layers[activeLayerKey]);
   layers[key].addTo(map);
   activeLayerKey = key;
-  document.querySelectorAll('.layer-btn').forEach(b => b.classList.remove('active'));
+  document.querySelectorAll('#btn-base,#btn-cycle,#btn-osm').forEach(b => b.classList.remove('active'));
   document.getElementById(key==='tf-transport'?'btn-base':key==='tf-cycle'?'btn-cycle':'btn-osm').classList.add('active');
+}
+
+function _ensureGameAreaPane() {
+  if (!map || map.getPane('game-area-mask')) return;
+  const pane = map.createPane('game-area-mask');
+  pane.style.zIndex = 430;
+  pane.style.pointerEvents = 'none';
+}
+
+function _clearGameAreaOverlay() {
+  if (_gameAreaLayer && map) map.removeLayer(_gameAreaLayer);
+  if (_gameAreaOutlineLayer && map) map.removeLayer(_gameAreaOutlineLayer);
+  _gameAreaLayer = null;
+  _gameAreaOutlineLayer = null;
+}
+
+function _updateGameAreaButtons() {
+  for (const key of Object.keys(GAME_AREA_CONFIG)) {
+    document.getElementById(`area-mode-${key}`)?.classList.toggle('active', key === _gameAreaMode);
+  }
+}
+
+async function _loadGameAreaGeoJson(areaMode) {
+  const config = GAME_AREA_CONFIG[areaMode];
+  if (!config || !config.file) return null;
+  if (_gameAreaGeoCache[areaMode]) return _gameAreaGeoCache[areaMode];
+  const res = await fetch(config.file);
+  if (!res.ok) throw new Error(`Could not load ${config.file}`);
+  const geo = await res.json();
+  _gameAreaGeoCache[areaMode] = geo;
+  return geo;
+}
+
+function _geometryToMaskRings(geometry) {
+  if (!geometry) return [];
+  const rings = [];
+  const addPolygon = polygon => {
+    for (const ring of (polygon || [])) {
+      if (Array.isArray(ring) && ring.length >= 3) {
+        rings.push(ring.map(([lng, lat]) => [lat, lng]));
+      }
+    }
+  };
+  if (geometry.type === 'Polygon') addPolygon(geometry.coordinates);
+  else if (geometry.type === 'MultiPolygon') geometry.coordinates.forEach(addPolygon);
+  else if (geometry.type === 'GeometryCollection') geometry.geometries.forEach(g => rings.push(..._geometryToMaskRings(g)));
+  return rings;
+}
+
+function _geoJsonToMaskRings(geo) {
+  if (!geo) return [];
+  if (geo.type === 'FeatureCollection') return (geo.features || []).flatMap(f => _geometryToMaskRings(f.geometry));
+  if (geo.type === 'Feature') return _geometryToMaskRings(geo.geometry);
+  return _geometryToMaskRings(geo);
+}
+
+function getGameAreaOverlayOpacity() {
+  return typeof getBlueOverlayOpacity === 'function' ? getBlueOverlayOpacity() : 0.30;
+}
+
+function setGameAreaOverlayOpacity(opacity) {
+  const n = Math.max(0.08, Math.min(0.65, Number(opacity) || 0.30));
+  if (_gameAreaLayer) _gameAreaLayer.setStyle({ fillOpacity:n });
+}
+
+async function updateGameAreaOverlay() {
+  _updateGameAreaButtons();
+  if (!map) return;
+  _clearGameAreaOverlay();
+  if (_gameAreaMode === 'normal') return;
+
+  const areaModeAtStart = _gameAreaMode;
+  try {
+    const geo = await _loadGameAreaGeoJson(areaModeAtStart);
+    if (_gameAreaMode !== areaModeAtStart || !geo) return;
+    const rings = _geoJsonToMaskRings(geo);
+    if (!rings.length) return;
+    _ensureGameAreaPane();
+    const worldRing = [[90,-180], [90,180], [-90,180], [-90,-180], [90,-180]];
+    _gameAreaLayer = L.polygon([worldRing, ...rings], {
+      pane:'game-area-mask',
+      stroke:false,
+      fill:true,
+      fillColor:'#2f8cff',
+      fillOpacity:getGameAreaOverlayOpacity(),
+      fillRule:'evenodd',
+      interactive:false
+    }).addTo(map);
+    _gameAreaOutlineLayer = L.geoJSON(geo, {
+      pane:'game-area-mask',
+      interactive:false,
+      style: {
+        color:'#73b7ff',
+        weight:2,
+        opacity:0.95,
+        fill:false,
+        fillOpacity:0
+      }
+    }).addTo(map);
+  } catch(e) {
+    console.warn('Game area overlay failed:', e);
+    showToast('Could not load game area');
+  } finally {
+    if (_slBlueZoneBusOn && typeof redrawSlLineLayers === 'function') redrawSlLineLayers();
+  }
+}
+
+function setGameAreaMode(areaMode, save=true) {
+  const next = GAME_AREA_CONFIG[areaMode] ? areaMode : 'normal';
+  _gameAreaMode = next;
+  _updateGameAreaButtons();
+  if (save && typeof _writeRevampPrefs === 'function') _writeRevampPrefs({ gameAreaMode:next });
+  updateGameAreaOverlay();
+  if (save) showToast(`${GAME_AREA_CONFIG[next].label} game area`);
+}
+
+function toggleCityBoundary() {
+  const order = ['normal', 'medium', 'small'];
+  setGameAreaMode(order[(order.indexOf(_gameAreaMode) + 1) % order.length]);
+}
+
+function _pointInRing(lat, lng, ring) {
+  let inside = false;
+  for (let i = 0, j = ring.length - 1; i < ring.length; j = i++) {
+    const xi = ring[i][0], yi = ring[i][1];
+    const xj = ring[j][0], yj = ring[j][1];
+    const intersects = ((yi > lat) !== (yj > lat)) && (lng < (xj - xi) * (lat - yi) / ((yj - yi) || 1e-12) + xi);
+    if (intersects) inside = !inside;
+  }
+  return inside;
+}
+
+function _polygonContainsLatLng(lat, lng, polygon) {
+  if (!polygon || !polygon.length || !_pointInRing(lat, lng, polygon[0])) return false;
+  for (let i = 1; i < polygon.length; i++) {
+    if (_pointInRing(lat, lng, polygon[i])) return false;
+  }
+  return true;
+}
+
+function _geometryContainsLatLng(geometry, lat, lng) {
+  if (!geometry) return false;
+  if (geometry.type === 'Polygon') return _polygonContainsLatLng(lat, lng, geometry.coordinates);
+  if (geometry.type === 'MultiPolygon') return geometry.coordinates.some(poly => _polygonContainsLatLng(lat, lng, poly));
+  if (geometry.type === 'GeometryCollection') return geometry.geometries.some(g => _geometryContainsLatLng(g, lat, lng));
+  return false;
+}
+
+function isLatLngInsideGameArea(lat, lng) {
+  if (_gameAreaMode === 'normal') return true;
+  const geo = _gameAreaGeoCache[_gameAreaMode];
+  if (!geo) return false;
+  if (geo.type === 'FeatureCollection') return (geo.features || []).some(f => _geometryContainsLatLng(f.geometry, lat, lng));
+  if (geo.type === 'Feature') return _geometryContainsLatLng(geo.geometry, lat, lng);
+  return _geometryContainsLatLng(geo, lat, lng);
+}
+
+function isGameAreaRestrictionReady() {
+  return _gameAreaMode === 'normal' || !!_gameAreaGeoCache[_gameAreaMode];
 }
 
 // ── MODE ───────────────────────────────────────────────────────
@@ -951,6 +1297,7 @@ function chooseMode(m) {
     _initCurseHold();
     // Mobile nav setup
     _initMobileNav(m);
+    _initRevampPreferences();
 
     initMap();
     if (m === 'seeker') {
@@ -1108,6 +1455,14 @@ const _origAdd = typeof _cpAddToDeck !== 'undefined' ? _cpAddToDeck : null;
 function toggleSidebar() {
   sidebarOpen = !sidebarOpen;
   document.getElementById('sidebar').classList.toggle('open', sidebarOpen);
+  document.body.classList.toggle('sidebar-open', sidebarOpen);
+  document.getElementById('mnav-questions-btn')?.classList.toggle('mnav-open', sidebarOpen);
+  if (sidebarOpen) {
+    document.getElementById('settings-panel')?.classList.remove('open');
+    document.getElementById('settings-btn')?.classList.remove('open');
+    document.getElementById('mnav-settings-btn')?.classList.remove('mnav-open');
+  }
+  _updateQuestionTools();
 }
 function toggleTypePicker() {
   typePickerOpen = !typePickerOpen;
@@ -1120,6 +1475,9 @@ function toggleSettingsPanel() {
   const btn   = document.getElementById('settings-btn');
   const open  = panel.classList.toggle('open');
   btn.classList.toggle('open', open);
+  document.body.classList.toggle('settings-open', open);
+  document.getElementById('mnav-settings-btn')?.classList.toggle('mnav-open', open);
+  if (open && sidebarOpen) toggleSidebar();
 }
 
 document.addEventListener('click', function(e) {
@@ -1128,8 +1486,21 @@ document.addEventListener('click', function(e) {
   if (panel && btn && !panel.contains(e.target) && !btn.contains(e.target)) {
     panel.classList.remove('open');
     btn.classList.remove('open');
+    document.body.classList.remove('settings-open');
+    document.getElementById('mnav-settings-btn')?.classList.remove('mnav-open');
   }
 }, true);
+
+document.addEventListener('keydown', e => {
+  if (e.key !== 'Escape') return;
+  if (sidebarOpen) toggleSidebar();
+  document.getElementById('settings-panel')?.classList.remove('open');
+  document.getElementById('settings-btn')?.classList.remove('open');
+  document.getElementById('mnav-settings-btn')?.classList.remove('mnav-open');
+  document.body.classList.remove('settings-open');
+  if (typeof toggleSlPanel === 'function') toggleSlPanel(false);
+  if (typeof _cpClose === 'function') _cpClose();
+});
 
 // ── THEME ──────────────────────────────────────────────────────
 const THEMES = ['dark','light','bambu'];
@@ -1137,13 +1508,18 @@ const THEME_LABELS = { dark:'🌙 Dark', light:'☀️ Light', bambu:'🎋 Bambu
 let currentTheme = 'bambu';
 document.body.classList.add('bambu');
 
-function cycleTheme() {
-  const idx = THEMES.indexOf(currentTheme);
-  currentTheme = THEMES[(idx + 1) % THEMES.length];
+function applyTheme(theme, save=true) {
+  currentTheme = THEMES.includes(theme) ? theme : 'bambu';
   document.body.classList.remove('light','bambu');
   if (currentTheme !== 'dark') document.body.classList.add(currentTheme);
   const s = document.getElementById('theme-sp-status');
   if (s) s.textContent = THEME_LABELS[currentTheme];
+  if (save && typeof _writeRevampPrefs === 'function') _writeRevampPrefs({ theme:currentTheme });
+}
+
+function cycleTheme() {
+  const idx = THEMES.indexOf(currentTheme);
+  applyTheme(THEMES[(idx + 1) % THEMES.length]);
 }
 function toggleTheme() { cycleTheme(); }
 
@@ -1947,6 +2323,160 @@ function _initStatusBar() {
 function _initMobileNav(m) {
   const cursesBtn = document.getElementById('mnav-curses-btn');
   if (cursesBtn) cursesBtn.classList.toggle('mnav-curses-hider', m === 'hider');
+}
+
+// ── REVAMP PREFERENCES / QUESTION TOOLS ───────────────────────
+const REVAMP_KEY = 'jetlag_revamp_prefs_v1';
+let _revampPrefsReady = false;
+let _advancedMode = false;
+let _densityMode = 'comfort';
+let _questionFilter = 'all';
+let _questionSearch = '';
+
+function _readRevampPrefs() {
+  try { return JSON.parse(localStorage.getItem(REVAMP_KEY) || '{}') || {}; }
+  catch(e) { return {}; }
+}
+
+function _writeRevampPrefs(patch) {
+  try {
+    const prefs = Object.assign(_readRevampPrefs(), patch);
+    localStorage.setItem(REVAMP_KEY, JSON.stringify(prefs));
+  } catch(e) {}
+}
+
+function _initRevampPreferences() {
+  if (_revampPrefsReady) return;
+  _revampPrefsReady = true;
+  const prefs = _readRevampPrefs();
+  _setAdvancedMode(!!prefs.advancedMode, false);
+  _setDensity(prefs.density || 'comfort', false);
+  setPanelWidth(prefs.panelWidth || 320, false);
+  setBlueOpacitySetting(prefs.blueOpacity || 30, false);
+  setGameAreaMode(prefs.gameAreaMode || 'normal', false);
+  if (prefs.theme && THEMES.includes(prefs.theme)) applyTheme(prefs.theme, false);
+
+  const ql = document.getElementById('question-list');
+  if (ql) {
+    const obs = new MutationObserver(() => requestAnimationFrame(_updateQuestionTools));
+    obs.observe(ql, { childList:true, subtree:true, attributes:true, attributeFilter:['class','style'] });
+  }
+  _updateQuestionTools();
+}
+
+function _setAdvancedMode(on, save=true) {
+  _advancedMode = !!on;
+  document.body.classList.toggle('advanced-mode', _advancedMode);
+  const btn = document.getElementById('advanced-mode-btn');
+  const st = document.getElementById('advanced-mode-status');
+  if (btn) btn.classList.toggle('sp-active', _advancedMode);
+  if (st) st.textContent = _advancedMode ? 'ON' : 'OFF';
+  if (save) _writeRevampPrefs({ advancedMode:_advancedMode });
+}
+
+function toggleAdvancedMode() {
+  _setAdvancedMode(!_advancedMode);
+  showToast(_advancedMode ? 'Advanced controls shown' : 'Simple controls shown');
+}
+
+function _setDensity(mode, save=true) {
+  const next = ['compact','comfort','roomy'].includes(mode) ? mode : 'comfort';
+  document.body.classList.remove('density-compact','density-roomy');
+  if (next !== 'comfort') document.body.classList.add(`density-${next}`);
+  _densityMode = next;
+  const st = document.getElementById('density-status');
+  if (st) st.textContent = next[0].toUpperCase() + next.slice(1);
+  if (save) _writeRevampPrefs({ density:next });
+}
+
+function cycleDensity() {
+  const order = ['comfort','compact','roomy'];
+  _setDensity(order[(order.indexOf(_densityMode) + 1) % order.length]);
+}
+
+function setPanelWidth(value, save=true) {
+  const width = Math.max(290, Math.min(420, parseInt(value, 10) || 320));
+  document.documentElement.style.setProperty('--panel-w', width + 'px');
+  const slider = document.getElementById('panel-width-slider');
+  const val = document.getElementById('panel-width-val');
+  if (slider) slider.value = width;
+  if (val) val.textContent = width;
+  if (save) _writeRevampPrefs({ panelWidth:width });
+}
+
+function setBlueOpacitySetting(value, save=true) {
+  const pct = Math.max(12, Math.min(55, parseInt(value, 10) || 30));
+  const slider = document.getElementById('blue-opacity-slider');
+  const val = document.getElementById('blue-opacity-val');
+  if (slider) slider.value = pct;
+  if (val) val.textContent = pct + '%';
+  if (typeof setBlueOverlayOpacity === 'function') setBlueOverlayOpacity(pct / 100);
+  if (typeof setGameAreaOverlayOpacity === 'function') setGameAreaOverlayOpacity(pct / 100);
+  if (save) _writeRevampPrefs({ blueOpacity:pct });
+}
+
+function filterQuestionList(value='') {
+  _questionSearch = String(value || '').trim().toLowerCase();
+  _updateQuestionTools();
+}
+
+function setQuestionFilter(filter) {
+  _questionFilter = filter || 'all';
+  document.querySelectorAll('.q-filter').forEach(btn => btn.classList.remove('active'));
+  document.getElementById(`qf-${_questionFilter}`)?.classList.add('active');
+  _updateQuestionTools();
+}
+
+function _cardMatchesFilter(card) {
+  if (!card) return false;
+  const text = card.textContent.toLowerCase();
+  const locked = text.includes('locked') || !!card.querySelector('.locked');
+  const answered = !!card.querySelector('.answer-badge.inside,.answer-badge.outside,.active-in,.active-out,.active-a,.active-b');
+  if (_questionFilter === 'locked' && !locked) return false;
+  if (_questionFilter === 'open' && locked) return false;
+  if (_questionFilter === 'answered' && !answered) return false;
+  return !_questionSearch || text.includes(_questionSearch);
+}
+
+function _updateQuestionTools() {
+  const ql = document.getElementById('question-list');
+  if (!ql) return;
+  const cards = Array.from(ql.children).filter(el => el.classList && el.classList.contains('q-card'));
+  let visible = 0;
+  for (const card of cards) {
+    const show = _cardMatchesFilter(card);
+    card.style.display = show ? '' : 'none';
+    if (show) visible++;
+  }
+  ql.classList.toggle('empty', cards.length === 0);
+  ql.classList.toggle('no-filter-match', cards.length > 0 && visible === 0);
+  const count = document.getElementById('question-count');
+  if (count) count.textContent = `${visible}/${cards.length} questions`;
+}
+
+function quickAddOrCode() {
+  if (!sidebarOpen) toggleSidebar();
+  if (mode === 'seeker') {
+    if (!typePickerOpen) toggleTypePicker();
+    setTimeout(() => document.querySelector('#type-picker .type-option')?.focus(), 60);
+  } else {
+    setTimeout(() => document.getElementById('hider-code-field')?.focus(), 60);
+  }
+}
+
+function quickCenterActive() {
+  if (!map) return;
+  if (mode === 'hider') {
+    const pin = (typeof endgamePin !== 'undefined' && endgamePin) || hiderPin;
+    if (pin) { map.setView(pin.getLatLng(), Math.max(map.getZoom(), 15)); return; }
+  }
+  const q = questions.find(x => !x.locked && (x.marker || x.markerA || x._centerMarker)) || questions.find(x => x.marker || x.markerA || x._centerMarker);
+  const marker = q && (q.marker || q.markerA || q._centerMarker);
+  if (marker && marker.getLatLng) {
+    map.setView(marker.getLatLng(), Math.max(map.getZoom(), 15));
+  } else {
+    showToast('No active pin to center');
+  }
 }
 
 function toggleStatusInfo() {
