@@ -816,20 +816,24 @@
         <span>Center Me</span><span id="loc-age-status">--</span>
       </button>
     </div>
-    <button class="sp-btn" id="loc-share-btn" onclick="copyLocationInvite()" style="margin-top:5px">
-      <span>Copy Invite</span><span id="loc-share-status">PRIVATE</span>
+    <input
+    id="session-id"
+    placeholder="Session ID">
+
+    <input
+    id="session-password"
+    type="password"
+    placeholder="Password">
+
+    <button
+    onclick="createSessionUi()">
+    Create Session
     </button>
-    <div class="share-panel" style="margin-top:6px">
-      <input class="share-input" id="loc-name-input" maxlength="18" placeholder="Your display name" oninput="setLocationName(this.value)" />
-      <div class="share-row">
-        <input class="share-input" id="loc-invite-input" placeholder="Paste location invite code" />
-        <button class="decode-btn" onclick="importLocationInvite()">Add</button>
-      </div>
-      <button class="sp-btn" id="peer-style-btn" onclick="cyclePeerTransitStyle()">
-        <span>Transit Badge</span><span id="peer-style-status">Icon</span>
-      </button>
-      <div class="share-note">Invite codes contain only the latest location you choose to copy. A static web app cannot update when a phone is powered off, and background GPS depends on browser and OS permission.</div>
-    </div>
+
+    <button
+    onclick="joinSessionUi()">
+    Join Session
+    </button>
   </div>
   <div class="advanced-only">
     <div class="sp-label">Live Transit</div>
@@ -1117,6 +1121,15 @@ window.addEventListener('load', () => {
 
 let sidebarOpen = false, typePickerOpen = false;
 let map, activeLayerKey = 'osm', layers = {};
+
+let firebaseDb = null;
+
+let currentSessionId = null;
+
+let currentRole = null;
+
+let lastFirebasePush = 0;
+
 let hiderPin = null, hiderPinLocked = false;
 let hiderZoneCircle = null;
 const HIDER_ZONE_RADIUS = 500;
@@ -1435,16 +1448,26 @@ async function enableHeading() {
 }
 
 function updateOwnLocation(pos) {
+
   const c = pos.coords;
+
   _ownLocation = {
-    lat:c.latitude, lng:c.longitude, acc:c.accuracy || null,
-    heading:typeof c.heading === 'number' && !isNaN(c.heading) ? c.heading : _heading,
+    lat:c.latitude,
+    lng:c.longitude,
+    acc:c.accuracy || null,
+    heading:
+      typeof c.heading === 'number'
+        ? c.heading
+        : _heading,
     ts:Date.now()
   };
-  drawOwnLocation();
-  _syncLocationUi();
-}
 
+  drawOwnLocation();
+
+  _syncLocationUi();
+
+  pushLocationToFirebase();
+}
 function drawOwnLocation() {
   if (!map || !_ownLocation) return;
   const ll = [_ownLocation.lat, _ownLocation.lng];
@@ -1476,6 +1499,7 @@ function toggleOnTransit() {
   _writeLocationPrefs({ onTransit:_onTransit });
   if (_ownLocation) drawOwnLocation();
   _syncLocationUi();
+  pushLocationToFirebase();
   showToast(_onTransit ? 'Marked on transit' : 'Marked off transit');
 }
 
@@ -3015,6 +3039,348 @@ function resetAllData() {
 <script src="questions.js?v=60"></script>
 <script src="vehicles.js?v=3"></script>
 <script src="curses.js?v=5"></script>
+
+///step 4
+<script type="module">
+import { initializeApp }
+from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+
+import {
+  getDatabase,
+  ref,
+  set,
+  update,
+  get,
+  onValue
+}
+from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
+
+import {
+  getAuth,
+  signInAnonymously
+}
+from
+"https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+
+window.firebaseApi = {
+  initializeApp,
+  getDatabase,
+  ref,
+  set,
+  update,
+  get,
+  onValue,
+  getAuth,
+  signInAnonymously
+};
+
+
+</script>
+
+///step 6
+
+<script>
+let firebaseReady = false;
+
+async function initFirebase() {
+  const { initializeApp, getDatabase, getAuth, signInAnonymously } = window.firebaseApi;
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyBBnAdXyP7sgpFS7dVVwCQmc5pqIfM0iHM",
+    authDomain: "lampskene.firebaseapp.com",
+    databaseURL: "https://lampskene-default-rtdb.europe-west1.firebasedatabase.app",
+    projectId: "lampskene",
+    storageBucket: "lampskene.firebasestorage.app",
+    messagingSenderId: "799098049843",
+    appId: "1:799098049843:web:38a45d9f08bbadd3975a46"
+  };
+
+  const app = initializeApp(firebaseConfig);
+  firebaseDb = getDatabase(app);
+
+  // Anonymous auth and verification
+  try {
+    const auth = getAuth(app);
+    const cred = await signInAnonymously(auth);
+    window.currentUid = cred.user.uid;
+    firebaseReady = true;
+    console.log("UID:", window.currentUid);
+  } catch (err) {
+    console.error("Anonymous sign-in failed", err);
+    window.currentUid = null;
+    firebaseReady = false;
+  }
+}
+
+
+setInterval(() => {
+
+  if (!_sharedPeers.length)
+    return;
+
+  refreshPeerTooltips();
+
+}, 1000);
+
+///step 7
+async function hashPassword(password) {
+
+  const encoder = new TextEncoder();
+
+  const buffer =
+    await crypto.subtle.digest(
+      "SHA-256",
+      encoder.encode(password)
+    );
+
+  return Array
+    .from(new Uint8Array(buffer))
+    .map(x =>
+      x.toString(16).padStart(2,'0')
+    )
+    .join('');
+}
+///step 8
+
+async function createLocationSession(password) {
+  // wait for firebase auth to be ready (timeout after a few seconds)
+  const start = Date.now();
+  while (!firebaseReady && Date.now() - start < 5000) {
+    await new Promise(r => setTimeout(r, 100));
+  }
+  if (!firebaseReady) throw new Error("Firebase auth not ready. Try again in a moment.");
+
+  const { ref, set } = window.firebaseApi;
+
+  const sessionId = Math.random().toString(36).slice(2,10).toUpperCase();
+
+  const pw = (password || '').trim();
+  const passwordHash = await hashPassword(pw);
+
+  console.log('createLocationSession: passwordHash', passwordHash);
+
+  await set(
+    ref(firebaseDb, `sessions/${sessionId}`),
+    {
+      passwordHash,
+      created: Date.now(),
+      players: {}
+    }
+  );
+
+  currentSessionId = sessionId;
+  currentRole = "host";
+  subscribeToSession();
+
+  return sessionId;
+}
+
+
+/// add function
+function subscribeToSession() {
+
+  const {
+    ref,
+    onValue
+  } = window.firebaseApi;
+
+  onValue(
+    ref(
+      firebaseDb,
+      `sessions/${currentSessionId}/players`
+    ),
+    snapshot => {
+
+      const players =
+        snapshot.val() || {};
+
+      _sharedPeers = [];
+
+      for (
+        const [id, player]
+        of Object.entries(players)
+      ) {
+
+        if (
+          id === currentRole
+        ) continue;
+
+        _sharedPeers.push({
+          id,
+          ...player,
+          ts: player.updated
+        });
+      }
+
+      renderPeerLocations();
+    }
+  );
+}
+
+///step 9 
+async function joinLocationSession(
+  sessionId,
+  password
+) {
+
+  const {
+    ref,
+    get
+  } = window.firebaseApi;
+
+  const snap =
+    await get(
+      ref(firebaseDb,
+      `sessions/${sessionId}`)
+    );
+
+  if (!snap.exists())
+    throw new Error(
+      "Session not found"
+    );
+
+  const data = snap.val();
+
+  const hash =
+    await hashPassword(password);
+
+  if (
+    hash !== data.passwordHash
+  ) {
+    throw new Error(
+      "Wrong password"
+    );
+  }
+
+  currentSessionId =
+    sessionId;
+
+  currentRole =
+    "guest";
+
+  subscribeToSession();
+}
+
+///step 12
+async function pushLocationToFirebase() {
+
+  if (!currentSessionId)
+    return;
+
+  if (!_ownLocation)
+    return;
+
+  if (
+    Date.now()
+      - lastFirebasePush
+      < 10000
+  ) return;
+
+  lastFirebasePush =
+    Date.now();
+
+  const {
+    ref,
+    update
+  } = window.firebaseApi;
+
+  await update(
+    ref(
+      firebaseDb,
+      `sessions/${currentSessionId}/players/${currentRole}`
+    ),
+    {
+      name:_locationName,
+
+      lat:_ownLocation.lat,
+
+      lng:_ownLocation.lng,
+
+      acc:_ownLocation.acc,
+
+      heading:_ownLocation.heading,
+
+      transit:_onTransit,
+
+      updated:Date.now()
+    }
+  );
+}
+
+///step 13
+async function pushLocationToFirebase() {
+
+  if (!currentSessionId)
+    return;
+
+  if (!_ownLocation)
+    return;
+
+  if (
+    Date.now()
+      - lastFirebasePush
+      < 10000
+  ) return;
+
+  lastFirebasePush =
+    Date.now();
+
+  const {
+    ref,
+    update
+  } = window.firebaseApi;
+
+  await update(
+    ref(
+      firebaseDb,
+      `sessions/${currentSessionId}/players/${currentRole}`
+    ),
+    {
+      name:_locationName,
+
+      lat:_ownLocation.lat,
+
+      lng:_ownLocation.lng,
+
+      acc:_ownLocation.acc,
+
+      heading:_ownLocation.heading,
+
+      transit:_onTransit,
+
+      updated:Date.now()
+    }
+  );
+}
+
+///step 15
+async function createSessionUi() {
+  const pw = (document.getElementById('session-password').value || '').trim();
+  try {
+    const id = await createLocationSession(pw);
+    document.getElementById('session-id').value = id;
+    showToast('Session: ' + id);
+  } catch (e) {
+    showToast(e.message || 'Failed to create session');
+  }
+}
+
+async function joinSessionUi() {
+  try {
+    const id = (document.getElementById('session-id').value || '').trim();
+    const pw = (document.getElementById('session-password').value || '').trim();
+    await joinLocationSession(id, pw);
+    showToast('Connected');
+  } catch (e) {
+    showToast(e.message || 'Failed to join session');
+  }
+}
+
+
+window.addEventListener("load", initFirebase);
+</script>
+
+
 <script>
 // ── FAB badge wiring (needs curses.js loaded) ──────────────────
 // Patch _cpAddToDeck and _cpRemove to keep badge up to date
