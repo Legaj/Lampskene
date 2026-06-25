@@ -6,12 +6,335 @@
 let endgamePin = null;
 let endgamePinLocked = false;
 
+// ── ENDGAME ZONE SHARING ─────────────────────────────────────────────────────
+// The hider can copy their hiding zone (lat, lng, radius) as a short code and
+// send it to the seekers (or input it themselves) to formally start the
+// endgame. Once an ENDZONE code is consumed, the current questions are
+// archived (hidden, but kept for export), the question slate is cleared, and
+// the hider zone is rendered as a green "viable area" circle on the map.
+let _endgameActive = false;
+let _endgameZone = null;           // { lat, lng, radius } once endgame starts
+let _endgameZoneLayer = null;      // Leaflet circle showing the viable area
+let _archivedQuestions = [];       // questions hidden when endgame starts
+
+function _endgameCodeFromZone(zone) {
+  if (!zone) return '';
+  return `ENDZONE-${zone.lat.toFixed(5)}-${zone.lng.toFixed(5)}-${Math.round(zone.radius)}`;
+}
+
+function _parseEndgameCode(raw) {
+  const m = raw.match(/^ENDZONE-(-?\d+\.?\d*)-(-?\d+\.?\d*)-(\d+)$/i);
+  if (!m) return null;
+  return { lat: parseFloat(m[1]), lng: parseFloat(m[2]), radius: parseInt(m[3], 10) };
+}
+
+function _showEndgameZoneLayer() {
+  if (_endgameZoneLayer && map) { map.removeLayer(_endgameZoneLayer); _endgameZoneLayer = null; }
+  if (!_endgameZone || !map) return;
+  _endgameZoneLayer = L.circle([_endgameZone.lat, _endgameZone.lng], {
+    radius: _endgameZone.radius,
+    color: '#55ddaa', weight: 2.5, opacity: 0.85,
+    fillColor: '#55ddaa', fillOpacity: 0.10,
+    dashArray: '4 6', interactive: false
+  }).addTo(map);
+}
+
+function _hideEndgameZoneLayer() {
+  if (_endgameZoneLayer && map) { map.removeLayer(_endgameZoneLayer); _endgameZoneLayer = null; }
+}
+
+// Archive current questions (with their markers/overlays cleaned up), clear
+// the sidebar, then draw the green viable-area circle.
+function _startEndgame(zone) {
+  if (!zone) return;
+  _endgameZone = zone;
+  _endgameActive = true;
+
+  // Snapshot + tear down every existing question without losing data.
+  _archivedQuestions = questions.slice();
+  for (const q of questions) {
+    if (q.marker)      try { map.removeLayer(q.marker); } catch(e) {}
+    if (q.markerA)     try { map.removeLayer(q.markerA); } catch(e) {}
+    if (q.markerB)     try { map.removeLayer(q.markerB); } catch(e) {}
+    if (q._centerMarker) try { map.removeLayer(q._centerMarker); } catch(e) {}
+    if (q._dirMarker) try { map.removeLayer(q._dirMarker); } catch(e) {}
+    if (q._seekerMarker) try { map.removeLayer(q._seekerMarker); } catch(e) {}
+    if (outlineCircles[q.id]) { try { map.removeLayer(outlineCircles[q.id]); } catch(e) {} delete outlineCircles[q.id]; }
+    if (typeof removeMatchingLocMarkers !== 'undefined') { try { removeMatchingLocMarkers(q.id); } catch(e) {} }
+    if (typeof removeAreaFeatures !== 'undefined')       { try { removeAreaFeatures(q.id); } catch(e) {} }
+    if (typeof removeMeasuringLocMarkers !== 'undefined'){ try { removeMeasuringLocMarkers(q.id); } catch(e) {} }
+    if (q.type === 'angle') { try { clearAngleQuestionLayers(q); } catch(e) {} }
+  }
+  questions = [];
+  if (typeof clearQuestionOverlay !== 'undefined') clearQuestionOverlay();
+  // Clear sidebar DOM
+  const ql = document.getElementById('question-list');
+  if (ql) ql.innerHTML = '';
+
+  // Show green viable-area circle
+  _showEndgameZoneLayer();
+  if (map) map.setView([zone.lat, zone.lng], 14);
+
+  // Show endgame banner card at the top of the sidebar
+  _renderEndgameBanner();
+
+  if (typeof saveState !== 'undefined') saveState();
+  showToast('🏁 Endgame started — green circle marks the viable area');
+}
+
+function _renderEndgameBanner() {
+  let banner = document.getElementById('endgame-banner');
+  if (!banner) {
+    banner = document.createElement('div');
+    banner.id = 'endgame-banner';
+    banner.className = 'q-card hide-loc';
+    banner.style.borderColor = 'rgba(85,221,170,.5)';
+    banner.style.background = 'rgba(85,221,170,.07)';
+    const ql = document.getElementById('question-list');
+    if (ql) ql.insertBefore(banner, ql.firstChild);
+  }
+  if (!_endgameZone) { banner.remove(); return; }
+  banner.innerHTML = `
+    <div class="q-card-header" style="background:rgba(85,221,170,.12)">
+      <span style="font-size:14px">🏁</span>
+      <span class="q-title" style="color:#55ddaa">Endgame Active</span>
+    </div>
+    <div class="q-card-body">
+      <div style="font-size:10px;color:var(--text2)">Hider's zone (viable area):</div>
+      <div class="coord-disp">${_endgameZone.lat.toFixed(5)}, ${_endgameZone.lng.toFixed(5)}</div>
+      <div style="font-size:10px;color:var(--text2)">Radius: <span style="color:#55ddaa;font-weight:500">${Math.round(_endgameZone.radius)} m</span></div>
+      <div class="icon-btns">
+        <button class="icon-btn go-btn" style="border-color:rgba(85,221,170,.4);color:#55ddaa" onclick="map.setView([${_endgameZone.lat},${_endgameZone.lng}],14)">📍 Go to Zone</button>
+        <button class="icon-btn" onclick="exitEndgame()">↩ Exit Endgame</button>
+      </div>
+    </div>`;
+}
+
+function exitEndgame() {
+  if (!_endgameActive) return;
+  if (!confirm('Exit endgame mode? Archived questions will be restored.')) return;
+  _endgameActive = false;
+  _endgameZone = null;
+  _hideEndgameZoneLayer();
+  const banner = document.getElementById('endgame-banner');
+  if (banner) banner.remove();
+  // Restore archived questions
+  questions = _archivedQuestions.slice();
+  _archivedQuestions = [];
+  // Re-render every question card
+  for (const q of questions) {
+    if (q.type === 'radar') {
+      if (q.hiderMode) { renderHiderRadarCard(q); if (q.zone !== 'pending') redrawQuestionOverlay(q); }
+      else { renderSeekerRadarCard(q); placeSeekerPin(q); requestAnimationFrame(() => {
+        const el = document.getElementById(`rad-inp-${q.id}`); if (el) el.value = q.radius;
+        document.getElementById(`unit-m-${q.id}`)?.classList.toggle('active', q.unit==='M');
+        document.getElementById(`unit-km-${q.id}`)?.classList.toggle('active', q.unit==='KM');
+        if (q.zone !== 'pending') {
+          document.getElementById(`zpend-${q.id}`)?.classList.remove('active-pend');
+          document.getElementById(`z${q.zone==='inside'?'in':'out'}-${q.id}`)?.classList.add(q.zone==='inside'?'active-in':'active-out');
+          redrawQuestionOverlay(q);
+        } else { redrawOutlineCircle(q); }
+      }); }
+    } else if (q.type === 'thermo') {
+      if (q.hiderMode) { renderHiderThermoCard(q); if (q.closer !== 'pending') redrawQuestionOverlay(q); }
+      else { renderSeekerThermoCard(q); placeThermoPin(q,'A'); placeThermoPin(q,'B'); updateThermoDistance(q);
+        if (q.closer !== 'pending') requestAnimationFrame(() => setCloser(q.id, q.closer)); }
+    } else if (q.type === 'matching') {
+      if (q.hiderMode) { renderHiderMatchingCard(q); checkHiderMatching(q); }
+      else { renderSeekerMatchingCard(q); placeSeekerMatchingPin(q); updateMatchingNearest(q); showMatchingLocMarkers(q); showAreaFeatures(q);
+        if (q.answer !== 'pending') requestAnimationFrame(() => setMatchingAnswer(q.id, q.answer)); }
+    } else if (q.type === 'measuring') {
+      if (q.hiderMode) { renderHiderMeasuringCard(q); checkHiderMeasuring(q); }
+      else { renderSeekerMeasuringCard(q); placeSeekerMeasuringPin(q); updateMeasuringNearest(q); showMeasuringLocMarkers(q);
+        if (q.answer !== 'pending') requestAnimationFrame(() => setMeasuringAnswer(q.id, q.answer)); }
+    } else if (q.type === 'angle') {
+      if (q.hiderMode) { renderHiderAngleCard(q); checkHiderAngle(q); }
+      else { renderAngleCard(q); angleQuestionSetupMap(q); if (q.zone !== 'pending') requestAnimationFrame(() => redrawQuestionOverlay()); }
+    }
+    if (typeof _qAfterRestore === 'function') _qAfterRestore(q);
+  }
+  if (questions.length > 0) requestAnimationFrame(() => scheduleRebuild());
+  if (typeof saveState !== 'undefined') saveState();
+  showToast('Exited endgame — questions restored');
+}
+
+// Hider: copy the ENDZONE code for the current hider pin to the clipboard.
+function copyEndgameZoneCode() {
+  if (!hiderPin) { showToast('Place your hiding pin first'); return; }
+  if (_endgameActive) { showToast('Endgame already active'); return; }
+  const ll = hiderPin.getLatLng();
+  const radius = (typeof HIDER_ZONE_RADIUS !== 'undefined') ? HIDER_ZONE_RADIUS : 500;
+  const code = _endgameCodeFromZone({ lat: ll.lat, lng: ll.lng, radius });
+  navigator.clipboard.writeText(code).then(() => {
+    showToast('✅ Endgame zone code copied — send it to the seekers');
+  }).catch(() => showToast(code, 6000));
+}
+
+// Hider: start endgame right now using the current hider pin.
+function startEndgameNow() {
+  if (!hiderPin) { showToast('Place your hiding pin first'); return; }
+  if (_endgameActive) { showToast('Endgame already active'); return; }
+  if (!confirm('Start the endgame now?\n\nAll current questions will be archived (kept for export) and the question slate will be cleared. The hider zone will be shown as the viable area.')) return;
+  const ll = hiderPin.getLatLng();
+  const radius = (typeof HIDER_ZONE_RADIUS !== 'undefined') ? HIDER_ZONE_RADIUS : 500;
+  _startEndgame({ lat: ll.lat, lng: ll.lng, radius });
+}
+
+// Common: given an ENDZONE-... raw code, prompt and start the endgame.
+function _consumeEndgameCode(raw) {
+  const zone = _parseEndgameCode(raw);
+  if (!zone) return false;
+  if (!confirm('Start the endgame with this zone?\n\n' +
+               'Center: ' + zone.lat.toFixed(5) + ', ' + zone.lng.toFixed(5) + '\n' +
+               'Radius: ' + Math.round(zone.radius) + ' m\n\n' +
+               'All current questions will be archived (hidden but kept for export).')) return true; // consumed but declined
+  _startEndgame(zone);
+  return true;
+}
+
+// ── QUESTION COLLAPSE (auto-collapse answered questions to save space) ──────
+// When a question gets a real answer (zone set / closer set / matching answered
+// / measuring answered), we add a `.collapsed` class to the card so the body
+// is hidden and only a short summary chip is shown. Clicking the header toggles
+// the collapsed state. The user can re-expand any card at any time.
+
+function _qCardEl(q) {
+  if (!q) return null;
+  if (q.type === 'angle') return document.getElementById('angle-card-' + q.id);
+  return document.getElementById('q-card-' + q.id);
+}
+
+// Build a compact text summary for an answered question. Returns '' if the
+// question is not yet answered (so the card should stay expanded).
+function _qSummary(q) {
+  if (!q) return '';
+  try {
+    if (q.type === 'radar') {
+      if (q.zone === 'inside')  return '✅ Inside';
+      if (q.zone === 'outside') return '❌ Outside';
+      return '';
+    }
+    if (q.type === 'thermo') {
+      if (q.closer === 'A') return '🟡 Closer to Pin A';
+      if (q.closer === 'B') return '🟠 Closer to Pin B';
+      return '';
+    }
+    if (q.type === 'matching') {
+      if (q.answer === 'yes') return '✅ Yes — same nearest';
+      if (q.answer === 'no')  return '❌ No — different nearest';
+      return '';
+    }
+    if (q.type === 'measuring') {
+      if (q.answer === 'closer')  return '🟢 Closer';
+      if (q.answer === 'further') return '🔴 Further';
+      return '';
+    }
+    if (q.type === 'angle') {
+      if (q.zone === 'inside')  return '✅ Inside cone';
+      if (q.zone === 'outside') return '❌ Outside cone';
+      return '';
+    }
+  } catch (e) {}
+  return '';
+}
+
+function _qIsAnswered(q) {
+  return !!_qSummary(q);
+}
+
+// Refresh the collapsed-summary chip on a card. Called after every answer-set.
+function _qRefreshSummary(q) {
+  const card = _qCardEl(q);
+  if (!card) return;
+  let chip = card.querySelector('.q-collapse-summary');
+  const summary = _qSummary(q);
+  if (summary) {
+    if (!chip) {
+      chip = document.createElement('div');
+      chip.className = 'q-collapse-summary';
+      // Insert right after the header (which is the first child)
+      const header = card.querySelector('.q-card-header');
+      if (header && header.nextSibling) {
+        card.insertBefore(chip, header.nextSibling);
+      } else {
+        card.appendChild(chip);
+      }
+    }
+    chip.textContent = summary;
+  } else if (chip) {
+    chip.remove();
+  }
+}
+
+// Collapse or expand a question card.
+function _qSetCollapsed(q, collapsed) {
+  const card = _qCardEl(q);
+  if (!card) return;
+  card.classList.toggle('collapsed', !!collapsed);
+  // Add a chevron to the header on first collapse
+  const header = card.querySelector('.q-card-header');
+  if (header && !header.querySelector('.q-collapse-chevron')) {
+    const chev = document.createElement('span');
+    chev.className = 'q-collapse-chevron';
+    chev.innerHTML = '<svg width="12" height="12" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path d="m6 9 6 6 6-6"/></svg>';
+    header.appendChild(chev);
+  }
+}
+
+function toggleQuestionCollapse(id) {
+  const q = questions.find(x => x.id === id);
+  if (!q) return;
+  const card = _qCardEl(q);
+  if (!card) return;
+  card.classList.toggle('collapsed');
+}
+
+// Auto-collapse a question immediately after it's been answered.
+function _qAutoCollapse(q) {
+  if (!_qIsAnswered(q)) return;
+  const card = _qCardEl(q);
+  if (!card) return;
+  // Don't auto-collapse if the user has manually expanded it.
+  if (card.dataset.userToggled === '1') return;
+  _qSetCollapsed(q, true);
+  _qRefreshSummary(q);
+}
+
+// Initialise header-click handlers for all current question cards. Should be
+// called after every card render. We attach a single delegated listener on
+// #question-list instead — set up once on map init.
+let _qCollapseDelegated = false;
+function _initQuestionCollapseDelegation() {
+  if (_qCollapseDelegated) return;
+  _qCollapseDelegated = true;
+  const list = document.getElementById('question-list');
+  if (!list) return;
+  list.addEventListener('click', (e) => {
+    const header = e.target.closest('.q-card-header, .angleq-card .q-card-header');
+    if (!header) return;
+    const card = header.closest('.q-card, .angleq-card');
+    if (!card) return;
+    // Don't toggle if the user clicked an actual button inside the header
+    if (e.target.closest('button, input, select')) return;
+    // Find the matching question
+    let id = null;
+    if (card.id && card.id.indexOf('angle-card-') === 0) id = card.id.slice('angle-card-'.length);
+    else if (card.id && card.id.indexOf('q-card-') === 0) id = parseInt(card.id.slice('q-card-'.length), 10);
+    if (id === null) return;
+    const q = questions.find(x => String(x.id) === String(id));
+    if (!q) return;
+    card.dataset.userToggled = '1';
+    card.classList.toggle('collapsed');
+  });
+}
+
 // Returns the active location pin (endgame if set, otherwise hider)
 function getActiveHiderPin() {
   return endgamePin || hiderPin;
 }
 
 function addHiderLocationCard() {
+  if(typeof _initQuestionCollapseDelegation==='function')_initQuestionCollapseDelegation();
   const ql = document.getElementById('question-list');
   const card = document.createElement('div');
   card.className = 'q-card hide-loc'; card.id = 'hider-loc-card';
@@ -26,6 +349,10 @@ function addHiderLocationCard() {
       <div class="icon-btns">
         <button class="icon-btn go-btn disabled" id="hider-goto-btn" onclick="goToHiderPin()">📍 Go to Pin</button>
         <button class="icon-btn disabled" id="hider-lock-btn" onclick="toggleHiderLock()">🔒 Lock</button>
+      </div>
+      <div class="icon-btns" style="margin-top:4px">
+        <button class="icon-btn disabled" id="hider-copy-endzone-btn" onclick="copyEndgameZoneCode()" style="border-color:rgba(85,221,170,.4);color:#55ddaa;background:rgba(85,221,170,.08)">📋 Copy Endgame Code</button>
+        <button class="icon-btn disabled" id="hider-start-endgame-btn" onclick="startEndgameNow()" style="border-color:rgba(85,221,170,.4);color:#55ddaa;background:rgba(85,221,170,.08)">🏁 Start Endgame</button>
       </div>
     </div>`;
   ql.appendChild(card);
@@ -49,7 +376,7 @@ function placeHiderPin(lat, lng) {
   });
   document.getElementById('hider-pin-coords').textContent = `${lat.toFixed(5)}, ${lng.toFixed(5)}`;
   updateHiderZoneCircle(); checkAllHiderRadars(); checkAllHiderThermos(); if(typeof checkAllHiderMatching!=="undefined")checkAllHiderMatching(); if(typeof checkAllHiderMeasuring!=="undefined")checkAllHiderMeasuring();
-  ['hider-goto-btn','hider-lock-btn'].forEach(id => document.getElementById(id).classList.remove('disabled'));
+  ['hider-goto-btn','hider-lock-btn','hider-copy-endzone-btn','hider-start-endgame-btn'].forEach(id => document.getElementById(id).classList.remove('disabled'));
   if(typeof saveState!=='undefined')saveState();
 }
 
@@ -114,6 +441,7 @@ function placeSeekerPin(q) {
 }
 
 function renderSeekerRadarCard(q) {
+  _initQuestionCollapseDelegation();
   const ql = document.getElementById('question-list');
   const card = document.createElement('div');
   card.className = 'q-card radar'; card.id = `q-card-${q.id}`;
@@ -162,6 +490,7 @@ function setUnit(id,unit) { const q=questions.find(x=>x.id===id); q.unit=unit; d
 function goToSeekerPin(id) { const q=questions.find(x=>x.id===id); map.setView([q.lat,q.lng],14); }
 function toggleSeekerLock(id) {
   const q=questions.find(x=>x.id===id); q.locked=!q.locked;
+  if (q.locked) q.lockedAt = Date.now(); else q.lockedAt = null;
   const btn=document.getElementById(`lock-btn-${id}`); const rb=document.getElementById(`remove-btn-${id}`);
   if(q.locked){btn.textContent='🔓 Locked';btn.classList.add('locked');if(q.marker)q.marker.dragging.disable();if(rb){rb.disabled=true;rb.style.opacity='0.25';rb.style.pointerEvents='none';}showToast(`Radar #${id} locked 🔒`); if(typeof saveState!=='undefined')saveState(); if(typeof applyHideLockedPins!=='undefined')applyHideLockedPins();}
   else{btn.textContent='🔒 Lock';btn.classList.remove('locked');if(q.marker)q.marker.dragging.enable();if(rb){rb.disabled=false;rb.style.opacity='';rb.style.pointerEvents='';}if(typeof applyHideLockedPins!=='undefined')applyHideLockedPins();}
@@ -174,6 +503,7 @@ function thermoTearDrop(color) {
 }
 
 function renderSeekerThermoCard(q) {
+  _initQuestionCollapseDelegation();
   const ql = document.getElementById('question-list');
   const card = document.createElement('div');
   card.className = 'q-card thermo'; card.id = `q-card-${q.id}`;
@@ -220,17 +550,19 @@ function updateThermoDistance(q){const dist=map.distance([q.latA,q.lngA],[q.latB
 function goToThermoPin(id,pin){const q=questions.find(x=>x.id===id);map.setView([pin==='A'?q.latA:q.latB,pin==='A'?q.lngA:q.lngB],14);}
 function toggleThermoLock(id){
   const q=questions.find(x=>x.id===id);q.locked=!q.locked;
+  if (q.locked) q.lockedAt = Date.now(); else q.lockedAt = null;
   const btn=document.getElementById(`tlock-btn-${id}`);const rb=document.getElementById(`remove-btn-${id}`);
   if(q.locked){btn.textContent='🔓 Locked';btn.classList.add('locked');if(q.markerA)q.markerA.dragging.disable();if(q.markerB)q.markerB.dragging.disable();if(rb){rb.disabled=true;rb.style.opacity='0.25';rb.style.pointerEvents='none';}showToast(`Thermometer #${id} locked 🔒`); if(typeof saveState!=='undefined')saveState(); if(typeof applyHideLockedPins!=='undefined')applyHideLockedPins();}
   else{btn.textContent='🔒 Lock';btn.classList.remove('locked');if(q.markerA)q.markerA.dragging.enable();if(q.markerB)q.markerB.dragging.enable();if(rb){rb.disabled=false;rb.style.opacity='';rb.style.pointerEvents='';}if(typeof applyHideLockedPins!=='undefined')applyHideLockedPins();}
   applyQuestionMoveLocks();
 }
-function setCloser(id,closer){const q=questions.find(x=>x.id===id);q.closer=closer;document.getElementById(`cpend-${id}`).className='closer-btn'+(closer==='pending'?' active-pend':'');document.getElementById(`ca-${id}`).className='closer-btn'+(closer==='A'?' active-a':'');document.getElementById(`cb-${id}`).className='closer-btn'+(closer==='B'?' active-b':'');redrawQuestionOverlay(q);}
+function setCloser(id,closer){const q=questions.find(x=>x.id===id);q.closer=closer;_qRefreshSummary(q);document.getElementById(`cpend-${id}`).className='closer-btn'+(closer==='pending'?' active-pend':'');document.getElementById(`ca-${id}`).className='closer-btn'+(closer==='A'?' active-a':'');document.getElementById(`cb-${id}`).className='closer-btn'+(closer==='B'?' active-b':'');redrawQuestionOverlay(q);}
 function toggleThermoBorder(id){const q=questions.find(x=>x.id===id);if(!q)return;q.thermoBorder=!q.thermoBorder;const btn=document.getElementById(`tborder-btn-${id}`);if(btn){btn.style.borderColor=q.thermoBorder?'#f5d020':'';btn.style.color=q.thermoBorder?'#f5d020':'';btn.style.background=q.thermoBorder?'rgba(245,208,32,.12)':'';}redrawThermoBorders();if(typeof saveState!=='undefined')saveState();}
 function copyThermoCode(id){const q=questions.find(x=>x.id===id);const code=`THM-${q.latA.toFixed(5)}-${q.lngA.toFixed(5)}-${q.latB.toFixed(5)}-${q.lngB.toFixed(5)}`;const btn=document.getElementById(`tcopy-btn-${id}`);navigator.clipboard.writeText(code).then(()=>{btn.textContent='✅ Copied!';setTimeout(()=>{btn.textContent='📋 Copy Question Code';},2200);}).catch(()=>showToast(code,5000));}
 
 function setZone(id,zone){
   const q=questions.find(x=>x.id===id);q.zone=zone;
+  _qRefreshSummary(q);
   document.getElementById(`zpend-${id}`).className='zone-btn'+(zone==='pending'?' active-pend':'');
   document.getElementById(`zin-${id}`).className  ='zone-btn'+(zone==='inside' ?' active-in':'');
   document.getElementById(`zout-${id}`).className ='zone-btn'+(zone==='outside'?' active-out':'');
@@ -408,6 +740,11 @@ function isLatLngInBlueZone(lat, lng) {
 
 function redrawOutlineCircle(q){
   if(outlineCircles[q.id]){map.removeLayer(outlineCircles[q.id]);delete outlineCircles[q.id];}
+  // BUGFIX: only show the orange outline while the question is still pending.
+  // Once an answer (inside/outside) has been set, the blue SVG overlay takes
+  // over and the outline circle must stay hidden — even when redrawOutlineCircle
+  // is called from state-restore, pin-move undo, or radius/unit changes.
+  if (q.zone && q.zone !== 'pending') return;
   const r=getRadiusMeters(q);if(!r)return;
   outlineCircles[q.id]=L.circle([q.lat,q.lng],{radius:r,color:'#ff9950',weight:2,opacity:0.85,fill:false,interactive:false}).addTo(map);
 }
@@ -500,10 +837,13 @@ function ringToPixelD(ring, reverse) {
 }
 
 // Circle as pixel [[x,y]] array (CW in y-down screen space)
+// 48 samples is enough for visual smoothness at any practical zoom and keeps
+// the SVG mask small even when there are hundreds of measuring locations.
 function circlePxPts(lat, lng, r) {
   const cosLat = Math.cos(lat * Math.PI / 180), pts = [];
-  for (let i = 0; i < 80; i++) {
-    const a = (i / 80) * 2 * Math.PI;
+  const N = 48;
+  for (let i = 0; i < N; i++) {
+    const a = (i / N) * 2 * Math.PI;
     const p = map.latLngToLayerPoint(L.latLng(
       lat + (r/111320)*Math.cos(a),
       lng + (r/(111320*cosLat))*Math.sin(a)
@@ -563,6 +903,16 @@ function addNoPath(outerPts, innerPtsArray) {
 // Draw a full blue world rect for the invalid area, then punch the union of all
 // circles out with a mask. Unlike evenodd holes, duplicate/overlapping circles
 // do not cancel each other in a mask.
+//
+// BUGFIX (rewritten): Previously all circles were merged into ONE giant <path>
+// with `nonzero` fill. For categories with hundreds of locations (Parks, SL
+// Station, etc.) the resulting path string could exceed 100KB and triggered
+// inconsistent rendering across browsers — circles would randomly disappear
+// or paint the wrong color in the overlap regions. The fix renders each circle
+// as an independent <circle> element inside the mask, which composites
+// correctly regardless of overlap count, and additionally filters to circles
+// near the current viewport and caps the total count for performance.
+const MEASURING_CLOSER_MAX_CIRCLES = 240;
 function addMaskedWorldPath(holePtsArray) {
   if (!holePtsArray || !holePtsArray.length) return;
   const p = overlayPad();
@@ -576,11 +926,12 @@ function addMaskedWorldPath(holePtsArray) {
   const mask = document.createElementNS(NS, 'mask');
   mask.setAttribute('id', maskId);
   mask.setAttribute('maskUnits', 'userSpaceOnUse');
+  mask.setAttribute('maskContentUnits', 'userSpaceOnUse');
   mask.setAttribute('x', -p);
   mask.setAttribute('y', -p);
   mask.setAttribute('width', p * 2);
   mask.setAttribute('height', p * 2);
-  mask.style.maskType = 'luminance';
+  mask.setAttribute('mask-type', 'luminance');
 
   const rect = document.createElementNS(NS, 'rect');
   rect.setAttribute('x', -p);
@@ -590,16 +941,49 @@ function addMaskedWorldPath(holePtsArray) {
   rect.setAttribute('fill', 'white');
   mask.appendChild(rect);
 
-  const holes = document.createElementNS(NS, 'path');
-  holes.setAttribute('d', holePtsArray.map(pts => {
-    const cw = polySignedArea(pts) < 0 ? [...pts].reverse() : pts;
-    return ptsToD(cw, false);
-  }).join(' '));
-  holes.setAttribute('fill', 'black');
-  holes.setAttribute('fill-rule', 'nonzero');
-  holes.setAttribute('stroke', 'none');
-  mask.appendChild(holes);
+  // Viewport filter: skip circles whose bounding box does not intersect the
+  // current map viewport (with padding). This keeps the mask light even when
+  // the matching category contains thousands of locations.
+  const vp = map.getBounds().pad(0.5);
+  let drawn = 0;
+  for (const pts of holePtsArray) {
+    if (drawn >= MEASURING_CLOSER_MAX_CIRCLES) break;
+    if (!pts || pts.length < 3) continue;
+    // Quick bounding-box reject using the first point's lat/lng is not enough
+    // because pts are already in pixel space. Compute pixel bbox and compare
+    // against the viewport bbox in pixel space.
+    let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+    for (let i = 0; i < pts.length; i += 4) { // sample every 4th point — fast
+      const x = pts[i][0], y = pts[i][1];
+      if (x < minX) minX = x; if (x > maxX) maxX = x;
+      if (y < minY) minY = y; if (y > maxY) maxY = y;
+    }
+    const vMin = map.latLngToLayerPoint(vp.getNorthWest());
+    const vMax = map.latLngToLayerPoint(vp.getSouthEast());
+    if (maxX < vMin.x || minX > vMax.x || maxY < vMin.y || minY > vMax.y) continue;
+
+    // Render as a true <circle> element. Compute center + radius from the
+    // polygon points (which approximate a circle).
+    let cx = 0, cy = 0;
+    for (const [x, y] of pts) { cx += x; cy += y; }
+    cx /= pts.length; cy /= pts.length;
+    const r = Math.hypot(pts[0][0] - cx, pts[0][1] - cy);
+    if (!Number.isFinite(r) || r <= 0) continue;
+
+    const c = document.createElementNS(NS, 'circle');
+    c.setAttribute('cx', cx.toFixed(1));
+    c.setAttribute('cy', cy.toFixed(1));
+    c.setAttribute('r',  r.toFixed(1));
+    c.setAttribute('fill', 'black');
+    c.setAttribute('stroke', 'none');
+    mask.appendChild(c);
+    drawn++;
+  }
   defs.appendChild(mask);
+
+  // If nothing was drawn (all circles were off-screen), skip the masked path
+  // entirely so the overlay doesn't paint blue over the whole map.
+  if (drawn === 0) return;
 
   const path = document.createElementNS(NS, 'path');
   path.setAttribute('d', overlayWorldD());
@@ -892,6 +1276,11 @@ function setMyLocation_measuring(id) {
 function decodeAndAdd(){
   const raw=document.getElementById('hider-code-field').value.trim().toUpperCase().replace(/\s/g,'');
   if(!raw)return;
+  // ENDZONE — start endgame flow
+  if (raw.indexOf('ENDZONE-') === 0) {
+    if (_consumeEndgameCode(raw)) { document.getElementById('hider-code-field').value=''; }
+    return;
+  }
   const radarMatch=raw.match(/^RAD-([\-\d.]+)-([\-\d.]+)-(\d+\.?\d*)(KM|M)$/);
   if(radarMatch){const lat=parseFloat(radarMatch[1]),lng=parseFloat(radarMatch[2]),rad=radarMatch[3],unit=radarMatch[4];qCounter++;const q={id:qCounter,type:'radar',lat,lng,radius:rad,unit,zone:'pending',locked:true,hiderMode:true};questions.push(q);renderHiderRadarCard(q);redrawOutlineCircle(q);checkHiderRadar(q);map.setView([lat,lng],13);document.getElementById('hider-code-field').value='';showToast('Radar question added!');return;}
   const thermoMatch=raw.match(/^THM-([\-\d.]+)-([\-\d.]+)-([\-\d.]+)-([\-\d.]+)$/);
@@ -946,14 +1335,14 @@ function decodeAndAdd(){
   showToast('Invalid code — check format');
 }
 
-function renderHiderThermoCard(q){const ql=document.getElementById('question-list');const dist=map.distance([q.latA,q.lngA],[q.latB,q.lngB]);const distStr=dist>=1000?`${(dist/1000).toFixed(2)} km`:`${Math.round(dist)} m`;const card=document.createElement('div');card.className='q-card thermo';card.id=`q-card-${q.id}`;card.innerHTML=`<div class="q-card-header"><span style="font-size:14px">🌡️</span><span class="q-title">Thermometer</span><span class="q-num">#${q.id}</span></div><div class="q-card-body"><div style="font-size:10px;color:var(--text2)">Pin A–B distance: <span class="thermo-dist">${distStr}</span></div><div class="icon-btns"><button class="icon-btn go-btn" onclick="map.setView([${q.latA},${q.lngA}],14)">📍 Pin A</button><button class="icon-btn go-btn" onclick="map.setView([${q.latB},${q.lngB}],14)">📍 Pin B</button></div><div id="hider-ans-${q.id}" class="answer-badge waiting">Place your hiding pin first…</div><button class="remove-btn" onclick="removeQuestion(${q.id})">✕ Remove</button></div>`;ql.appendChild(card);}
+function renderHiderThermoCard(q){if(typeof _initQuestionCollapseDelegation==='function')_initQuestionCollapseDelegation();const ql=document.getElementById('question-list');const dist=map.distance([q.latA,q.lngA],[q.latB,q.lngB]);const distStr=dist>=1000?`${(dist/1000).toFixed(2)} km`:`${Math.round(dist)} m`;const card=document.createElement('div');card.className='q-card thermo';card.id=`q-card-${q.id}`;card.innerHTML=`<div class="q-card-header"><span style="font-size:14px">🌡️</span><span class="q-title">Thermometer</span><span class="q-num">#${q.id}</span></div><div class="q-card-body"><div style="font-size:10px;color:var(--text2)">Pin A–B distance: <span class="thermo-dist">${distStr}</span></div><div class="icon-btns"><button class="icon-btn go-btn" onclick="map.setView([${q.latA},${q.lngA}],14)">📍 Pin A</button><button class="icon-btn go-btn" onclick="map.setView([${q.latB},${q.lngB}],14)">📍 Pin B</button></div><div id="hider-ans-${q.id}" class="answer-badge waiting">Place your hiding pin first…</div><button class="remove-btn" onclick="removeQuestion(${q.id})">✕ Remove</button></div>`;ql.appendChild(card);}
 
-function checkHiderThermo(q){const _ahp=getActiveHiderPin();if(!_ahp)return;const hp=_ahp.getLatLng();const distA=map.distance([q.latA,q.lngA],[hp.lat,hp.lng]);const distB=map.distance([q.latB,q.lngB],[hp.lat,hp.lng]);const closer=distA<=distB?'A':'B';const el=document.getElementById(`hider-ans-${q.id}`);if(!el)return;q.closer=closer;el.className=closer==='A'?'answer-badge inside':'answer-badge outside';el.textContent=closer==='A'?`🟡 Closer to Pin A (${Math.round(distA)}m vs ${Math.round(distB)}m)`:`🟠 Closer to Pin B (${Math.round(distB)}m vs ${Math.round(distA)}m)`;redrawQuestionOverlay(q);}
+function checkHiderThermo(q){const _ahp=getActiveHiderPin();if(!_ahp)return;const hp=_ahp.getLatLng();const distA=map.distance([q.latA,q.lngA],[hp.lat,hp.lng]);const distB=map.distance([q.latB,q.lngB],[hp.lat,hp.lng]);const closer=distA<=distB?'A':'B';const el=document.getElementById(`hider-ans-${q.id}`);if(!el)return;q.closer=closer;el.className=closer==='A'?'answer-badge inside':'answer-badge outside';el.textContent=closer==='A'?`🟡 Closer to Pin A (${Math.round(distA)}m vs ${Math.round(distB)}m)`:`🟠 Closer to Pin B (${Math.round(distB)}m vs ${Math.round(distA)}m)`;redrawQuestionOverlay(q);_qRefreshSummary(q);_qAutoCollapse(q);}
 function checkAllHiderThermos(){questions.filter(q=>q.hiderMode&&q.type==='thermo').forEach(q=>checkHiderThermo(q));}
 
-function renderHiderRadarCard(q){const ql=document.getElementById('question-list');const rDisp=`${q.radius}${q.unit==='KM'?' km':' m'}`;const card=document.createElement('div');card.className='q-card radar';card.id=`q-card-${q.id}`;card.innerHTML=`<div class="q-card-header"><svg width="13" height="16" viewBox="0 0 34 40" style="flex-shrink:0"><path d="M17 38C17 38 2 22 2 13A15 15 0 0 1 32 13C32 22 17 38 17 38Z" fill="#ff9950" stroke="rgba(0,0,0,.25)" stroke-width="1.5"/><circle cx="17" cy="13" r="5.5" fill="rgba(255,255,255,.3)"/></svg><span class="q-title">Radar</span><span class="q-num">#${q.id}</span></div><div class="q-card-body"><div style="font-size:10px;color:var(--text2)">Radius: <span style="color:var(--radar);font-weight:500">${rDisp}</span></div><div class="coord-disp">Center: ${q.lat.toFixed(5)}, ${q.lng.toFixed(5)}</div><button class="icon-btn go-btn" style="margin-top:2px" onclick="map.setView([${q.lat},${q.lng}],14)">📍 Go to Radar Center</button><div id="hider-ans-${q.id}" class="answer-badge waiting">Place your hiding pin first…</div><button class="remove-btn" onclick="removeQuestion(${q.id})">✕ Remove</button></div>`;ql.appendChild(card);}
+function renderHiderRadarCard(q){if(typeof _initQuestionCollapseDelegation==='function')_initQuestionCollapseDelegation();const ql=document.getElementById('question-list');const rDisp=`${q.radius}${q.unit==='KM'?' km':' m'}`;const card=document.createElement('div');card.className='q-card radar';card.id=`q-card-${q.id}`;card.innerHTML=`<div class="q-card-header"><svg width="13" height="16" viewBox="0 0 34 40" style="flex-shrink:0"><path d="M17 38C17 38 2 22 2 13A15 15 0 0 1 32 13C32 22 17 38 17 38Z" fill="#ff9950" stroke="rgba(0,0,0,.25)" stroke-width="1.5"/><circle cx="17" cy="13" r="5.5" fill="rgba(255,255,255,.3)"/></svg><span class="q-title">Radar</span><span class="q-num">#${q.id}</span></div><div class="q-card-body"><div style="font-size:10px;color:var(--text2)">Radius: <span style="color:var(--radar);font-weight:500">${rDisp}</span></div><div class="coord-disp">Center: ${q.lat.toFixed(5)}, ${q.lng.toFixed(5)}</div><button class="icon-btn go-btn" style="margin-top:2px" onclick="map.setView([${q.lat},${q.lng}],14)">📍 Go to Radar Center</button><div id="hider-ans-${q.id}" class="answer-badge waiting">Place your hiding pin first…</div><button class="remove-btn" onclick="removeQuestion(${q.id})">✕ Remove</button></div>`;ql.appendChild(card);}
 
-function checkHiderRadar(q){const _ahp=getActiveHiderPin();if(!_ahp)return;const hp=_ahp.getLatLng();const r=getRadiusMeters(q);if(!r)return;const dist=map.distance([q.lat,q.lng],[hp.lat,hp.lng]);const inside=dist<=r;const el=document.getElementById(`hider-ans-${q.id}`);if(!el)return;if(inside){el.className='answer-badge inside';el.textContent=`✅ Inside the radar (${Math.round(dist)}m from center)`;q.zone='inside';}else{el.className='answer-badge outside';el.textContent=`❌ Outside the radar (${Math.round(dist)}m from center)`;q.zone='outside';}if(outlineCircles[q.id]){map.removeLayer(outlineCircles[q.id]);delete outlineCircles[q.id];}redrawQuestionOverlay(q);}
+function checkHiderRadar(q){const _ahp=getActiveHiderPin();if(!_ahp)return;const hp=_ahp.getLatLng();const r=getRadiusMeters(q);if(!r)return;const dist=map.distance([q.lat,q.lng],[hp.lat,hp.lng]);const inside=dist<=r;const el=document.getElementById(`hider-ans-${q.id}`);if(!el)return;if(inside){el.className='answer-badge inside';el.textContent=`✅ Inside the radar (${Math.round(dist)}m from center)`;q.zone='inside';}else{el.className='answer-badge outside';el.textContent=`❌ Outside the radar (${Math.round(dist)}m from center)`;q.zone='outside';}if(outlineCircles[q.id]){map.removeLayer(outlineCircles[q.id]);delete outlineCircles[q.id];}redrawQuestionOverlay(q);_qRefreshSummary(q);_qAutoCollapse(q);}
 
 function renderHiderAngleCard(q){
   const ql=document.getElementById('question-list');
@@ -976,7 +1365,8 @@ function checkHiderAngle(q){
   el.className=inside?'answer-badge inside':'answer-badge outside';
   el.textContent=inside?'✅ Inside the angle':'❌ Outside the angle';
   redrawQuestionOverlay(q);
-}
+
+_qRefreshSummary(q);_qAutoCollapse(q);}
 
 function removeQuestion(id){const q=questions.find(x=>x.id===id);if(!q)return;if(q.marker)map.removeLayer(q.marker);if(q.markerA)map.removeLayer(q.markerA);if(q.markerB)map.removeLayer(q.markerB);if(outlineCircles[id]){map.removeLayer(outlineCircles[id]);delete outlineCircles[id];}if(typeof removeMatchingLocMarkers!=='undefined')removeMatchingLocMarkers(id);if(typeof removeAreaFeatures!=='undefined')removeAreaFeatures(id);if(typeof removeMeasuringLocMarkers!=='undefined')removeMeasuringLocMarkers(id);clearQuestionOverlay(id);questions=questions.filter(x=>x.id!==id);const card=document.getElementById(`q-card-${id}`);if(card)card.remove();showToast('Question removed');if(typeof saveState!=='undefined')saveState();}
 
@@ -1154,7 +1544,8 @@ function setMatchingAnswer(id, answer) {
   document.getElementById(`mno-${id}`).className   = 'zone-btn' + (answer==='no'      ? ' active-out'  : '');
   redrawQuestionOverlay(q);
   if(typeof saveState!=='undefined')saveState();
-}
+
+_qRefreshSummary(q);_qAutoCollapse(q);}
 
 function toggleMatchingLock(id) {
   const q = questions.find(x => x.id === id);
@@ -1176,7 +1567,8 @@ function toggleMatchingLock(id) {
     showAreaFeatures(q);
   }
   applyQuestionMoveLocks();
-}
+
+  if (q.locked) q.lockedAt = Date.now(); else q.lockedAt = null;}
 
 function copyMatchingCode(id) {
   const q = questions.find(x => x.id === id);
@@ -1202,6 +1594,7 @@ function decodeSubcat(s)  {
 }
 
 function renderSeekerMatchingCard(q) {
+  _initQuestionCollapseDelegation();
   const ql   = document.getElementById('question-list');
   const card = document.createElement('div');
   card.className = 'q-card matching'; card.id = `q-card-${q.id}`;
@@ -1252,6 +1645,7 @@ function renderSeekerMatchingCard(q) {
 // ── HIDER MATCHING ────────────────────────────────────────────
 
 function renderHiderMatchingCard(q) {
+  if(typeof _initQuestionCollapseDelegation==='function')_initQuestionCollapseDelegation();
   const ql   = document.getElementById('question-list');
   const card = document.createElement('div');
   card.className = 'q-card matching'; card.id = `q-card-${q.id}`;
@@ -1302,7 +1696,8 @@ function checkHiderMatching(q) {
     el.textContent = `❌ No — your nearest is ${best.name}`;
   }
   redrawQuestionOverlay(q);
-}
+
+_qRefreshSummary(q);_qAutoCollapse(q);}
 
 function checkAllHiderMatching() {
   questions.filter(q => q.hiderMode && q.type === 'matching').forEach(q => checkHiderMatching(q));
@@ -1666,6 +2061,7 @@ function setMeasuringSubcat(id, subcat) {
 function setMeasuringAnswer(id, answer) {
   const q = questions.find(x => x.id === id);
   q.answer = answer;
+  _qRefreshSummary(q);
   document.getElementById(`mpend-meas-${id}`).className = 'zone-btn' + (answer==='pending' ? ' active-pend' : '');
   document.getElementById(`mcloser-${id}`).className   = 'zone-btn' + (answer==='closer'  ? ' active-in'   : '');
   document.getElementById(`mfurther-${id}`).className  = 'zone-btn' + (answer==='further' ? ' active-out'  : '');
@@ -1676,6 +2072,7 @@ function setMeasuringAnswer(id, answer) {
 function toggleMeasuringLock(id) {
   const q = questions.find(x => x.id === id);
   q.locked = !q.locked;
+  if (q.locked) q.lockedAt = Date.now(); else q.lockedAt = null;
   const btn = document.getElementById(`measlock-btn-${id}`);
   const rb  = document.getElementById(`remove-btn-${id}`);
   if (q.locked) {
@@ -1705,6 +2102,7 @@ function copyMeasuringCode(id) {
 }
 
 function renderSeekerMeasuringCard(q) {
+  _initQuestionCollapseDelegation();
   const ql = document.getElementById('question-list');
   const card = document.createElement('div');
   card.className = 'q-card measuring'; card.id = `q-card-${q.id}`;
@@ -1752,6 +2150,7 @@ function renderSeekerMeasuringCard(q) {
 
 // ── Hider side ────────────────────────────────────────────────────────────────
 function renderHiderMeasuringCard(q) {
+  if(typeof _initQuestionCollapseDelegation==='function')_initQuestionCollapseDelegation();
   const ql = document.getElementById('question-list');
   const card = document.createElement('div');
   card.className = 'q-card measuring'; card.id = `q-card-${q.id}`;
@@ -1795,7 +2194,8 @@ function checkHiderMeasuring(q) {
     el.textContent = `🔴 Further — ${hiderDistStr} to ${loc.name} (seeker: ${seekerDistStr})`;
   }
   redrawQuestionOverlay();
-}
+
+_qRefreshSummary(q);_qAutoCollapse(q);}
 
 function checkAllHiderMeasuring() {
   questions.filter(q => q.hiderMode && q.type === 'measuring').forEach(q => checkHiderMeasuring(q));
@@ -1942,6 +2342,12 @@ function seekerDecodeAndAdd() {
   if (!raw) return;
 
   const upper = raw.toUpperCase().replace(/\s/g, '');
+
+  // ENDZONE — start endgame flow
+  if (upper.indexOf('ENDZONE-') === 0) {
+    if (_consumeEndgameCode(upper)) { field.value = ''; }
+    return;
+  }
 
   // ── RADAR ─────────────────────────────────────────────────────────────────
   const radarMatch = upper.match(/^RAD-([\-\d.]+)-([\-\d.]+)-(\d+\.?\d*)(KM|M)$/);
@@ -2476,6 +2882,7 @@ function renderAngleCard(q) {
   // Remove existing
   let el = document.getElementById('angle-card-'+q.id);
   if (el) el.remove();
+  if(typeof _initQuestionCollapseDelegation==='function')_initQuestionCollapseDelegation();
   const ql = document.getElementById('question-list');
   if (!ql) return;
   // Safely compute status text without throwing during render
@@ -2583,7 +2990,8 @@ function setAngleZone(id, z) {
   redrawQuestionOverlay();
   renderAngleCard(q);
   if (typeof saveState !== 'undefined') saveState();
-}
+
+_qRefreshSummary(q);_qAutoCollapse(q);}
 
 let _anglePreviewLayer = null;
 let _anglePreviewTimer = null;
@@ -2616,6 +3024,7 @@ function toggleAngleLock(id) {
   const q = questions.find(x=>x.id===id);
   if (!q) return;
   q.locked = !q.locked;
+  if (q.locked) q.lockedAt = Date.now(); else q.lockedAt = null;
   if (q._centerMarker && q._centerMarker.dragging) {
     if (q.locked) q._centerMarker.dragging.disable();
     else q._centerMarker.dragging.enable();
@@ -2663,3 +3072,63 @@ function removeAngleQuestion(id) {
 // Add menu button
 
 // ...[existing code unchanged below this point]...
+
+
+// Called from index.html restoreState() after each question card is rendered.
+// Refreshes the summary chip and auto-collapses if the question is answered.
+function _qAfterRestore(q) {
+  if (!q) return;
+  _qRefreshSummary(q);
+  if (_qIsAnswered(q)) {
+    // Slight delay to ensure the DOM is fully ready
+    requestAnimationFrame(() => _qAutoCollapse(q));
+  }
+}
+
+
+// ── GAME STATS EXPORT ────────────────────────────────────────────────────────
+// Builds a JSON snapshot of the current game state suitable for importing into
+// a separate tracking app. Includes locked/answered questions with their
+// lock timestamps, the hider pin, endgame state, and archived questions.
+function exportGameStats() {
+  const _fmtTime = (ts) => ts ? new Date(ts).toISOString() : null;
+  const _summarise = (q) => {
+    const s = { id: q.id, type: q.type, locked: !!q.locked, lockedAt: _fmtTime(q.lockedAt), answered: false, answer: null };
+    if (q.type === 'radar')     { s.answer = q.zone; s.answered = q.zone && q.zone !== 'pending'; s.lat = q.lat; s.lng = q.lng; s.radius = q.radius; s.unit = q.unit; }
+    if (q.type === 'thermo')    { s.answer = q.closer; s.answered = q.closer && q.closer !== 'pending'; s.latA = q.latA; s.lngA = q.lngA; s.latB = q.latB; s.lngB = q.lngB; }
+    if (q.type === 'matching')  { s.answer = q.answer; s.answered = q.answer && q.answer !== 'pending'; s.subcat = q.subcat; s.nearestId = q.nearestId; s.nearestName = q.nearestName; }
+    if (q.type === 'measuring') { s.answer = q.answer; s.answered = q.answer && q.answer !== 'pending'; s.subcat = q.subcat; s.nearestId = q.nearestId; s.nearestName = q.nearestName; s.seekerDist = q.seekerDist; }
+    if (q.type === 'angle')     { s.answer = q.zone; s.answered = q.zone && q.zone !== 'pending'; s.angle = q.angle; s.mode = q.mode; s.center = q.center; s.direction = q.direction; }
+    s.hiderMode = !!q.hiderMode;
+    return s;
+  };
+
+  const snapshot = {
+    schemaVersion: 1,
+    exportedAt: new Date().toISOString(),
+    mode: (typeof mode !== 'undefined') ? mode : null,
+    hiderPin: (typeof hiderPin !== 'undefined' && hiderPin) ? {
+      lat: hiderPin.getLatLng().lat,
+      lng: hiderPin.getLatLng().lng,
+      zoneRadius: (typeof HIDER_ZONE_RADIUS !== 'undefined') ? HIDER_ZONE_RADIUS : 500
+    } : null,
+    endgameActive: _endgameActive,
+    endgameZone: _endgameZone,
+    activeQuestions: questions.map(_summarise),
+    archivedQuestions: _archivedQuestions.map(_summarise)
+  };
+  return snapshot;
+}
+
+function downloadGameStats() {
+  const snap = exportGameStats();
+  const blob = new Blob([JSON.stringify(snap, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  const stamp = new Date().toISOString().replace(/[:.]/g, '-');
+  a.download = `lampskene-game-${stamp}.json`;
+  document.body.appendChild(a); a.click(); a.remove();
+  URL.revokeObjectURL(url);
+  showToast('Game stats exported');
+}

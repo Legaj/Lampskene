@@ -33,6 +33,12 @@
     body.light .leaflet-control-zoom a { background:#fff!important;color:#1a2035!important;border-bottom:1px solid var(--border)!important;}
     body.light .leaflet-control-zoom a:hover{background:var(--surface2)!important;color:var(--accent2)!important;}
     body.light .leaflet-control-attribution{background:rgba(240,242,247,.85)!important;color:var(--muted)!important;}
+    body.light #hider-copy-endzone-btn,
+    body.light #hider-start-endgame-btn { color:#2a7a3a!important; border-color:rgba(42,122,58,.45)!important; background:rgba(42,122,58,.08)!important; }
+    body.light #endgame-banner { border-color:rgba(42,122,58,.5)!important; background:rgba(42,122,58,.05)!important; }
+    body.light #endgame-banner .q-card-header { background:rgba(42,122,58,.1)!important; }
+    body.light #endgame-banner .q-title { color:#2a7a3a!important; }
+    body.light .q-collapse-summary { background:rgba(0,0,0,.03)!important; }
     body.bambu {
       --bg: #f5f0e8; --surface: #ede8dc; --surface2: #ddd6c8;
       --border: #b8ad98; --border2: #a59880;
@@ -52,6 +58,13 @@
     body.bambu .q-card.matching .q-title { color:#2a8a58!important; }
     body.bambu .q-card.measuring .q-title { color:#0686a4!important; }
     body.bambu .copy-btn { color:#944208!important; }
+    /* Bambu-theme overrides for the new green endgame buttons + banner */
+    body.bambu #hider-copy-endzone-btn,
+    body.bambu #hider-start-endgame-btn { color:#3a7a4a!important; border-color:rgba(58,122,74,.45)!important; background:rgba(58,122,74,.1)!important; }
+    body.bambu #endgame-banner { border-color:rgba(58,122,74,.5)!important; background:rgba(58,122,74,.07)!important; }
+    body.bambu #endgame-banner .q-card-header { background:rgba(58,122,74,.14)!important; }
+    body.bambu #endgame-banner .q-title { color:#3a7a4a!important; }
+    body.bambu .q-collapse-summary { background:rgba(0,0,0,.04)!important; }
     body.bambu .icon-btn { color:#3a2e1a!important; }
     body.bambu .cp-badge-yellow { color:#a08000!important; background:rgba(160,128,0,.15)!important; border-color:rgba(160,128,0,.5)!important; }
     body.bambu .answer-badge.inside { color:#4a9a5a!important; border-color:rgba(74,154,90,.4)!important; }
@@ -355,6 +368,24 @@
     .answer-badge.inside  { background:rgba(90,210,120,.14); color:#7ae89a; border:1px solid rgba(90,210,120,.3); }
     .answer-badge.outside { background:rgba(80,140,230,.14); color:#7ab4f5; border:1px solid rgba(80,140,230,.3); }
     .answer-badge.waiting { background:var(--surface2); color:var(--text2); border:1px solid var(--border2); }
+
+    /* ── COLLAPSED QUESTION CARDS ───────────────────────────────────────────── */
+    /* Auto-collapse answered questions so the sidebar stays scannable. The card
+       header remains visible (with a chevron) and a short summary chip shows
+       the answer at a glance. Click the header to expand again. */
+    .q-card .q-card-header { cursor:pointer; }
+    .q-card-header .q-collapse-chevron { color:var(--muted); transition:transform .2s; flex-shrink:0; margin-left:auto; display:inline-flex; align-items:center; }
+    .q-card.collapsed .q-collapse-chevron { transform:rotate(-90deg); }
+    .q-card .q-collapse-summary {
+      padding:6px 10px; font-size:10px; letter-spacing:.4px;
+      color:var(--text); background:rgba(255,255,255,.04);
+      border-top:1px solid var(--border); border-bottom:1px solid var(--border);
+      display:flex; align-items:center; gap:6px;
+    }
+    .q-card.collapsed .q-card-body { display:none; }
+    .q-card.collapsed .q-collapse-summary { display:flex; }
+    .q-card:not(.collapsed) .q-collapse-summary { display:none; }
+    .q-card .q-card-header:hover .q-collapse-chevron { color:var(--text2); }
 
     /* ── STATUSBAR ───────────────────────────────────────────────────────────── */
     #statusbar { position:fixed; bottom:0; left:0; right:0; z-index:1000; height:var(--bar-h); background:var(--surface); border-top:1px solid var(--border); display:flex; align-items:center; padding:0 16px; gap:20px; overflow:hidden; }
@@ -868,6 +899,11 @@
   </div>
   <div>
     <div class="sp-label">Game</div>
+    <div class="sp-slider-row">
+      <label>Zone R</label>
+      <input type="range" class="sp-slider" id="zone-radius-slider" min="100" max="2000" step="50" value="500" oninput="setHiderZoneRadius(this.value)">
+      <span class="sp-val" id="zone-radius-val">500 m</span>
+    </div>
     <button class="sp-btn" id="switch-mode-btn" onclick="switchMode()">
       <span>Switch Role</span><span id="switch-mode-status">—</span>
     </button>
@@ -879,6 +915,9 @@
     </button>
     <button class="sp-btn" id="seeker-code-menu-btn" onclick="toggleSeekerQuestionCodeMenu()" style="margin-top:5px">
       <span>Seeker Code Input</span><span id="seeker-code-menu-status">OFF</span>
+    </button>
+    <button class="sp-btn" onclick="downloadGameStats()" style="margin-top:5px;">
+      <span>📤 Export Game Stats</span>
     </button>
     <button class="sp-btn danger advanced-only" onclick="resetAllData()" style="margin-top:5px;">
       <span>🗑 Reset All Data</span>
@@ -1135,7 +1174,7 @@ let lastFirebasePush = 0;
 
 let hiderPin = null, hiderPinLocked = false;
 let hiderZoneCircle = null;
-const HIDER_ZONE_RADIUS = 500;
+let HIDER_ZONE_RADIUS = 500;
 let outlineCircles = {};
 
 const GAME_AREA_CONFIG = {
@@ -2700,6 +2739,7 @@ let _advancedMode = false;
 let _densityMode = 'comfort';
 let _questionFilter = 'all';
 let _questionSearch = '';
+let _questionTypeFilter = 'all'; // 'all' | 'radar' | 'thermo' | 'matching' | 'other'
 
 function _readRevampPrefs() {
   try { return JSON.parse(localStorage.getItem(REVAMP_KEY) || '{}') || {}; }
@@ -2721,6 +2761,7 @@ function _initRevampPreferences() {
   _setDensity(prefs.density || 'comfort', false);
   setPanelWidth(prefs.panelWidth || 320, false);
   setBlueOpacitySetting(prefs.blueOpacity || 30, false);
+  if (prefs.zoneRadius && typeof setHiderZoneRadius === 'function') setHiderZoneRadius(prefs.zoneRadius, false);
   setGameAreaMode(prefs.gameAreaMode || 'normal', false);
   if (prefs.theme && THEMES.includes(prefs.theme)) applyTheme(prefs.theme, false);
 
@@ -2783,6 +2824,27 @@ function setBlueOpacitySetting(value, save=true) {
   if (save) _writeRevampPrefs({ blueOpacity:pct });
 }
 
+function setHiderZoneRadius(value, save=true) {
+  const v = Math.max(100, Math.min(2000, parseInt(value, 10) || 500));
+  HIDER_ZONE_RADIUS = v;
+  const slider = document.getElementById('zone-radius-slider');
+  const val = document.getElementById('zone-radius-val');
+  if (slider) slider.value = v;
+  if (val) val.textContent = v + ' m';
+  // Update the existing hider zone circle if it exists
+  if (typeof hiderZoneCircle !== 'undefined' && hiderZoneCircle && map) {
+    hiderZoneCircle.setRadius(v);
+  }
+  // Also update the endgame viable-area circle if active
+  if (typeof _endgameZone !== 'undefined' && _endgameZone) {
+    _endgameZone.radius = v;
+    if (typeof _showEndgameZoneLayer === 'function') _showEndgameZoneLayer();
+    if (typeof _renderEndgameBanner === 'function') _renderEndgameBanner();
+  }
+  if (save) _writeRevampPrefs({ zoneRadius: v });
+  if (typeof saveState === 'function') saveState();
+}
+
 function filterQuestionList(value='') {
   _questionSearch = String(value || '').trim().toLowerCase();
   _updateQuestionTools();
@@ -2790,9 +2852,32 @@ function filterQuestionList(value='') {
 
 function setQuestionFilter(filter) {
   _questionFilter = filter || 'all';
-  document.querySelectorAll('.q-filter').forEach(btn => btn.classList.remove('active'));
-  document.getElementById(`qf-${_questionFilter}`)?.classList.add('active');
+  // Only toggle the status-row buttons (qf-*) — leave the type-row buttons
+  // (qtf-*) alone so the two filter rows don't clobber each other.
+  ['all','open','locked','answered'].forEach(f => {
+    document.getElementById(`qf-${f}`)?.classList.toggle('active', f === _questionFilter);
+  });
   _updateQuestionTools();
+}
+
+function setQuestionTypeFilter(filter) {
+  _questionTypeFilter = filter || 'all';
+  ['all','radar','thermo','matching','other'].forEach(f => {
+    document.getElementById(`qtf-${f}`)?.classList.toggle('active', f === _questionTypeFilter);
+  });
+  _updateQuestionTools();
+}
+
+function _cardQuestionType(card) {
+  if (!card) return 'other';
+  // Angle cards use a different id prefix and class
+  if (card.classList.contains('angleq-card') || card.id.indexOf('angle-card-') === 0) return 'other';
+  if (card.classList.contains('radar'))     return 'radar';
+  if (card.classList.contains('thermo'))    return 'thermo';
+  if (card.classList.contains('matching'))  return 'matching';
+  if (card.classList.contains('measuring')) return 'other';
+  if (card.classList.contains('hide-loc'))  return 'other';
+  return 'other';
 }
 
 function _cardMatchesFilter(card) {
@@ -2803,6 +2888,9 @@ function _cardMatchesFilter(card) {
   if (_questionFilter === 'locked' && !locked) return false;
   if (_questionFilter === 'open' && locked) return false;
   if (_questionFilter === 'answered' && !answered) return false;
+  if (_questionTypeFilter && _questionTypeFilter !== 'all') {
+    if (_cardQuestionType(card) !== _questionTypeFilter) return false;
+  }
   return !_questionSearch || text.includes(_questionSearch);
 }
 
@@ -2891,6 +2979,10 @@ function saveState() {
       seekerQuestionCodeMenu: _seekerQuestionCodeMenu,
       moveLockEnabled: typeof _moveLockEnabled !== 'undefined' ? _moveLockEnabled : false,
       thermoBordersOn: typeof _thermoBordersOn !== 'undefined' ? _thermoBordersOn : false,
+      hiderZoneRadius: HIDER_ZONE_RADIUS,
+      endgameActive: typeof _endgameActive !== 'undefined' ? _endgameActive : false,
+      endgameZone: typeof _endgameZone !== 'undefined' ? _endgameZone : null,
+      archivedQuestions: typeof _archivedQuestions !== 'undefined' ? _archivedQuestions.map(q => { const s={...q}; delete s.marker; delete s.markerA; delete s.markerB; delete s._centerMarker; delete s._dirMarker; delete s._seekerMarker; delete s._cone; delete s._cone2; delete s._cone3; delete s._excludeCircle; delete s._line; delete s._distTip; delete s._mapMoveHandler; delete s._measMoveHandler; delete s._pinStart; delete s._moveWindowUntil; return s; }) : [],
       questions: questions.map(q => {
         const s = { ...q };
         delete s.marker; delete s.markerA; delete s.markerB;
@@ -2944,6 +3036,42 @@ function restoreState(state) {
   if (state.hiderPin && mode === 'hider') {
     placeHiderPin(state.hiderPin[0], state.hiderPin[1]);
     if (state.hiderPinLocked) { hiderPinLocked = false; toggleHiderLock(); }
+  }
+  if (typeof state.hiderZoneRadius === 'number' && typeof setHiderZoneRadius === 'function') {
+    setHiderZoneRadius(state.hiderZoneRadius, false);
+  }
+  if (state.endgameActive && state.endgameZone && typeof _startEndgame === 'function') {
+    // Defer until questions are restored so they get archived properly
+    setTimeout(() => {
+      // If we already have questions restored, archive them now via the normal
+      // endgame-start path (which preserves them in _archivedQuestions).
+      // Otherwise just show the green zone.
+      _endgameZone = state.endgameZone;
+      _endgameActive = true;
+      // Archive whatever was just restored
+      if (typeof _archivedQuestions !== 'undefined' && questions.length) {
+        _archivedQuestions = questions.slice();
+        // Tear down markers
+        for (const q of questions) {
+          if (q.marker) try { map.removeLayer(q.marker); } catch(e) {}
+          if (q.markerA) try { map.removeLayer(q.markerA); } catch(e) {}
+          if (q.markerB) try { map.removeLayer(q.markerB); } catch(e) {}
+          if (q._centerMarker) try { map.removeLayer(q._centerMarker); } catch(e) {}
+          if (q._dirMarker) try { map.removeLayer(q._dirMarker); } catch(e) {}
+        }
+        questions = [];
+        const ql = document.getElementById('question-list');
+        if (ql) ql.innerHTML = '';
+        if (typeof clearQuestionOverlay !== 'undefined') clearQuestionOverlay();
+      }
+      // Restore the previously-archived questions list (so exit-endgame
+      // restores the right ones).
+      if (Array.isArray(state.archivedQuestions) && state.archivedQuestions.length) {
+        _archivedQuestions = state.archivedQuestions;
+      }
+      _showEndgameZoneLayer();
+      _renderEndgameBanner();
+    }, 600);
   }
   for (const q of (state.questions || [])) {
     if (questions.some(existing => existing.id === q.id)) continue;
@@ -3015,6 +3143,9 @@ function restoreState(state) {
         if (q.zone !== 'pending') requestAnimationFrame(() => redrawQuestionOverlay());
       }
     }
+    // Refresh collapse summary + auto-collapse if the restored question is
+    // already answered.
+    if (typeof _qAfterRestore === 'function') _qAfterRestore(q);
   }
   if (state.endgamePin && mode === 'hider') {
     setTimeout(() => {
@@ -3039,7 +3170,7 @@ function resetAllData() {
 <script src="measuring-data.js"></script>
 <script src="matching-area-data.js"></script>
 <script src="sl-line-voronoi-data.js?v=1"></script>
-<script src="questions.js?v=60"></script>
+<script src="questions.js?v=61"></script>
 <script src="vehicles.js?v=3"></script>
 <script src="curses.js?v=5"></script>
 
