@@ -140,9 +140,9 @@ function exitEndgame() {
       else { renderSeekerThermoCard(q); placeThermoPin(q,'A'); placeThermoPin(q,'B'); updateThermoDistance(q);
         if (q.closer !== 'pending') requestAnimationFrame(() => setCloser(q.id, q.closer)); }
     } else if (q.type === 'matching') {
-      if (q.hiderMode) { renderHiderMatchingCard(q); checkHiderMatching(q); }
-      else { renderSeekerMatchingCard(q); placeSeekerMatchingPin(q); updateMatchingNearest(q); showMatchingLocMarkers(q); showAreaFeatures(q);
-        if (q.answer !== 'pending') requestAnimationFrame(() => setMatchingAnswer(q.id, q.answer)); }
+      if (q.hiderMode) { renderHiderMatchingCard(q); if (q.answer !== 'pending') redrawQuestionOverlay(q); }
+      else { renderSeekerMatchingCard(q); placeSeekerMatchingPin(q); showMatchingLocMarkers(q); showAreaFeatures(q);
+        if (q.answer !== 'pending') redrawQuestionOverlay(q); }
     } else if (q.type === 'measuring') {
       if (q.hiderMode) { renderHiderMeasuringCard(q); checkHiderMeasuring(q); }
       else { renderSeekerMeasuringCard(q); placeSeekerMeasuringPin(q); updateMeasuringNearest(q); showMeasuringLocMarkers(q);
@@ -724,9 +724,26 @@ function isLatLngInBlueZone(lat, lng) {
     } else if (q.type === 'matching') {
       if (q.answer !== 'yes' && q.answer !== 'no') continue;
       const locs = getAllMatchingData()[q.subcat] || [];
-      const nearest = _nearestPointLoc(lat, lng, locs);
-      if (!nearest) continue;
-      const same = String(nearest.id) === String(q.nearestId);
+      if (!locs.length) continue;
+
+      let nearestLocId = null;
+      if (locs[0].type === 'polygon') {
+         const best = findContainingArea(lng, lat, locs);
+         nearestLocId = best ? String(best.id) : 'none';
+      } else if (locs[0].type === 'polyline') {
+         const best = findNearestPolyline(lng, lat, locs);
+         nearestLocId = best ? String(best.id) : null;
+      } else if (locs[0].type === 'raster-voronoi') {
+         const best = findContainingRectCell(lng, lat, locs) || findNearestPolyline(lng, lat, getSLTransitLines());
+         nearestLocId = best ? String(best.id) : null;
+      } else {
+         const nearest = _nearestPointLoc(lat, lng, locs);
+         if (!nearest) continue;
+         nearestLocId = String(nearest.id);
+      }
+
+      if (nearestLocId === null) continue;
+      const same = nearestLocId === String(q.nearestId);
       if ((q.answer === 'yes' && !same) || (q.answer === 'no' && same)) return true;
     } else if (q.type === 'measuring') {
       if (q.answer === 'pending' || !q.seekerDist) continue;
@@ -1161,15 +1178,40 @@ function rebuildAll(){
 
       else if(type0 === 'polygon'){
         // ── Polygon area ──────────────────────────────────────
-        const loc = locs.find(x => x.id === q.nearestId); if(!loc) continue;
-        const outer = geoRingToPx(loc.rings[0]);
-        const inners = loc.rings.slice(1).map(r => geoRingToPx(r));
-        if(q.answer === 'yes'){
-          addYesPath(outer); // blue outside polygon
-          // Inner rings = holes in polygon = NOT valid area for hider → blue
-          for(const inner of inners) addNoPath(inner);
+        if (q.nearestId === 'none') {
+          if (q.answer === 'yes') {
+            // Seeker is outside all areas, Hider is also outside.
+            // Valid area = outside all polygons. Blue = inside all polygons.
+            for (const loc of locs) {
+              const outer = geoRingToPx(loc.rings[0]);
+              const inners = loc.rings.slice(1).map(r => geoRingToPx(r));
+              addNoPath(outer, inners);
+            }
+          } else {
+            // Seeker is outside all areas, Hider is inside SOME area.
+            // Valid area = inside ANY polygon. Blue = outside all polygons.
+            const outers = locs.map(loc => geoRingToPx(loc.rings[0]));
+            addYesPathMulti(outers); // Fills world, punches out all polygons
+            
+            // Inner rings (holes in the polygon) are not "inside", so paint them blue
+            for (const loc of locs) {
+              for (let i = 1; i < loc.rings.length; i++) {
+                addNoPath(geoRingToPx(loc.rings[i]));
+              }
+            }
+          }
         } else {
-          addNoPath(outer, inners); // blue inside polygon with inner-ring holes
+          // Standard logic for when a specific polygon is selected
+          const loc = locs.find(x => String(x.id) === String(q.nearestId)); if(!loc) continue;
+          const outer = geoRingToPx(loc.rings[0]);
+          const inners = loc.rings.slice(1).map(r => geoRingToPx(r));
+          if(q.answer === 'yes'){
+            addYesPath(outer); // blue outside polygon
+            // Inner rings = holes in polygon = NOT valid area for hider → blue
+            for(const inner of inners) addNoPath(inner);
+          } else {
+            addNoPath(outer, inners); // blue inside polygon with inner-ring holes
+          }
         }
       }
 
@@ -1295,7 +1337,8 @@ function decodeAndAdd(){
     const seekerLat = parseFloat(matchMatch[2]), seekerLng = parseFloat(matchMatch[3]);
     const nearestId = matchMatch[4].toLowerCase();
     const locs = getAllMatchingData()[subcat] || [];
-    const loc  = locs.find(x => x.id === nearestId) || { name: nearestId };
+    const nearestStr = String(matchMatch[4]).toLowerCase();
+    const loc = nearestStr === 'none' ? { name: 'Outside all areas' } : (locs.find(x => String(x.id).toLowerCase() === nearestStr) || { name: nearestStr });
     qCounter++;
     const q = { id: qCounter, type: 'matching', subcat, seekerLat, seekerLng, nearestId, nearestName: loc.name, answer: 'pending', locked: true, hiderMode: true };
     questions.push(q);
@@ -1468,34 +1511,39 @@ function placeSeekerMatchingPin(q) {
 function updateMatchingNearest(q) {
   const locations = (getAllMatchingData()[q.subcat]) || [];
   if (!locations.length) return;
-  // Find nearest/containing location based on type
+  
   let best = null;
+  let isOutsideAll = false;
+
   if (locations.length && locations[0].type === 'polygon') {
-    best = findContainingArea(q.lng, q.lat, locations) || locations[0];
+    best = findContainingArea(q.lng, q.lat, locations);
+    if (!best) isOutsideAll = true;
   } else if (locations.length && locations[0].type === 'polyline') {
     best = findNearestPolyline(q.lng, q.lat, locations);
   } else if (locations.length && locations[0].type === 'raster-voronoi') {
     best = findContainingRectCell(q.lng, q.lat, locations) || findNearestPolyline(q.lng, q.lat, getSLTransitLines());
   } else {
-    // Point-based
     let bestDist = Infinity;
     for (const loc of locations) {
       const d = map.distance([q.lat, q.lng], [loc.lat, loc.lng]);
       if (d < bestDist) { bestDist = d; best = loc; }
     }
   }
-  q.nearestId   = best ? best.id : null;
-  q.nearestName = best ? best.name : '?';
+
+  q.nearestId   = isOutsideAll ? 'none' : (best ? best.id : null);
+  q.nearestName = isOutsideAll ? 'Outside all areas' : (best ? best.name : '?');
 
   const el = document.getElementById(`match-nearest-${q.id}`);
   if (el) {
-    el.textContent = best ? best.name : '—';
+    el.textContent = q.nearestName;
     const distEl = document.getElementById(`match-dist-${q.id}`);
     if (distEl) {
-      if (!best) { distEl.textContent = ''; }
-      else if (best.type === 'polygon') {
-        const contained = pointInPolygon(q.lng, q.lat, best.rings);
-        distEl.textContent = contained ? 'You are inside this area' : 'Nearest area (not inside)';
+      if (isOutsideAll) {
+        distEl.textContent = 'Not inside any area';
+      } else if (!best) {
+        distEl.textContent = '';
+      } else if (best.type === 'polygon') {
+        distEl.textContent = 'You are inside this area';
       } else if (best.type === 'polyline' || best.type === 'raster-voronoi') {
         distEl.textContent = 'Nearest line';
       } else {
@@ -1504,19 +1552,18 @@ function updateMatchingNearest(q) {
       }
     }
   }
-  // If only one location, auto-note that Yes is the only possible answer
+
   const noteEl = document.getElementById(`match-note-${q.id}`);
   if (noteEl) {
     noteEl.textContent = locations.length === 1
       ? 'Only one location in this category — answer must be Yes'
       : '';
   }
-  // Refresh location dot markers to highlight new nearest
+  
   if (!q.locked) showMatchingLocMarkers(q);
   if (!q.locked) showAreaFeatures(q);
   redrawQuestionOverlay(q);
 }
-
 function toggleMatchingVoronoi(id) {
   const q = questions.find(x => x.id === id);
   if (!q) return;
@@ -1670,9 +1717,13 @@ function checkHiderMatching(q) {
   const hp  = _ahp.getLatLng();
   const locs = (getAllMatchingData()[q.subcat]) || [];
   if (!locs.length) return;
+
   let best = null;
+  let isOutsideAll = false;
+
   if (locs[0].type === 'polygon') {
-    best = findContainingArea(hp.lng, hp.lat, locs) || locs[0];
+    best = findContainingArea(hp.lng, hp.lat, locs);
+    if (!best) isOutsideAll = true;
   } else if (locs[0].type === 'polyline') {
     best = findNearestPolyline(hp.lng, hp.lat, locs);
   } else if (locs[0].type === 'raster-voronoi') {
@@ -1684,20 +1735,26 @@ function checkHiderMatching(q) {
       if (d < bestDist) { bestDist = d; best = loc; }
     }
   }
-  const match = best.id === q.nearestId;
+
+  const bestId = isOutsideAll ? 'none' : (best ? String(best.id) : null);
+  const bestName = isOutsideAll ? 'Outside all areas' : (best ? best.name : '?');
+
+  const match = bestId === String(q.nearestId);
   q.answer = match ? 'yes' : 'no';
   const el = document.getElementById(`hider-ans-${q.id}`);
   if (!el) return;
+  
   if (match) {
     el.className = 'answer-badge inside';
-    el.textContent = `✅ Yes — both nearest to ${best.name}`;
+    el.textContent = `✅ Yes — both nearest to ${bestName}`;
   } else {
     el.className = 'answer-badge outside';
-    el.textContent = `❌ No — your nearest is ${best.name}`;
+    el.textContent = `❌ No — your nearest is ${bestName}`;
   }
   redrawQuestionOverlay(q);
 
-_qRefreshSummary(q);_qAutoCollapse(q);}
+  _qRefreshSummary(q);_qAutoCollapse(q);
+}
 
 function checkAllHiderMatching() {
   questions.filter(q => q.hiderMode && q.type === 'matching').forEach(q => checkHiderMatching(q));
@@ -2419,7 +2476,8 @@ function seekerDecodeAndAdd() {
     if (!q) {
       qCounter++;
       const locs = getAllMatchingData()[subcat] || [];
-      const loc = locs.find(x => x.id === nearestId) || { name: nearestId };
+      const nearestStr = String(nearestId).toLowerCase();
+      const loc = nearestStr === 'none' ? { name: 'Outside all areas' } : (locs.find(x => String(x.id).toLowerCase() === nearestStr) || { name: nearestId });
       const nq = { id:qCounter, type:'matching', lat:seekerLat, lng:seekerLng, subcat, nearestId, nearestName:loc.name, answer:'pending', locked:false };
       questions.push(nq); renderSeekerMatchingCard(nq); placeSeekerMatchingPin(nq); showMatchingLocMarkers(nq); showAreaFeatures(nq);
       map.setView([seekerLat,seekerLng],14); if(!sidebarOpen)toggleSidebar(); field.value=''; showToast('Matching question code added'); if(typeof saveState!=='undefined')saveState(); return;
