@@ -653,6 +653,16 @@
       font-size:10px; padding:7px 8px; outline:none;
     }
     .share-note { color:var(--muted); font-size:8px; line-height:1.45; letter-spacing:.4px; }
+    .compact-form { display:flex; flex-direction:column; gap:6px; margin-top:7px; }
+    .compact-input {
+      width:100%; min-height:34px; border:1px solid var(--border2); border-radius:var(--r);
+      background:var(--surface2); color:var(--text); font-family:'DM Mono',monospace;
+      font-size:10px; padding:7px 8px; outline:none;
+    }
+    .compact-input:focus { border-color:var(--accent); }
+    .compact-grid { display:grid; grid-template-columns:1fr 1fr; gap:6px; align-items:center; }
+    .compact-grid.slim { grid-template-columns:1fr 72px; }
+    .settings-section { display:flex; flex-direction:column; gap:7px; }
     .loc-dot, .peer-dot {
       width:28px; height:28px; border-radius:50%; display:flex; align-items:center; justify-content:center;
       border:2px solid rgba(0,0,0,.35); color:#071018; font-size:16px; font-weight:700;
@@ -670,14 +680,6 @@
     }
     .tracker-pulse { border-color:rgba(238,255,85,.42); }
     .loc-tip { font-family:'DM Mono',monospace; font-size:10px; color:var(--text); }
-    .tracker-form { display:flex; flex-direction:column; gap:6px; margin-top:7px; }
-    .tracker-input {
-      width:100%; min-height:34px; border:1px solid var(--border2); border-radius:var(--r);
-      background:var(--surface2); color:var(--text); font-family:'DM Mono',monospace;
-      font-size:10px; padding:7px 8px; outline:none;
-    }
-    .tracker-input:focus { border-color:var(--accent); }
-    .tracker-grid { display:grid; grid-template-columns:1fr 72px; gap:6px; align-items:center; }
     .tracker-status {
       border:1px solid var(--border); border-radius:var(--r); padding:7px 8px;
       color:var(--text2); background:rgba(255,255,255,.025); font-size:9px;
@@ -856,7 +858,7 @@
     </div>
     <div class="comfort-hint advanced-only">Advanced mode keeps the heavy map and debug-style controls visible.</div>
   </div>
-  <div>
+  <div class="settings-section">
     <div class="sp-label">Location Sharing</div>
     <div class="settings-grid">
       <button class="sp-btn" id="loc-mode-btn" onclick="cycleLocationMode()">
@@ -866,24 +868,14 @@
         <span>Center Me</span><span id="loc-age-status">--</span>
       </button>
     </div>
-    <input
-    id="session-id"
-    placeholder="Session ID">
-
-    <input
-    id="session-password"
-    type="password"
-    placeholder="Password">
-
-    <button
-    onclick="createSessionUi()">
-    Create Session
-    </button>
-
-    <button
-    onclick="joinSessionUi()">
-    Join Session
-    </button>
+    <div class="compact-form">
+      <input class="compact-input" id="session-id" placeholder="Session ID">
+      <input class="compact-input" id="session-password" type="password" placeholder="Password">
+      <div class="compact-grid">
+        <button class="sp-btn" onclick="createSessionUi()"><span>Create</span><span>Host</span></button>
+        <button class="sp-btn" onclick="joinSessionUi()"><span>Join</span><span>Guest</span></button>
+      </div>
+    </div>
     <div class="sp-label" style="margin-top:10px">Tracker Viewer</div>
     <div class="settings-grid">
       <button class="sp-btn" id="tracker-auth-btn" onclick="trackerSignInOrOut()">
@@ -893,15 +885,15 @@
         <span>Pull GPS</span><span id="tracker-pull-status">OFF</span>
       </button>
     </div>
-    <div class="tracker-form">
-      <input class="tracker-input" id="tracker-device-id" placeholder="Device ID" value="seeker-1" onchange="setTrackerDeviceId(this.value)">
-      <input class="tracker-input" id="tracker-db-url" placeholder="Realtime databaseURL" onchange="setTrackerConfigValue('databaseURL', this.value)">
-      <input class="tracker-input" id="tracker-api-key" placeholder="Firebase apiKey" onchange="setTrackerConfigValue('apiKey', this.value)">
-      <div class="tracker-grid">
-        <input class="tracker-input" id="tracker-auth-domain" placeholder="authDomain" onchange="setTrackerConfigValue('authDomain', this.value)">
-        <input class="tracker-input" id="tracker-pull-seconds" type="number" min="1" max="300" step="1" value="5" title="Pull interval in seconds" onchange="setTrackerPullSeconds(this.value)">
+    <div class="compact-form">
+      <input class="compact-input" id="tracker-device-id" placeholder="Device ID" value="seeker-1" onchange="setTrackerDeviceId(this.value)">
+      <input class="compact-input" id="tracker-db-url" placeholder="Realtime databaseURL" onchange="setTrackerConfigValue('databaseURL', this.value)">
+      <input class="compact-input" id="tracker-api-key" placeholder="Firebase apiKey" onchange="setTrackerConfigValue('apiKey', this.value)">
+      <div class="compact-grid slim">
+        <input class="compact-input" id="tracker-auth-domain" placeholder="authDomain" onchange="setTrackerConfigValue('authDomain', this.value)">
+        <input class="compact-input" id="tracker-pull-seconds" type="number" min="1" max="300" step="1" value="5" title="Pull interval in seconds" onchange="setTrackerPullSeconds(this.value)">
       </div>
-      <input class="tracker-input" id="tracker-project-id" placeholder="projectId" onchange="setTrackerConfigValue('projectId', this.value)">
+      <input class="compact-input" id="tracker-project-id" placeholder="projectId" onchange="setTrackerConfigValue('projectId', this.value)">
       <div class="tracker-status" id="tracker-status">Sign in with an allowed Google account.</div>
     </div>
   </div>
@@ -2217,9 +2209,7 @@ function toggleSidebar() {
   document.body.classList.toggle('sidebar-open', sidebarOpen);
   document.getElementById('mnav-questions-btn')?.classList.toggle('mnav-open', sidebarOpen);
   if (sidebarOpen) {
-    document.getElementById('settings-panel')?.classList.remove('open');
-    document.getElementById('settings-btn')?.classList.remove('open');
-    document.getElementById('mnav-settings-btn')?.classList.remove('mnav-open');
+    setSettingsPanelOpen(false);
   }
   _updateQuestionTools();
 }
@@ -2231,9 +2221,15 @@ function toggleTypePicker() {
 // ── SETTINGS PANEL ─────────────────────────────────────────────
 function toggleSettingsPanel() {
   const panel = document.getElementById('settings-panel');
+  setSettingsPanelOpen(!(panel && panel.classList.contains('open')));
+}
+
+function setSettingsPanelOpen(open) {
+  const panel = document.getElementById('settings-panel');
   const btn   = document.getElementById('settings-btn');
-  const open  = panel.classList.toggle('open');
-  btn.classList.toggle('open', open);
+  if (!panel) return;
+  panel.classList.toggle('open', open);
+  btn?.classList.toggle('open', open);
   document.body.classList.toggle('settings-open', open);
   document.getElementById('mnav-settings-btn')?.classList.toggle('mnav-open', open);
   if (open && sidebarOpen) toggleSidebar();
@@ -2242,21 +2238,16 @@ function toggleSettingsPanel() {
 document.addEventListener('click', function(e) {
   const panel = document.getElementById('settings-panel');
   const btn   = document.getElementById('settings-btn');
-  if (panel && btn && !panel.contains(e.target) && !btn.contains(e.target)) {
-    panel.classList.remove('open');
-    btn.classList.remove('open');
-    document.body.classList.remove('settings-open');
-    document.getElementById('mnav-settings-btn')?.classList.remove('mnav-open');
+  const mobileBtn = document.getElementById('mnav-settings-btn');
+  if (panel && !panel.contains(e.target) && !btn?.contains(e.target) && !mobileBtn?.contains(e.target)) {
+    setSettingsPanelOpen(false);
   }
 }, true);
 
 document.addEventListener('keydown', e => {
   if (e.key !== 'Escape') return;
   if (sidebarOpen) toggleSidebar();
-  document.getElementById('settings-panel')?.classList.remove('open');
-  document.getElementById('settings-btn')?.classList.remove('open');
-  document.getElementById('mnav-settings-btn')?.classList.remove('mnav-open');
-  document.body.classList.remove('settings-open');
+  setSettingsPanelOpen(false);
   if (typeof toggleSlPanel === 'function') toggleSlPanel(false);
   if (typeof _cpClose === 'function') _cpClose();
 });
