@@ -662,11 +662,27 @@
     .loc-dot { background:#55ddaa; }
     .peer-dot { background:#ff7040; color:white; box-shadow:0 0 0 5px rgba(255,112,64,.18), 0 5px 14px rgba(0,0,0,.35); }
     .peer-dot.transit { background:#2f8cff; box-shadow:0 0 0 5px rgba(47,140,255,.18), 0 5px 14px rgba(0,0,0,.35); }
+    .tracker-dot { background:#eeff55; color:#071018; box-shadow:0 0 0 5px rgba(238,255,85,.2), 0 5px 14px rgba(0,0,0,.35); }
+    .tracker-dot.stale { background:#6a7a96; color:#fff; box-shadow:0 0 0 5px rgba(106,122,150,.18), 0 5px 14px rgba(0,0,0,.35); }
     .loc-pulse {
       position:absolute; width:42px; height:42px; margin:-7px 0 0 -7px; border-radius:50%;
       border:1px solid rgba(85,221,170,.35); pointer-events:none;
     }
+    .tracker-pulse { border-color:rgba(238,255,85,.42); }
     .loc-tip { font-family:'DM Mono',monospace; font-size:10px; color:var(--text); }
+    .tracker-form { display:flex; flex-direction:column; gap:6px; margin-top:7px; }
+    .tracker-input {
+      width:100%; min-height:34px; border:1px solid var(--border2); border-radius:var(--r);
+      background:var(--surface2); color:var(--text); font-family:'DM Mono',monospace;
+      font-size:10px; padding:7px 8px; outline:none;
+    }
+    .tracker-input:focus { border-color:var(--accent); }
+    .tracker-grid { display:grid; grid-template-columns:1fr 72px; gap:6px; align-items:center; }
+    .tracker-status {
+      border:1px solid var(--border); border-radius:var(--r); padding:7px 8px;
+      color:var(--text2); background:rgba(255,255,255,.025); font-size:9px;
+      line-height:1.45; overflow-wrap:anywhere;
+    }
     .q-card, .sl-line-item, .cp-item { border-radius:8px; }
     .q-card {
       box-shadow:0 1px 0 rgba(255,255,255,.04) inset, 0 10px 24px rgba(0,0,0,.10);
@@ -868,6 +884,26 @@
     onclick="joinSessionUi()">
     Join Session
     </button>
+    <div class="sp-label" style="margin-top:10px">Tracker Viewer</div>
+    <div class="settings-grid">
+      <button class="sp-btn" id="tracker-auth-btn" onclick="trackerSignInOrOut()">
+        <span>Google</span><span id="tracker-auth-status">OUT</span>
+      </button>
+      <button class="sp-btn" id="tracker-pull-btn" onclick="toggleTrackerViewer()">
+        <span>Pull GPS</span><span id="tracker-pull-status">OFF</span>
+      </button>
+    </div>
+    <div class="tracker-form">
+      <input class="tracker-input" id="tracker-device-id" placeholder="Device ID" value="seeker-1" onchange="setTrackerDeviceId(this.value)">
+      <input class="tracker-input" id="tracker-db-url" placeholder="Realtime databaseURL" onchange="setTrackerConfigValue('databaseURL', this.value)">
+      <input class="tracker-input" id="tracker-api-key" placeholder="Firebase apiKey" onchange="setTrackerConfigValue('apiKey', this.value)">
+      <div class="tracker-grid">
+        <input class="tracker-input" id="tracker-auth-domain" placeholder="authDomain" onchange="setTrackerConfigValue('authDomain', this.value)">
+        <input class="tracker-input" id="tracker-pull-seconds" type="number" min="1" max="300" step="1" value="5" title="Pull interval in seconds" onchange="setTrackerPullSeconds(this.value)">
+      </div>
+      <input class="tracker-input" id="tracker-project-id" placeholder="projectId" onchange="setTrackerConfigValue('projectId', this.value)">
+      <div class="tracker-status" id="tracker-status">Sign in with an allowed Google account.</div>
+    </div>
   </div>
   <div class="advanced-only">
     <div class="sp-label">Live Transit</div>
@@ -1189,6 +1225,13 @@ let _gameAreaGeoCache = {};
 
 const LOC_PREF_KEY = 'jetlag_location_prefs_v1';
 const LOC_PEERS_KEY = 'jetlag_location_peers_v1';
+const TRACKER_PREF_KEY = 'jetlag_tracker_viewer_v1';
+const TRACKER_DEFAULT_CONFIG = {
+  apiKey: "AIzaSyDx03TJGucL4NRKYfGHU4W7cA2U8dxdelc",
+  authDomain: "lampskenetracker.firebaseapp.com",
+  databaseURL: "https://lampskenetracker-default-rtdb.europe-west1.firebasedatabase.app/",
+  projectId: "lampskenetracker"
+};
 const LOC_MODES = {
   off:      { label:'OFF', high:false, maxAge:Infinity, timeout:8000 },
   saver:    { label:'SAVER', high:false, maxAge:60000, timeout:18000 },
@@ -1209,6 +1252,20 @@ let _peerTransitStyle = 'icon';
 let _sharedPeers = [];
 let _peerMarkers = {};
 let _locationAgeTimer = null;
+let trackerApp = null;
+let trackerDb = null;
+let trackerAuth = null;
+let trackerUser = null;
+let trackerEnabled = false;
+let trackerDeviceId = 'seeker-1';
+let trackerPullSeconds = 5;
+let trackerConfig = Object.assign({}, TRACKER_DEFAULT_CONFIG);
+let trackerUnsubscribe = null;
+let trackerPollTimer = null;
+let trackerUiTimer = null;
+let trackerLocation = null;
+let trackerMarker = null;
+let trackerAccuracyCircle = null;
 
 // ── MAP INIT ───────────────────────────────────────────────────
 function initMap() {
@@ -1657,6 +1714,300 @@ function refreshPeerTooltips() {
   }
 }
 
+function _readTrackerPrefs() {
+  try { return JSON.parse(localStorage.getItem(TRACKER_PREF_KEY) || '{}') || {}; }
+  catch(e) { return {}; }
+}
+
+function _writeTrackerPrefs(patch) {
+  try { localStorage.setItem(TRACKER_PREF_KEY, JSON.stringify(Object.assign(_readTrackerPrefs(), patch))); }
+  catch(e) {}
+}
+
+function initTrackerViewer() {
+  const prefs = _readTrackerPrefs();
+  trackerConfig = Object.assign({}, TRACKER_DEFAULT_CONFIG, prefs.config || {});
+  trackerDeviceId = String(prefs.deviceId || trackerDeviceId || 'seeker-1').trim() || 'seeker-1';
+  trackerPullSeconds = Math.max(1, Math.min(300, Number(prefs.pullSeconds || trackerPullSeconds) || 5));
+  trackerEnabled = !!prefs.enabled;
+  const ids = {
+    'tracker-device-id': trackerDeviceId,
+    'tracker-db-url': trackerConfig.databaseURL,
+    'tracker-api-key': trackerConfig.apiKey,
+    'tracker-auth-domain': trackerConfig.authDomain,
+    'tracker-project-id': trackerConfig.projectId,
+    'tracker-pull-seconds': trackerPullSeconds
+  };
+  for (const [id, value] of Object.entries(ids)) {
+    const el = document.getElementById(id);
+    if (el) el.value = value || '';
+  }
+  _syncTrackerUi();
+  try {
+    ensureTrackerFirebase();
+  } catch(e) {
+    _setTrackerStatus(e.message || 'Tracker Firebase config is incomplete');
+  }
+  if (!trackerUiTimer) trackerUiTimer = setInterval(() => {
+    if (trackerLocation) drawTrackerLocation();
+    _syncTrackerUi();
+  }, 1000);
+}
+
+function ensureTrackerFirebase() {
+  if (trackerApp && trackerDb && trackerAuth) return true;
+  const { initializeApp, getDatabase, getAuth, onAuthStateChanged } = window.firebaseApi || {};
+  if (!initializeApp || !getDatabase || !getAuth) throw new Error('Firebase SDK is not loaded yet');
+  if (!trackerConfig.apiKey || !trackerConfig.authDomain || !trackerConfig.databaseURL || !trackerConfig.projectId) {
+    throw new Error('Fill in the tracker Firebase config first');
+  }
+  trackerApp = initializeApp(trackerConfig, 'tracker');
+  trackerDb = getDatabase(trackerApp);
+  trackerAuth = getAuth(trackerApp);
+  if (onAuthStateChanged) {
+    onAuthStateChanged(trackerAuth, user => {
+      trackerUser = user || null;
+      _syncTrackerUi();
+      if (trackerUser && trackerEnabled) startTrackerViewer(false);
+      if (!trackerUser) stopTrackerViewer(false);
+    });
+  }
+  return true;
+}
+
+async function trackerSignInOrOut() {
+  try {
+    ensureTrackerFirebase();
+    const { GoogleAuthProvider, signInWithPopup, signOut } = window.firebaseApi;
+    if (trackerUser) {
+      await signOut(trackerAuth);
+      _setTrackerStatus('Signed out.');
+      return;
+    }
+    const provider = new GoogleAuthProvider();
+    provider.setCustomParameters({ prompt:'select_account' });
+    const cred = await signInWithPopup(trackerAuth, provider);
+    trackerUser = cred.user;
+    _setTrackerStatus(`Signed in as ${trackerUser.email || trackerUser.uid}. UID: ${trackerUser.uid}`);
+    if (trackerEnabled) startTrackerViewer(false);
+  } catch(e) {
+    console.warn('Tracker sign-in failed:', e);
+    _setTrackerStatus(e.message || 'Google sign-in failed');
+    showToast('Tracker sign-in failed');
+  } finally {
+    _syncTrackerUi();
+  }
+}
+
+function toggleTrackerViewer() {
+  if (trackerEnabled) stopTrackerViewer();
+  else startTrackerViewer();
+}
+
+function startTrackerViewer(save=true) {
+  try {
+    ensureTrackerFirebase();
+  } catch(e) {
+    _setTrackerStatus(e.message || 'Tracker Firebase config is incomplete');
+    showToast('Tracker config needed');
+    return;
+  }
+  if (!trackerUser) {
+    trackerEnabled = true;
+    if (save) _writeTrackerPrefs({ enabled:true });
+    _syncTrackerUi();
+    _setTrackerStatus('Sign in with Google before reading the tracker.');
+    showToast('Sign in with Google first');
+    return;
+  }
+  trackerEnabled = true;
+  if (save) _writeTrackerPrefs({ enabled:true });
+  subscribeTrackerLocation();
+  _syncTrackerUi();
+}
+
+function stopTrackerViewer(save=true) {
+  trackerEnabled = false;
+  if (save) _writeTrackerPrefs({ enabled:false });
+  if (trackerUnsubscribe) {
+    try { trackerUnsubscribe(); } catch(e) {}
+    trackerUnsubscribe = null;
+  }
+  if (trackerPollTimer) {
+    clearInterval(trackerPollTimer);
+    trackerPollTimer = null;
+  }
+  if (trackerMarker && map) map.removeLayer(trackerMarker);
+  if (trackerAccuracyCircle && map) map.removeLayer(trackerAccuracyCircle);
+  trackerMarker = null;
+  trackerAccuracyCircle = null;
+  trackerLocation = null;
+  _setTrackerStatus(trackerUser ? 'Tracker pull is off.' : 'Sign in with an allowed Google account.');
+  _syncTrackerUi();
+}
+
+function subscribeTrackerLocation() {
+  if (!trackerEnabled || !trackerDb || !trackerUser) return;
+  if (trackerUnsubscribe) {
+    try { trackerUnsubscribe(); } catch(e) {}
+    trackerUnsubscribe = null;
+  }
+  if (trackerPollTimer) clearInterval(trackerPollTimer);
+  const { ref, onValue, get } = window.firebaseApi;
+  const path = `live/${trackerDeviceId}`;
+  const trackerRef = ref(trackerDb, path);
+  trackerUnsubscribe = onValue(
+    trackerRef,
+    snap => handleTrackerSnapshot(snap.val()),
+    err => {
+      console.warn('Tracker read failed:', err);
+      _setTrackerStatus(err && err.code === 'PERMISSION_DENIED' ? trackerDeniedStatus() : (err.message || 'Tracker read failed'));
+    }
+  );
+  trackerPollTimer = setInterval(async () => {
+    try {
+      const snap = await get(trackerRef);
+      handleTrackerSnapshot(snap.val());
+    } catch(e) {
+      console.warn('Tracker poll failed:', e);
+      _setTrackerStatus(e && e.code === 'PERMISSION_DENIED' ? trackerDeniedStatus() : (e.message || 'Tracker poll failed'));
+    }
+  }, trackerPullSeconds * 1000);
+  _setTrackerStatus(`Watching /${path}`);
+}
+
+function handleTrackerSnapshot(value) {
+  if (!value) {
+    trackerLocation = null;
+    if (trackerMarker && map) map.removeLayer(trackerMarker);
+    if (trackerAccuracyCircle && map) map.removeLayer(trackerAccuracyCircle);
+    trackerMarker = null;
+    trackerAccuracyCircle = null;
+    _setTrackerStatus(`No live data at /live/${trackerDeviceId}`);
+    return;
+  }
+  const lat = Number(value.lat);
+  const lng = Number(value.lng);
+  if (!Number.isFinite(lat) || !Number.isFinite(lng)) {
+    _setTrackerStatus('Tracker data is missing valid lat/lng.');
+    return;
+  }
+  trackerLocation = {
+    deviceId: String(value.deviceId || trackerDeviceId),
+    lat,
+    lng,
+    accuracyMeters: Math.max(0, Number(value.accuracyMeters || 0)),
+    speedMps: Number(value.speedMps || 0),
+    bearingDegrees: Number(value.bearingDegrees || 0),
+    provider: String(value.provider || 'gps'),
+    batteryPercent: Number(value.batteryPercent),
+    updatedAt: Number(value.updatedAt || 0),
+    expiresAt: Number(value.expiresAt || 0)
+  };
+  drawTrackerLocation();
+}
+
+function drawTrackerLocation() {
+  if (!map || !trackerLocation) return;
+  const loc = trackerLocation;
+  const stale = loc.expiresAt && loc.expiresAt < Date.now();
+  const ll = [loc.lat, loc.lng];
+  const bearing = Number.isFinite(loc.bearingDegrees) ? Math.round((loc.bearingDegrees + 360) % 360) : 0;
+  const dotClass = stale ? 'loc-dot tracker-dot stale' : 'loc-dot tracker-dot';
+  const html = `<span class="loc-pulse tracker-pulse"></span><div class="${dotClass}" style="transform:rotate(${bearing}deg)">^</div>`;
+  const icon = L.divIcon({ html, className:'', iconSize:[42,42], iconAnchor:[21,21] });
+  if (!trackerMarker) {
+    trackerMarker = L.marker(ll, { icon, zIndexOffset:850 }).addTo(map);
+    trackerMarker.on('click', () => map.setView(ll, Math.max(map.getZoom(), 16)));
+  } else {
+    trackerMarker.setLatLng(ll).setIcon(icon);
+  }
+  const tooltip = trackerTooltipHtml(loc, stale);
+  trackerMarker.bindTooltip(tooltip, { permanent:false, direction:'top', className:'train-tip' });
+  if (loc.accuracyMeters > 0) {
+    const style = { radius:loc.accuracyMeters, color:stale ? '#6a7a96' : '#eeff55', opacity:.35, fillOpacity:.08, weight:1, interactive:false };
+    if (!trackerAccuracyCircle) trackerAccuracyCircle = L.circle(ll, style).addTo(map);
+    else trackerAccuracyCircle.setLatLng(ll).setRadius(loc.accuracyMeters).setStyle(style);
+  } else if (trackerAccuracyCircle) {
+    map.removeLayer(trackerAccuracyCircle);
+    trackerAccuracyCircle = null;
+  }
+  _setTrackerStatus(trackerStatusText(loc, stale));
+  _syncTrackerUi();
+}
+
+function trackerTooltipHtml(loc, stale) {
+  const age = trackerAgeText(loc.updatedAt);
+  const speed = Number.isFinite(loc.speedMps) ? `${loc.speedMps.toFixed(1)} m/s (${(loc.speedMps * 3.6).toFixed(1)} km/h)` : '--';
+  const battery = Number.isFinite(loc.batteryPercent) ? `${Math.round(loc.batteryPercent)}%` : '--';
+  const bearing = Number.isFinite(loc.bearingDegrees) ? `${Math.round(loc.bearingDegrees)} deg` : '--';
+  return `<div class="loc-tip">${escapeHtml(loc.deviceId)} ${stale ? 'OFFLINE' : 'LIVE'}<br>Updated ${age}<br>Speed ${speed}<br>Heading ${bearing}<br>Battery ${battery}</div>`;
+}
+
+function trackerStatusText(loc, stale) {
+  const uid = trackerUser ? `UID: ${trackerUser.uid}` : 'Signed out';
+  if (!loc) return uid;
+  const speed = Number.isFinite(loc.speedMps) ? `${loc.speedMps.toFixed(1)} m/s` : '--';
+  const bearing = Number.isFinite(loc.bearingDegrees) ? `${Math.round(loc.bearingDegrees)} deg` : '--';
+  const battery = Number.isFinite(loc.batteryPercent) ? `${Math.round(loc.batteryPercent)}%` : '--';
+  return `${stale ? 'OFFLINE/STALE' : 'LIVE'} ${escapeHtml(loc.deviceId)} | updated ${trackerAgeText(loc.updatedAt)} | speed ${speed} | heading ${bearing} | battery ${battery}<br>${escapeHtml(uid)}`;
+}
+
+function trackerDeniedStatus() {
+  const uid = trackerUser ? trackerUser.uid : '--';
+  const email = trackerUser && trackerUser.email ? trackerUser.email : 'this Google account';
+  return `Not allowed yet. Add ${escapeHtml(email)} UID to trackerViewers.<br>UID: ${escapeHtml(uid)}`;
+}
+
+function trackerAgeText(ts) {
+  const n = Number(ts || 0);
+  if (!n) return '--';
+  const seconds = Math.max(0, Math.round((Date.now() - n) / 1000));
+  if (seconds < 60) return `${seconds}s ago`;
+  const minutes = Math.floor(seconds / 60);
+  if (minutes < 60) return `${minutes}m ago`;
+  return new Date(n).toLocaleString();
+}
+
+function _setTrackerStatus(text) {
+  const el = document.getElementById('tracker-status');
+  if (el) el.innerHTML = text || '';
+}
+
+function _syncTrackerUi() {
+  const authStatus = document.getElementById('tracker-auth-status');
+  if (authStatus) authStatus.textContent = trackerUser ? 'IN' : 'OUT';
+  const authBtn = document.getElementById('tracker-auth-btn');
+  if (authBtn) authBtn.classList.toggle('sp-active', !!trackerUser);
+  const pullStatus = document.getElementById('tracker-pull-status');
+  if (pullStatus) pullStatus.textContent = trackerEnabled ? 'ON' : 'OFF';
+  const pullBtn = document.getElementById('tracker-pull-btn');
+  if (pullBtn) pullBtn.classList.toggle('sp-active', trackerEnabled);
+}
+
+function setTrackerDeviceId(value) {
+  trackerDeviceId = String(value || 'seeker-1').trim() || 'seeker-1';
+  _writeTrackerPrefs({ deviceId:trackerDeviceId });
+  if (trackerEnabled && trackerUser) subscribeTrackerLocation();
+}
+
+function setTrackerPullSeconds(value) {
+  trackerPullSeconds = Math.max(1, Math.min(300, Number(value) || 5));
+  const el = document.getElementById('tracker-pull-seconds');
+  if (el) el.value = trackerPullSeconds;
+  _writeTrackerPrefs({ pullSeconds:trackerPullSeconds });
+  if (trackerEnabled && trackerUser) subscribeTrackerLocation();
+}
+
+function setTrackerConfigValue(key, value) {
+  if (!['apiKey','authDomain','databaseURL','projectId'].includes(key)) return;
+  trackerConfig[key] = String(value || '').trim();
+  _writeTrackerPrefs({ config:trackerConfig });
+  if (trackerApp) {
+    _setTrackerStatus('Tracker Firebase config changed. Reload the page to reconnect with the new config.');
+  }
+}
+
 function chooseMode(m) {
   const ls = document.getElementById('loading-screen');
   ls.style.display = 'flex'; ls.style.opacity = '1';
@@ -1707,6 +2058,7 @@ function chooseMode(m) {
     _initRevampPreferences();
 
     initMap();
+    initTrackerViewer();
     if (m === 'seeker') {
       document.getElementById('seeker-footer').style.display = 'block';
       applySeekerQuestionCodeMenu();
@@ -3191,7 +3543,11 @@ from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
 
 import {
   getAuth,
-  signInAnonymously
+  signInAnonymously,
+  GoogleAuthProvider,
+  signInWithPopup,
+  signOut,
+  onAuthStateChanged
 }
 from
 "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
@@ -3205,7 +3561,11 @@ window.firebaseApi = {
   get,
   onValue,
   getAuth,
-  signInAnonymously
+  signInAnonymously,
+  GoogleAuthProvider,
+  signInWithPopup,
+  signOut,
+  onAuthStateChanged
 };
 
 
