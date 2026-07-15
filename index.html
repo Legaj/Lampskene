@@ -599,6 +599,28 @@
       padding:8px 10px 0; border-bottom:1px solid var(--border);
       display:flex; flex-direction:column; gap:7px; flex-shrink:0;
     }
+    body.questions-clean #sidebar-header,
+    body.questions-clean #sidebar-grip,
+    body.questions-clean #question-search,
+    body.questions-clean #question-count,
+    body.questions-clean:not(.question-advanced-sorting) .q-filter-row.type-row,
+    body.questions-clean:not(.question-advanced-sorting) #qf-all,
+    body.questions-clean:not(.question-advanced-sorting) #qf-answered {
+      display:none!important;
+    }
+    body.questions-clean #question-tools {
+      padding:8px 10px;
+      border-bottom:none;
+    }
+    body.questions-clean #question-list {
+      padding-top:8px;
+    }
+    body.questions-clean .q-filter-row {
+      grid-template-columns:repeat(2, minmax(0, 1fr));
+    }
+    body.questions-clean.question-advanced-sorting .q-filter-row {
+      grid-template-columns:repeat(4, minmax(0, 1fr));
+    }
     #question-search {
       width:100%; min-height:var(--touch-h); background:var(--surface2);
       border:1px solid var(--border2); border-radius:var(--r);
@@ -685,6 +707,90 @@
       color:var(--text2); background:rgba(255,255,255,.025); font-size:9px;
       line-height:1.45; overflow-wrap:anywhere;
     }
+    .account-panel {
+      width:min(560px, calc(100vw - 32px)); margin:18px auto 0;
+      border:1px solid var(--border); border-radius:8px; background:rgba(255,255,255,.035);
+      padding:12px; display:flex; flex-direction:column; gap:10px;
+    }
+    .account-row { display:grid; grid-template-columns:1fr 1fr; gap:8px; }
+    .account-row.three { grid-template-columns:1fr 1fr 1fr; }
+    .account-input {
+      min-height:36px; border:1px solid var(--border2); border-radius:var(--r);
+      background:var(--surface2); color:var(--text); font-family:'DM Mono',monospace;
+      font-size:10px; padding:7px 9px; outline:none; min-width:0;
+    }
+    .account-list { display:flex; flex-direction:column; gap:6px; max-height:124px; overflow:auto; }
+    .account-item {
+      border:1px solid var(--border); border-radius:8px; padding:8px;
+      display:grid; grid-template-columns:1fr auto; gap:8px; align-items:center;
+      color:var(--text2); font-size:10px; background:rgba(0,0,0,.08);
+    }
+    .account-muted { color:var(--muted); font-size:9px; letter-spacing:.4px; line-height:1.45; }
+    .sync-question-btn {
+      border:1px solid var(--border2); border-radius:999px; background:transparent;
+      color:var(--muted); font-family:'DM Mono',monospace; font-size:8px;
+      letter-spacing:1px; text-transform:uppercase; padding:4px 8px; cursor:pointer;
+      flex-shrink:0;
+    }
+    .sync-question-btn.synced { border-color:rgba(85,221,170,.38); color:#55ddaa; background:rgba(85,221,170,.08); }
+
+    /* ── Round Timeline scrubber ─────────────────────────────────────────── */
+    #timeline-panel {
+      position:fixed; left:0; right:0; bottom:0; z-index:880;
+      background:rgba(15,18,24,.94); backdrop-filter:blur(10px);
+      border-top:1px solid rgba(255,255,255,.08);
+      padding:10px 14px 12px; display:none;
+      box-shadow:0 -6px 24px rgba(0,0,0,.25);
+    }
+    #timeline-panel.open { display:block; }
+    #timeline-panel .tl-head {
+      display:flex; align-items:center; gap:10px; margin-bottom:8px;
+      font-size:11px; color:var(--text2);
+    }
+    #timeline-panel .tl-title { font-weight:600; color:var(--text); font-size:12px; }
+    #timeline-panel .tl-time { font-family:'DM Mono',monospace; font-size:10px; color:var(--muted); }
+    #timeline-panel .tl-spacer { flex:1; }
+    #timeline-panel .tl-btn {
+      background:rgba(255,255,255,.06); border:1px solid rgba(255,255,255,.1);
+      color:var(--text); border-radius:8px; padding:4px 10px; font-size:11px;
+      cursor:pointer; min-height:32px; display:flex; align-items:center; gap:4px;
+    }
+    #timeline-panel .tl-btn:hover { background:rgba(255,255,255,.1); }
+    #timeline-panel .tl-btn.sp-active { background:rgba(85,221,170,.15); border-color:rgba(85,221,170,.4); color:#55ddaa; }
+    #timeline-scrubber {
+      width:100%; height:6px; -webkit-appearance:none; appearance:none;
+      background:rgba(255,255,255,.1); border-radius:3px; outline:none; cursor:pointer;
+    }
+    #timeline-scrubber::-webkit-slider-thumb {
+      -webkit-appearance:none; width:18px; height:18px; border-radius:50%;
+      background:#55ddaa; border:2px solid rgba(255,255,255,.3); cursor:grab;
+      box-shadow:0 0 8px rgba(85,221,170,.4);
+    }
+    #timeline-scrubber::-moz-range-thumb {
+      width:18px; height:18px; border-radius:50%;
+      background:#55ddaa; border:2px solid rgba(255,255,255,.3); cursor:grab;
+    }
+    #timeline-panel .tl-markers {
+      display:flex; gap:2px; margin-top:4px; height:8px; position:relative;
+    }
+    #timeline-panel .tl-marker {
+      position:absolute; width:2px; height:8px; background:rgba(255,200,80,.7);
+      border-radius:1px; cursor:pointer;
+    }
+    #timeline-panel .tl-marker.locked { background:rgba(85,221,170,.8); }
+    #timeline-panel .tl-legend {
+      display:flex; gap:12px; margin-top:6px; font-size:9px; color:var(--muted);
+    }
+    #timeline-panel .tl-legend span { display:flex; align-items:center; gap:4px; }
+    #timeline-panel .tl-legend .dot { width:8px; height:8px; border-radius:50%; }
+    #timeline-panel .tl-legend .dot.path { background:#55ddaa; }
+    #timeline-panel .tl-legend .dot.q { background:rgba(255,200,80,.7); }
+    #timeline-panel .tl-legend .dot.locked { background:rgba(85,221,170,.8); }
+    body.timeline-active #mobile-nav { bottom:0; }
+    body.timeline-active #quick-actions { bottom:calc(var(--bar-h) + 130px); }
+    @media (max-width:560px) {
+      .account-row, .account-row.three { grid-template-columns:1fr; }
+    }
     .q-card, .sl-line-item, .cp-item { border-radius:8px; }
     .q-card {
       box-shadow:0 1px 0 rgba(255,255,255,.04) inset, 0 10px 24px rgba(0,0,0,.10);
@@ -770,6 +876,47 @@
 <div id="mode-screen">
   <h1>JET<span>LAG</span> STK</h1>
   <p>Choose your role to begin</p>
+  <div class="account-panel">
+    <div class="account-row">
+      <button class="sp-btn" id="main-google-btn" onclick="mainGoogleSignInOrOut()">
+        <span>Google</span><span id="main-auth-status">OUT</span>
+      </button>
+      <button class="sp-btn" onclick="startGuestFlow()">
+        <span>Play Guest</span><span>Local</span>
+      </button>
+    </div>
+    <div id="account-signed-in-tools" style="display:none">
+      <div class="account-row">
+        <input class="account-input" id="username-input" placeholder="Username">
+        <button class="sp-btn" onclick="saveUsernameUi()"><span>Save Username</span><span id="username-status">--</span></button>
+      </div>
+      <div class="account-row three" style="margin-top:8px">
+        <button class="sp-btn" onclick="createRoundUi('seeker')"><span>New Round</span><span>Seeker</span></button>
+        <button class="sp-btn" onclick="createRoundUi('hider')"><span>New Round</span><span>Hider</span></button>
+        <button class="sp-btn" onclick="createTestRoundUi()"><span>Test Round</span><span>Local</span></button>
+      </div>
+      <div class="account-row" style="margin-top:8px">
+        <button class="sp-btn" onclick="createPartyUi()"><span>Create Party</span><span>Team</span></button>
+        <input class="account-input" id="invite-username-input" placeholder="Invite username">
+      </div>
+      <div class="account-row" style="margin-top:8px">
+        <button class="sp-btn" onclick="inviteUsernameUi()"><span>Invite</span><span>Send</span></button>
+        <button class="sp-btn" onclick="refreshAccountLists()"><span>Refresh</span><span>Lists</span></button>
+      </div>
+      <div class="account-muted" id="active-party-status" style="margin-top:8px">No active party.</div>
+      <div class="account-row" style="margin-top:8px">
+        <div>
+          <div class="account-muted">Invites</div>
+          <div class="account-list" id="invite-list"></div>
+        </div>
+        <div>
+          <div class="account-muted">Round Library</div>
+          <div class="account-list" id="round-library-list"></div>
+        </div>
+      </div>
+    </div>
+    <div class="account-muted" id="account-help">Guest rounds stay on this device. Google rounds save rounds, parties, and synced team questions.</div>
+  </div>
   <div class="mode-cards">
     <div class="mode-card seeker" onclick="chooseMode('seeker')"><div class="icon">🔍</div><div class="label">Seeker</div></div>
     <div class="mode-card hider"  onclick="chooseMode('hider')"><div class="icon">🫣</div><div class="label">Hider</div></div>
@@ -868,14 +1015,9 @@
         <span>Center Me</span><span id="loc-age-status">--</span>
       </button>
     </div>
-    <div class="compact-form">
-      <input class="compact-input" id="session-id" placeholder="Session ID">
-      <input class="compact-input" id="session-password" type="password" placeholder="Password">
-      <div class="compact-grid">
-        <button class="sp-btn" onclick="createSessionUi()"><span>Create</span><span>Host</span></button>
-        <button class="sp-btn" onclick="joinSessionUi()"><span>Join</span><span>Guest</span></button>
-      </div>
-    </div>
+    <button class="sp-btn" id="loc-transit-btn" onclick="toggleOnTransit()" style="margin-top:6px">
+      <span>Show Own GPS</span><span id="loc-transit-status">OFF</span>
+    </button>
     <div class="sp-label" style="margin-top:10px">Tracker Viewer</div>
     <div class="settings-grid">
       <button class="sp-btn" id="tracker-auth-btn" onclick="trackerSignInOrOut()">
@@ -940,6 +1082,9 @@
     </button>
     <button class="sp-btn" id="move-lock-setting-btn" onclick="toggleMoveLockSetting()" style="margin-top:5px">
       <span>60s Move Lock</span><span id="move-lock-setting-status">OFF</span>
+    </button>
+    <button class="sp-btn" id="question-sort-setting-btn" onclick="toggleQuestionAdvancedSorting()" style="margin-top:5px">
+      <span>Question Sorting</span><span id="question-sort-setting-status">Simple</span>
     </button>
     <button class="sp-btn" id="seeker-code-menu-btn" onclick="toggleSeekerQuestionCodeMenu()" style="margin-top:5px">
       <span>Seeker Code Input</span><span id="seeker-code-menu-status">OFF</span>
@@ -1095,7 +1240,7 @@
     <input id="question-search" type="search" placeholder="Search questions..." oninput="filterQuestionList(this.value)" />
     <div class="q-filter-row">
       <button class="q-filter active" id="qf-all" onclick="setQuestionFilter('all')">All</button>
-      <button class="q-filter" id="qf-open" onclick="setQuestionFilter('open')">Open</button>
+      <button class="q-filter" id="qf-open" onclick="setQuestionFilter('open')">Unlocked</button>
       <button class="q-filter" id="qf-locked" onclick="setQuestionFilter('locked')">Locked</button>
       <button class="q-filter" id="qf-answered" onclick="setQuestionFilter('answered')">Done</button>
     </div>
@@ -1159,8 +1304,6 @@
 </button>
 
 <div id="quick-actions" aria-label="Quick actions">
-  <button class="quick-btn" id="quick-share-btn" onclick="copyLocationInvite()" title="Copy location invite">S</button>
-  <button class="quick-btn" id="quick-transit-btn" onclick="toggleOnTransit()" title="Toggle on transit">T</button>
   <button class="quick-btn" onclick="quickCenterActive()" title="Center active pin">⌖</button>
   <button class="quick-btn" onclick="undoLastPinMove()" title="Undo pin move">↩</button>
   <button class="quick-btn primary" onclick="quickAddOrCode()" title="Add or answer question">＋</button>
@@ -1194,11 +1337,8 @@ let map, activeLayerKey = 'osm', layers = {};
 
 let firebaseDb = null;
 
-let currentSessionId = null;
 
-let currentRole = null;
 
-let lastFirebasePush = 0;
 
 let hiderPin = null, hiderPinLocked = false;
 let hiderZoneCircle = null;
@@ -1216,7 +1356,6 @@ let _gameAreaOutlineLayer = null;
 let _gameAreaGeoCache = {};
 
 const LOC_PREF_KEY = 'jetlag_location_prefs_v1';
-const LOC_PEERS_KEY = 'jetlag_location_peers_v1';
 const TRACKER_PREF_KEY = 'jetlag_tracker_viewer_v1';
 const TRACKER_DEFAULT_CONFIG = {
   apiKey: "AIzaSyDx03TJGucL4NRKYfGHU4W7cA2U8dxdelc",
@@ -1240,9 +1379,6 @@ let _heading = null;
 let _headingListenerAttached = false;
 let _locationName = 'Player';
 let _onTransit = false;
-let _peerTransitStyle = 'icon';
-let _sharedPeers = [];
-let _peerMarkers = {};
 let _locationAgeTimer = null;
 let trackerApp = null;
 let trackerDb = null;
@@ -1258,6 +1394,7 @@ let trackerUiTimer = null;
 let trackerLocation = null;
 let trackerMarker = null;
 let trackerAccuracyCircle = null;
+let trackerTimelineLastPush = 0;
 
 // ── MAP INIT ───────────────────────────────────────────────────
 function initMap() {
@@ -1465,13 +1602,10 @@ function initLocationSharing() {
   const prefs = _readLocationPrefs();
   _locationName = String(prefs.name || _locationName).slice(0, 18) || 'Player';
   _onTransit = !!prefs.onTransit;
-  _peerTransitStyle = ['icon','ring','hidden'].includes(prefs.peerTransitStyle) ? prefs.peerTransitStyle : 'icon';
   _locationMode = LOC_MODES[prefs.mode] ? prefs.mode : 'off';
   const nameInput = document.getElementById('loc-name-input');
   if (nameInput) nameInput.value = _locationName;
-  _loadSharedPeers();
   _syncLocationUi();
-  renderPeerLocations();
   if (_locationMode !== 'off') startLocationMode(_locationMode, false);
   if (!_locationAgeTimer) _locationAgeTimer = setInterval(_syncLocationUi, 1000);
 }
@@ -1481,15 +1615,13 @@ function _syncLocationUi() {
   const modeStatus = document.getElementById('loc-mode-status');
   if (modeStatus) modeStatus.textContent = cfg.label;
   document.getElementById('loc-mode-btn')?.classList.toggle('sp-active', _locationMode !== 'off');
-  document.getElementById('quick-share-btn')?.classList.toggle('share-on', !!_ownLocation);
-  document.getElementById('quick-transit-btn')?.classList.toggle('transit-on', _onTransit);
-  const styleLabels = { icon:'Icon', ring:'Ring', hidden:'Hidden' };
-  const peerStyle = document.getElementById('peer-style-status');
-  if (peerStyle) peerStyle.textContent = styleLabels[_peerTransitStyle] || 'Icon';
+  const transitBtn = document.getElementById('loc-transit-btn');
+  const transitStatus = document.getElementById('loc-transit-status');
+  if (transitBtn) transitBtn.classList.toggle('sp-active', _locationMode !== 'off');
+  if (transitStatus) transitStatus.textContent = _locationMode !== 'off' ? 'ON' : 'OFF';
   const age = _ownLocation ? Math.max(0, Math.round((Date.now() - _ownLocation.ts) / 1000)) + 's' : '--';
   const ageStatus = document.getElementById('loc-age-status');
   if (ageStatus) ageStatus.textContent = age;
-  refreshPeerTooltips();
 }
 
 function cycleLocationMode() {
@@ -1556,8 +1688,6 @@ function updateOwnLocation(pos) {
   drawOwnLocation();
 
   _syncLocationUi();
-
-  pushLocationToFirebase();
 }
 function drawOwnLocation() {
   if (!map || !_ownLocation) return;
@@ -1567,7 +1697,7 @@ function drawOwnLocation() {
   const icon = L.divIcon({ html, className:'', iconSize:[42,42], iconAnchor:[21,21] });
   if (!_ownLocationMarker) _ownLocationMarker = L.marker(ll, { icon, zIndexOffset:900 }).addTo(map);
   else _ownLocationMarker.setLatLng(ll).setIcon(icon);
-  _ownLocationMarker.bindTooltip(`<div class="loc-tip">${escapeHtml(_locationName)}<br>${_onTransit ? 'On transit' : 'On foot'}<br>${Math.round(_ownLocation.acc || 0)}m accuracy</div>`, { permanent:false });
+  _ownLocationMarker.bindTooltip(`<div class="loc-tip">You<br>${Math.round(_ownLocation.acc || 0)}m accuracy</div>`, { permanent:false });
   if (_ownLocation.acc) {
     if (!_ownAccuracyCircle) _ownAccuracyCircle = L.circle(ll, { radius:_ownLocation.acc, color:'#55ddaa', opacity:.35, fillOpacity:.08, weight:1, interactive:false }).addTo(map);
     else _ownAccuracyCircle.setLatLng(ll).setRadius(_ownLocation.acc);
@@ -1586,124 +1716,13 @@ function setLocationName(value) {
 }
 
 function toggleOnTransit() {
-  _onTransit = !_onTransit;
-  _writeLocationPrefs({ onTransit:_onTransit });
-  if (_ownLocation) drawOwnLocation();
-  _syncLocationUi();
-  pushLocationToFirebase();
-  showToast(_onTransit ? 'Marked on transit' : 'Marked off transit');
-}
-
-function cyclePeerTransitStyle() {
-  const order = ['icon','ring','hidden'];
-  _peerTransitStyle = order[(order.indexOf(_peerTransitStyle) + 1) % order.length];
-  _writeLocationPrefs({ peerTransitStyle:_peerTransitStyle });
-  renderPeerLocations();
-  _syncLocationUi();
-}
-
-function _locationInvitePayload() {
-  if (!_ownLocation) return null;
-  return {
-    v:1, id:_locationName.toLowerCase().replace(/[^a-z0-9]+/g, '-').slice(0, 24) || 'player',
-    name:_locationName, lat:+_ownLocation.lat.toFixed(6), lng:+_ownLocation.lng.toFixed(6),
-    acc:Math.round(_ownLocation.acc || 0), heading:Math.round(_ownLocation.heading || _heading || 0),
-    transit:_onTransit, ts:_ownLocation.ts
-  };
-}
-
-function encodeLocationInvite(payload) {
-  return 'JLOC-' + btoa(unescape(encodeURIComponent(JSON.stringify(payload)))).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/g, '');
-}
-
-function decodeLocationInvite(code) {
-  const clean = String(code || '').trim().replace(/^JLOC-/i, '').replace(/-/g, '+').replace(/_/g, '/');
-  const padded = clean + '='.repeat((4 - clean.length % 4) % 4);
-  return JSON.parse(decodeURIComponent(escape(atob(padded))));
-}
-
-async function copyLocationInvite() {
-  if (!_ownLocation) {
-    if (_locationMode === 'off') startLocationMode('balanced');
-    showToast('Waiting for GPS fix');
+  if (_locationMode === 'off') {
+    startLocationMode('balanced');
+    showToast('Showing your GPS');
     return;
   }
-  const code = encodeLocationInvite(_locationInvitePayload());
-  try { await navigator.clipboard.writeText(code); }
-  catch(e) {
-    const input = document.getElementById('loc-invite-input');
-    if (input) { input.value = code; input.select(); }
-  }
-  const st = document.getElementById('loc-share-status');
-  if (st) st.textContent = 'COPIED';
-  setTimeout(() => { const s = document.getElementById('loc-share-status'); if (s) s.textContent = 'PRIVATE'; }, 1800);
-  showToast('Location invite copied');
-}
-
-function importLocationInvite() {
-  const input = document.getElementById('loc-invite-input');
-  try {
-    const peer = decodeLocationInvite(input ? input.value : '');
-    if (!peer || typeof peer.lat !== 'number' || typeof peer.lng !== 'number') throw new Error('Bad code');
-    peer.id = String(peer.id || peer.name || 'player').slice(0, 32);
-    peer.name = String(peer.name || 'Player').slice(0, 18);
-    peer.ts = Number(peer.ts || Date.now());
-    const idx = _sharedPeers.findIndex(p => p.id === peer.id);
-    if (idx >= 0) _sharedPeers[idx] = peer; else _sharedPeers.push(peer);
-    _saveSharedPeers();
-    renderPeerLocations();
-    if (map) map.setView([peer.lat, peer.lng], Math.max(map.getZoom(), 15));
-    if (input) input.value = '';
-    showToast('Shared location added');
-  } catch(e) {
-    showToast('Invite code did not work');
-  }
-}
-
-function _loadSharedPeers() {
-  try { _sharedPeers = JSON.parse(localStorage.getItem(LOC_PEERS_KEY) || '[]') || []; }
-  catch(e) { _sharedPeers = []; }
-}
-
-function _saveSharedPeers() {
-  try { localStorage.setItem(LOC_PEERS_KEY, JSON.stringify(_sharedPeers.slice(-12))); }
-  catch(e) {}
-}
-
-function peerMarkerHtml(peer) {
-  const transit = !!peer.transit;
-  const cls = transit && _peerTransitStyle !== 'hidden' ? 'peer-dot transit' : 'peer-dot';
-  const label = transit && _peerTransitStyle === 'icon' ? 'T' : (peer.name || 'P').charAt(0).toUpperCase();
-  const ring = transit && _peerTransitStyle === 'ring' ? '<span class="loc-pulse" style="border-color:rgba(47,140,255,.55)"></span>' : '';
-  return `${ring}<div class="${cls}">${escapeHtml(label)}</div>`;
-}
-
-function renderPeerLocations() {
-  if (!map) return;
-  const liveIds = new Set();
-  for (const peer of _sharedPeers) {
-    liveIds.add(peer.id);
-    const ll = [peer.lat, peer.lng];
-    const icon = L.divIcon({ html:peerMarkerHtml(peer), className:'', iconSize:[42,42], iconAnchor:[21,21] });
-    if (!_peerMarkers[peer.id]) _peerMarkers[peer.id] = L.marker(ll, { icon, zIndexOffset:800 }).addTo(map);
-    else _peerMarkers[peer.id].setLatLng(ll).setIcon(icon);
-  }
-  for (const id of Object.keys(_peerMarkers)) {
-    if (!liveIds.has(id)) {
-      map.removeLayer(_peerMarkers[id]);
-      delete _peerMarkers[id];
-    }
-  }
-  refreshPeerTooltips();
-}
-
-function refreshPeerTooltips() {
-  for (const peer of _sharedPeers) {
-    const marker = _peerMarkers[peer.id];
-    if (!marker) continue;
-    const age = Math.max(0, Math.round((Date.now() - Number(peer.ts || 0)) / 1000));
-    marker.bindTooltip(`<div class="loc-tip">${escapeHtml(peer.name || 'Player')}<br>${peer.transit ? 'On transit' : 'Off transit'}<br>Updated ${age}s ago</div>`, { permanent:false });
-  }
+  startLocationMode('off');
+  showToast('Own GPS hidden');
 }
 
 function _readTrackerPrefs() {
@@ -1896,7 +1915,36 @@ function handleTrackerSnapshot(value) {
     updatedAt: Number(value.updatedAt || 0),
     expiresAt: Number(value.expiresAt || 0)
   };
+  pushTrackerTimelineSample(trackerLocation);
   drawTrackerLocation();
+}
+
+async function pushTrackerTimelineSample(loc) {
+  if (!loc || !activeRoundId || activeRoundIsTest || !isRealGoogleUser() || !firebaseDb) return;
+  const now = Date.now();
+  if (now - trackerTimelineLastPush < 10000) return;
+  trackerTimelineLastPush = now;
+  try {
+    const { ref, push, set, update } = window.firebaseApi;
+    const sampleRef = push(ref(firebaseDb, `roundTrackerTimeline/${activeRoundId}`));
+    await set(sampleRef, {
+      deviceId:loc.deviceId,
+      lat:loc.lat,
+      lng:loc.lng,
+      accuracyMeters:loc.accuracyMeters || 0,
+      speedMps:loc.speedMps || 0,
+      bearingDegrees:loc.bearingDegrees || 0,
+      trackerUpdatedAt:loc.updatedAt || 0,
+      capturedAt:now
+    });
+    await update(ref(firebaseDb, `rounds/${activeRoundId}`), {
+      trackerDeviceId:loc.deviceId,
+      trackerLastAt:now,
+      updatedAt:now
+    });
+  } catch(e) {
+    console.warn('Tracker timeline save failed:', e);
+  }
 }
 
 function drawTrackerLocation() {
@@ -2064,6 +2112,10 @@ function chooseMode(m) {
       const _saved = loadSavedState && loadSavedState();
       if (_saved && _saved.mode === m) restoreState(_saved);
     } catch(e) { console.warn('Restore failed:', e); }
+    setTimeout(() => {
+      if (typeof loadActiveRoundDraft === 'function') loadActiveRoundDraft();
+      if (typeof decorateQuestionSyncButtons === 'function') decorateQuestionSyncButtons();
+    }, 900);
 
     setTimeout(() => {
       ls.style.opacity = '0';
@@ -3083,6 +3135,7 @@ let _densityMode = 'comfort';
 let _questionFilter = 'all';
 let _questionSearch = '';
 let _questionTypeFilter = 'all'; // 'all' | 'radar' | 'thermo' | 'matching' | 'other'
+let _questionAdvancedSorting = false;
 
 function _readRevampPrefs() {
   try { return JSON.parse(localStorage.getItem(REVAMP_KEY) || '{}') || {}; }
@@ -3100,8 +3153,10 @@ function _initRevampPreferences() {
   if (_revampPrefsReady) return;
   _revampPrefsReady = true;
   const prefs = _readRevampPrefs();
+  document.body.classList.add('questions-clean');
   _setAdvancedMode(!!prefs.advancedMode, false);
   _setDensity(prefs.density || 'comfort', false);
+  setQuestionAdvancedSorting(!!prefs.questionAdvancedSorting, false);
   setPanelWidth(prefs.panelWidth || 320, false);
   setBlueOpacitySetting(prefs.blueOpacity || 30, false);
   if (prefs.zoneRadius && typeof setHiderZoneRadius === 'function') setHiderZoneRadius(prefs.zoneRadius, false);
@@ -3129,6 +3184,30 @@ function _setAdvancedMode(on, save=true) {
 function toggleAdvancedMode() {
   _setAdvancedMode(!_advancedMode);
   showToast(_advancedMode ? 'Advanced controls shown' : 'Simple controls shown');
+}
+
+function setQuestionAdvancedSorting(on, save=true) {
+  _questionAdvancedSorting = !!on;
+  document.body.classList.toggle('question-advanced-sorting', _questionAdvancedSorting);
+  const btn = document.getElementById('question-sort-setting-btn');
+  const st = document.getElementById('question-sort-setting-status');
+  if (btn) btn.classList.toggle('sp-active', _questionAdvancedSorting);
+  if (st) st.textContent = _questionAdvancedSorting ? 'Advanced' : 'Simple';
+  if (!_questionAdvancedSorting) {
+    _questionSearch = '';
+    _questionTypeFilter = 'all';
+    const search = document.getElementById('question-search');
+    if (search) search.value = '';
+    ['all','radar','thermo','matching','other'].forEach(f => {
+      document.getElementById(`qtf-${f}`)?.classList.toggle('active', f === 'all');
+    });
+  }
+  if (save) _writeRevampPrefs({ questionAdvancedSorting:_questionAdvancedSorting });
+  _updateQuestionTools();
+}
+
+function toggleQuestionAdvancedSorting() {
+  setQuestionAdvancedSorting(!_questionAdvancedSorting);
 }
 
 function _setDensity(mode, save=true) {
@@ -3182,7 +3261,7 @@ function setHiderZoneRadius(value, save=true) {
   if (typeof _endgameZone !== 'undefined' && _endgameZone) {
     _endgameZone.radius = v;
     if (typeof _showEndgameZoneLayer === 'function') _showEndgameZoneLayer();
-    if (typeof _renderEndgameBanner === 'function') _renderEndgameBanner();
+    if (typeof _renderEndgameBanner === 'function') _renderEndgameBanner(typeof mode !== 'undefined' && mode === 'hider');
   }
   if (save) _writeRevampPrefs({ zoneRadius: v });
   if (typeof saveState === 'function') saveState();
@@ -3194,7 +3273,8 @@ function filterQuestionList(value='') {
 }
 
 function setQuestionFilter(filter) {
-  _questionFilter = filter || 'all';
+  const next = filter || 'all';
+  _questionFilter = (!_questionAdvancedSorting && next === _questionFilter) ? 'all' : next;
   // Only toggle the status-row buttons (qf-*) — leave the type-row buttons
   // (qtf-*) alone so the two filter rows don't clobber each other.
   ['all','open','locked','answered'].forEach(f => {
@@ -3338,6 +3418,7 @@ function saveState() {
       })
     };
     localStorage.setItem(SAVE_KEY, JSON.stringify(state));
+    if (typeof saveActiveRoundDraft === 'function') saveActiveRoundDraft();
   } catch(e) { console.warn('Save failed', e); }
 }
 
@@ -3413,7 +3494,13 @@ function restoreState(state) {
         _archivedQuestions = state.archivedQuestions;
       }
       _showEndgameZoneLayer();
-      _renderEndgameBanner();
+      const _isHider = (typeof mode !== 'undefined' && mode === 'hider');
+      _renderEndgameBanner(_isHider);
+      // If the hider had started endgame but hadn't placed the endgame pin yet
+      // (no endgamePin in state), re-prompt them to place it.
+      if (_isHider && !state.endgamePin && typeof addEndgameCard === 'function') {
+        setTimeout(() => addEndgameCard(), 300);
+      }
     }, 600);
   }
   for (const q of (state.questions || [])) {
@@ -3506,9 +3593,14 @@ function restoreState(state) {
 function resetAllData() {
   if (!confirm('Reset all questions and data? This cannot be undone.')) return;
   localStorage.removeItem(SAVE_KEY);
+  localStorage.removeItem('jetlag_curses_v1');
+  localStorage.removeItem('jetlag_active_round_v1');
+  localStorage.removeItem('jetlag_location_peers_v1');
+  localStorage.removeItem('jetlag_location_prefs_v1');
   location.reload();
 }
 </script>
+<script src="firebase-config.js"></script>
 <script src="matching-data.js?v=2"></script>
 <script src="measuring-data.js"></script>
 <script src="matching-area-data.js"></script>
@@ -3528,7 +3620,9 @@ import {
   set,
   update,
   get,
-  onValue
+  onValue,
+  push,
+  remove
 }
 from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
 
@@ -3551,6 +3645,8 @@ window.firebaseApi = {
   update,
   get,
   onValue,
+  push,
+  remove,
   getAuth,
   signInAnonymously,
   GoogleAuthProvider,
@@ -3566,27 +3662,52 @@ window.firebaseApi = {
 
 <script>
 let firebaseReady = false;
+let firebaseAuth = null;
+let mainUser = null;
+let mainProfile = null;
+let activePartyId = null;
+let activeRoundId = null;
+let activeRoundIsTest = false;
+let roundQuestionsUnsubscribe = null;
+const ACTIVE_ROUND_KEY = 'jetlag_active_round_v1';
 
 async function initFirebase() {
-  const { initializeApp, getDatabase, getAuth, signInAnonymously } = window.firebaseApi;
+  const { initializeApp, getDatabase, getAuth, signInAnonymously, onAuthStateChanged } = window.firebaseApi;
 
-  const firebaseConfig = {
-    apiKey: "AIzaSyBBnAdXyP7sgpFS7dVVwCQmc5pqIfM0iHM",
-    authDomain: "lampskene.firebaseapp.com",
-    databaseURL: "https://lampskene-default-rtdb.europe-west1.firebasedatabase.app",
-    projectId: "lampskene",
-    storageBucket: "lampskene.firebasestorage.app",
-    messagingSenderId: "799098049843",
-    appId: "1:799098049843:web:38a45d9f08bbadd3975a46"
-  };
+  // Load config from firebase-config.js (user-editable). If not configured,
+  // bail out gracefully — guest/test mode still works.
+  const firebaseConfig = window.JETLAG_FIREBASE_CONFIG || null;
+  if (!firebaseConfig || !window.JETLAG_FIREBASE_CONFIGURED || firebaseConfig.apiKey === 'PASTE_YOUR_API_KEY_HERE') {
+    console.warn('Firebase not configured — see firebase-config.js + FIREBASE_SETUP.md. Guest/test mode only.');
+    const status = document.getElementById('main-auth-status');
+    if (status) status.textContent = 'N/A';
+    const help = document.getElementById('account-help');
+    if (help) help.innerHTML = '<strong>Firebase not configured.</strong> Guest mode works. To enable Google login, rounds & sync: edit <code>firebase-config.js</code> and see <code>FIREBASE_SETUP.md</code>.';
+    // Disable the Google button visually
+    document.getElementById('main-google-btn')?.setAttribute('disabled', 'true');
+    firebaseReady = false;
+    return;
+  }
 
   const app = initializeApp(firebaseConfig);
   firebaseDb = getDatabase(app);
+  firebaseAuth = getAuth(app);
+  if (typeof restoreActiveRoundPointer === 'function') restoreActiveRoundPointer();
+  if (onAuthStateChanged) {
+    onAuthStateChanged(firebaseAuth, async user => {
+      mainUser = user || null;
+      window.currentUid = user ? user.uid : null;
+      firebaseReady = !!user;
+      await loadMainProfile();
+      syncAccountUi();
+      refreshAccountLists();
+      if (typeof loadActiveRoundDraft === 'function') loadActiveRoundDraft();
+    });
+  }
 
   // Anonymous auth and verification
   try {
-    const auth = getAuth(app);
-    const cred = await signInAnonymously(auth);
+    const cred = firebaseAuth.currentUser ? { user:firebaseAuth.currentUser } : await signInAnonymously(firebaseAuth);
     window.currentUid = cred.user.uid;
     firebaseReady = true;
     console.log("UID:", window.currentUid);
@@ -3597,271 +3718,555 @@ async function initFirebase() {
   }
 }
 
-
-setInterval(() => {
-
-  if (!_sharedPeers.length)
-    return;
-
-  refreshPeerTooltips();
-
-}, 1000);
-
-///step 7
-async function hashPassword(password) {
-
-  const encoder = new TextEncoder();
-
-  const buffer =
-    await crypto.subtle.digest(
-      "SHA-256",
-      encoder.encode(password)
-    );
-
-  return Array
-    .from(new Uint8Array(buffer))
-    .map(x =>
-      x.toString(16).padStart(2,'0')
-    )
-    .join('');
-}
-///step 8
-
-async function createLocationSession(password) {
-  // wait for firebase auth to be ready (timeout after a few seconds)
-  const start = Date.now();
-  while (!firebaseReady && Date.now() - start < 5000) {
-    await new Promise(r => setTimeout(r, 100));
-  }
-  if (!firebaseReady) throw new Error("Firebase auth not ready. Try again in a moment.");
-
-  const { ref, set } = window.firebaseApi;
-
-  const sessionId = Math.random().toString(36).slice(2,10).toUpperCase();
-
-  const pw = (password || '').trim();
-  const passwordHash = await hashPassword(pw);
-
-  console.log('createLocationSession: passwordHash', passwordHash);
-
-  await set(
-    ref(firebaseDb, `sessions/${sessionId}`),
-    {
-      passwordHash,
-      created: Date.now(),
-      players: {}
-    }
-  );
-
-  currentSessionId = sessionId;
-  currentRole = "host";
-  subscribeToSession();
-
-  return sessionId;
+function isRealGoogleUser() {
+  return !!(mainUser && !mainUser.isAnonymous);
 }
 
-
-/// add function
-function subscribeToSession() {
-
-  const {
-    ref,
-    onValue
-  } = window.firebaseApi;
-
-  onValue(
-    ref(
-      firebaseDb,
-      `sessions/${currentSessionId}/players`
-    ),
-    snapshot => {
-
-      const players =
-        snapshot.val() || {};
-
-      _sharedPeers = [];
-
-      for (
-        const [id, player]
-        of Object.entries(players)
-      ) {
-
-        if (
-          id === currentRole
-        ) continue;
-
-        _sharedPeers.push({
-          id,
-          ...player,
-          ts: player.updated
-        });
+async function mainGoogleSignInOrOut() {
+  try {
+    if (!firebaseAuth) {
+      if (!window.JETLAG_FIREBASE_CONFIGURED) {
+        showToast('Firebase not configured — see firebase-config.js');
+        return;
       }
-
-      renderPeerLocations();
+      throw new Error('Firebase is still loading');
     }
-  );
-}
-
-///step 9 
-async function joinLocationSession(
-  sessionId,
-  password
-) {
-
-  const {
-    ref,
-    get
-  } = window.firebaseApi;
-
-  const snap =
-    await get(
-      ref(firebaseDb,
-      `sessions/${sessionId}`)
-    );
-
-  if (!snap.exists())
-    throw new Error(
-      "Session not found"
-    );
-
-  const data = snap.val();
-
-  const hash =
-    await hashPassword(password);
-
-  if (
-    hash !== data.passwordHash
-  ) {
-    throw new Error(
-      "Wrong password"
-    );
+    const { GoogleAuthProvider, signInWithPopup, signOut } = window.firebaseApi;
+    if (isRealGoogleUser()) {
+      await signOut(firebaseAuth);
+      showToast('Signed out');
+      return;
+    }
+    const provider = new GoogleAuthProvider();
+    provider.setCustomParameters({ prompt:'select_account' });
+    await signInWithPopup(firebaseAuth, provider);
+    showToast('Signed in');
+  } catch(e) {
+    console.warn('Google sign-in failed:', e);
+    showToast(e.message || 'Google sign-in failed');
   }
-
-  currentSessionId =
-    sessionId;
-
-  currentRole =
-    "guest";
-
-  subscribeToSession();
 }
 
-///step 12
-async function pushLocationToFirebase() {
-
-  if (!currentSessionId)
-    return;
-
-  if (!_ownLocation)
-    return;
-
-  if (
-    Date.now()
-      - lastFirebasePush
-      < 10000
-  ) return;
-
-  lastFirebasePush =
-    Date.now();
-
-  const {
-    ref,
-    update
-  } = window.firebaseApi;
-
-  await update(
-    ref(
-      firebaseDb,
-      `sessions/${currentSessionId}/players/${currentRole}`
-    ),
-    {
-      name:_locationName,
-
-      lat:_ownLocation.lat,
-
-      lng:_ownLocation.lng,
-
-      acc:_ownLocation.acc,
-
-      heading:_ownLocation.heading,
-
-      transit:_onTransit,
-
-      updated:Date.now()
-    }
-  );
+function startGuestFlow() {
+  activeRoundId = null;
+  activeRoundIsTest = true;
+  try { localStorage.removeItem(ACTIVE_ROUND_KEY); } catch(e) {}
+  showToast('Guest mode: choose seeker or hider');
 }
 
-///step 13
-async function pushLocationToFirebase() {
-
-  if (!currentSessionId)
-    return;
-
-  if (!_ownLocation)
-    return;
-
-  if (
-    Date.now()
-      - lastFirebasePush
-      < 10000
-  ) return;
-
-  lastFirebasePush =
-    Date.now();
-
-  const {
-    ref,
-    update
-  } = window.firebaseApi;
-
-  await update(
-    ref(
-      firebaseDb,
-      `sessions/${currentSessionId}/players/${currentRole}`
-    ),
-    {
-      name:_locationName,
-
-      lat:_ownLocation.lat,
-
-      lng:_ownLocation.lng,
-
-      acc:_ownLocation.acc,
-
-      heading:_ownLocation.heading,
-
-      transit:_onTransit,
-
-      updated:Date.now()
-    }
-  );
-}
-
-///step 15
-async function createSessionUi() {
-  const pw = (document.getElementById('session-password').value || '').trim();
+async function loadMainProfile() {
+  mainProfile = null;
+  if (!firebaseDb || !mainUser || mainUser.isAnonymous) return;
   try {
-    const id = await createLocationSession(pw);
-    document.getElementById('session-id').value = id;
-    showToast('Session: ' + id);
-  } catch (e) {
-    showToast(e.message || 'Failed to create session');
+    const { ref, get } = window.firebaseApi;
+    const snap = await get(ref(firebaseDb, `profiles/${mainUser.uid}`));
+    mainProfile = snap.exists() ? snap.val() : null;
+  } catch(e) {
+    console.warn('Profile load failed:', e);
   }
 }
 
-async function joinSessionUi() {
+function syncAccountUi() {
+  const signedIn = isRealGoogleUser();
+  const status = document.getElementById('main-auth-status');
+  const tools = document.getElementById('account-signed-in-tools');
+  const username = document.getElementById('username-input');
+  const usernameStatus = document.getElementById('username-status');
+  if (status) status.textContent = signedIn ? 'IN' : 'OUT';
+  document.getElementById('main-google-btn')?.classList.toggle('sp-active', signedIn);
+  if (tools) tools.style.display = signedIn ? 'block' : 'none';
+  if (username) username.value = mainProfile && mainProfile.username ? mainProfile.username : '';
+  if (usernameStatus) usernameStatus.textContent = mainProfile && mainProfile.username ? 'Saved' : '--';
+  const party = document.getElementById('active-party-status');
+  if (party) party.textContent = activePartyId ? `Active party: ${activePartyId}` : 'No active party.';
+}
+
+function cleanUsername(value) {
+  return String(value || '').trim().toLowerCase().replace(/[^a-z0-9_]/g, '').slice(0, 18);
+}
+
+async function saveUsernameUi() {
+  if (!isRealGoogleUser()) { showToast('Sign in with Google first'); return; }
+  const username = cleanUsername(document.getElementById('username-input')?.value);
+  if (username.length < 3) { showToast('Username needs 3+ letters'); return; }
+  const { ref, get, update } = window.firebaseApi;
+  const nameSnap = await get(ref(firebaseDb, `usernames/${username}`));
+  if (nameSnap.exists() && nameSnap.val() !== mainUser.uid) {
+    showToast('Username is taken');
+    return;
+  }
+  const old = mainProfile && mainProfile.username ? cleanUsername(mainProfile.username) : '';
+  const updates = {};
+  updates[`profiles/${mainUser.uid}`] = {
+    username,
+    email:mainUser.email || '',
+    displayName:mainUser.displayName || '',
+    photoURL:mainUser.photoURL || '',
+    updatedAt:Date.now()
+  };
+  updates[`usernames/${username}`] = mainUser.uid;
+  if (old && old !== username) updates[`usernames/${old}`] = null;
+  await update(ref(firebaseDb), updates);
+  await loadMainProfile();
+  syncAccountUi();
+  showToast('Username saved');
+}
+
+async function createPartyUi() {
+  if (!isRealGoogleUser()) { showToast('Sign in with Google first'); return; }
+  const { ref, push, set } = window.firebaseApi;
+  const partyRef = push(ref(firebaseDb, 'parties'));
+  const partyId = partyRef.key;
+  await set(partyRef, {
+    ownerUid:mainUser.uid,
+    ownerUsername:(mainProfile && mainProfile.username) || mainUser.email || 'player',
+    createdAt:Date.now(),
+    members:{ [mainUser.uid]:true }
+  });
+  await set(ref(firebaseDb, `users/${mainUser.uid}/parties/${partyId}`), true);
+  activePartyId = partyId;
+  syncAccountUi();
+  refreshAccountLists();
+  showToast('Party created');
+}
+
+async function inviteUsernameUi() {
+  if (!activePartyId) { showToast('Create or select a party first'); return; }
+  const username = cleanUsername(document.getElementById('invite-username-input')?.value);
+  if (!username) { showToast('Enter a username'); return; }
+  const { ref, get, set } = window.firebaseApi;
+  const snap = await get(ref(firebaseDb, `usernames/${username}`));
+  if (!snap.exists()) { showToast('No user with that username'); return; }
+  const uid = snap.val();
+  await set(ref(firebaseDb, `users/${uid}/invites/${activePartyId}`), {
+    fromUid:mainUser.uid,
+    fromUsername:(mainProfile && mainProfile.username) || mainUser.email || 'player',
+    createdAt:Date.now()
+  });
+  showToast('Invite sent');
+}
+
+async function acceptPartyInvite(partyId) {
+  if (!isRealGoogleUser()) return;
+  const { ref, update } = window.firebaseApi;
+  const updates = {};
+  updates[`parties/${partyId}/members/${mainUser.uid}`] = true;
+  updates[`users/${mainUser.uid}/parties/${partyId}`] = true;
+  updates[`users/${mainUser.uid}/invites/${partyId}`] = null;
+  await update(ref(firebaseDb), updates);
+  activePartyId = partyId;
+  refreshAccountLists();
+  syncAccountUi();
+  showToast('Joined party');
+}
+
+async function createRoundUi(role) {
+  if (!isRealGoogleUser()) { showToast('Sign in with Google first'); return; }
+  const { ref, push, update } = window.firebaseApi;
+  const roundRef = push(ref(firebaseDb, 'rounds'));
+  const roundId = roundRef.key;
+  const round = {
+    ownerUid:mainUser.uid,
+    ownerUsername:(mainProfile && mainProfile.username) || mainUser.email || 'player',
+    partyId:activePartyId || null,
+    role,
+    test:false,
+    createdAt:Date.now(),
+    updatedAt:Date.now(),
+    trackerDeviceId:trackerDeviceId || 'seeker-1'
+  };
+  const updates = {};
+  updates[`rounds/${roundId}`] = round;
+  updates[`users/${mainUser.uid}/rounds/${roundId}`] = true;
+  if (activePartyId) updates[`parties/${activePartyId}/rounds/${roundId}`] = true;
+  await update(ref(firebaseDb), updates);
+  activateRound(roundId, false);
+  showToast('Round created');
+  chooseMode(role);
+}
+
+function createTestRoundUi() {
+  activeRoundId = 'test-' + Date.now();
+  activeRoundIsTest = true;
+  try { localStorage.setItem(ACTIVE_ROUND_KEY, JSON.stringify({ roundId:activeRoundId, test:true })); } catch(e) {}
+  showToast('Test round: choose seeker or hider');
+}
+
+function activateRound(roundId, test=false) {
+  activeRoundId = roundId;
+  activeRoundIsTest = !!test;
+  try { localStorage.setItem(ACTIVE_ROUND_KEY, JSON.stringify({ roundId, test:!!test })); } catch(e) {}
+  subscribeRoundQuestions();
+  subscribeRoundEndgame();
+  syncAccountUi();
+}
+
+// ── ENDGAME FIREBASE SYNC ─────────────────────────────────────────────────────
+// Endgame state is shared across all members of a round so the hider starting
+// endgame instantly reflects on every seeker's screen. The endgame PIN itself
+// is NOT synced — it stays local to the hider (it's their secret spot). Only
+// the viable-area zone is shared so seekers can see where to search.
+let roundEndgameUnsubscribe = null;
+let _endgameSyncedState = null; // last seen remote state, to detect remote-vs-local changes
+
+function subscribeRoundEndgame() {
+  if (roundEndgameUnsubscribe) {
+    try { roundEndgameUnsubscribe(); } catch(e) {}
+    roundEndgameUnsubscribe = null;
+  }
+  if (!activeRoundId || activeRoundIsTest || !firebaseDb) return;
+  const { ref, onValue } = window.firebaseApi;
+  roundEndgameUnsubscribe = onValue(ref(firebaseDb, `roundEndgame/${activeRoundId}`), snap => {
+    const remote = snap.val();
+    const prevActive = _endgameSyncedState ? !!_endgameSyncedState.active : false;
+    const remoteActive = remote ? !!remote.active : false;
+    _endgameSyncedState = remote;
+    // If endgame just turned ON remotely (and we didn't start it locally),
+    // trigger the endgame flow on this device.
+    if (remoteActive && !prevActive && !_endgameActive && remote.zone) {
+      if (typeof _startEndgame === 'function') {
+        console.log('Endgame started remotely — applying state');
+        _startEndgame(remote.zone);
+      }
+    }
+    // If endgame just turned OFF remotely, exit locally (without prompting,
+    // since the hider made the call).
+    if (!remoteActive && prevActive && _endgameActive) {
+      if (typeof _endgameExitRemote === 'function') _endgameExitRemote();
+    }
+  });
+}
+
+// Push endgame state to Firebase. Called by the hider when they start or exit
+// endgame. Seekers never push — they only listen.
+async function pushEndgameState(active, zone) {
+  if (!activeRoundId || activeRoundIsTest || !isRealGoogleUser() || !firebaseDb) return;
   try {
-    const id = (document.getElementById('session-id').value || '').trim();
-    const pw = (document.getElementById('session-password').value || '').trim();
-    await joinLocationSession(id, pw);
-    showToast('Connected');
-  } catch (e) {
-    showToast(e.message || 'Failed to join session');
+    const { ref, set, remove } = window.firebaseApi;
+    if (active && zone) {
+      await set(ref(firebaseDb, `roundEndgame/${activeRoundId}`), {
+        active: true,
+        zone: { lat: zone.lat, lng: zone.lng, radius: zone.radius },
+        startedBy: mainUser.uid,
+        startedAt: Date.now()
+      });
+    } else {
+      await remove(ref(firebaseDb, `roundEndgame/${activeRoundId}`));
+    }
+  } catch(e) {
+    console.warn('Endgame state push failed:', e);
   }
 }
 
+async function openRound(roundId) {
+  activateRound(roundId, false);
+  showToast('Round opened');
+}
 
+async function refreshAccountLists() {
+  if (!firebaseDb || !isRealGoogleUser()) {
+    const inv = document.getElementById('invite-list');
+    const rounds = document.getElementById('round-library-list');
+    if (inv) inv.innerHTML = '';
+    if (rounds) rounds.innerHTML = '';
+    return;
+  }
+  const { ref, get } = window.firebaseApi;
+  try {
+    const inviteSnap = await get(ref(firebaseDb, `users/${mainUser.uid}/invites`));
+    const inviteList = document.getElementById('invite-list');
+    if (inviteList) {
+      const invites = inviteSnap.val() || {};
+      const rows = Object.entries(invites).map(([partyId, inv]) =>
+        `<div class="account-item"><span>${escapeHtml(inv.fromUsername || 'Player')} invited you</span><button class="sp-btn" onclick="acceptPartyInvite('${partyId}')"><span>Accept</span></button></div>`
+      );
+      inviteList.innerHTML = rows.join('') || '<div class="account-muted">No invites</div>';
+    }
+    const roundSnap = await get(ref(firebaseDb, `users/${mainUser.uid}/rounds`));
+    const roundIds = Object.keys(roundSnap.val() || {}).slice(-12).reverse();
+    const rows = [];
+    for (const roundId of roundIds) {
+      const rs = await get(ref(firebaseDb, `rounds/${roundId}`));
+      const r = rs.val() || {};
+      rows.push(`<div class="account-item"><span>${escapeHtml(r.role || 'round')} ${r.createdAt ? new Date(r.createdAt).toLocaleDateString() : ''}</span><button class="sp-btn" onclick="openRound('${roundId}')"><span>Open</span></button><button class="sp-btn" onclick="openRoundTimeline('${roundId}')" title="Replay timeline"><span>📊</span></button></div>`);
+    }
+    const roundList = document.getElementById('round-library-list');
+    if (roundList) roundList.innerHTML = rows.join('') || '<div class="account-muted">No rounds yet</div>';
+  } catch(e) {
+    console.warn('Account list refresh failed:', e);
+  }
+}
+
+function sanitizeQuestionForFirebase(q) {
+  const s = { ...q };
+  ['marker','markerA','markerB','_markerMoveHandler','_measMoveHandler','_centerMarker','_dirMarker','_seekerMarker','_cone','_cone2','_cone3','_excludeCircle','_line','_distTip','_mapMoveHandler','_pinStart','_moveWindowUntil'].forEach(k => delete s[k]);
+  s.updatedAt = Date.now();
+  s.synced = !!q.synced;
+  return s;
+}
+
+async function saveActiveRoundDraft() {
+  if (!activeRoundId || activeRoundIsTest || !isRealGoogleUser()) return;
+  try {
+    const { ref, set, update } = window.firebaseApi;
+    await set(ref(firebaseDb, `roundDrafts/${activeRoundId}/${mainUser.uid}`), {
+      qCounter,
+      mode,
+      questions:(questions || []).map(sanitizeQuestionForFirebase),
+      updatedAt:Date.now()
+    });
+    await update(ref(firebaseDb, `rounds/${activeRoundId}`), { updatedAt:Date.now() });
+  } catch(e) {
+    console.warn('Round draft save failed:', e);
+  }
+}
+
+async function loadActiveRoundDraft() {
+  if (!activeRoundId || activeRoundIsTest || !isRealGoogleUser() || !firebaseDb || !mode || !map) return false;
+  if (questions && questions.length) return false;
+  try {
+    const { ref, get } = window.firebaseApi;
+    const snap = await get(ref(firebaseDb, `roundDrafts/${activeRoundId}/${mainUser.uid}`));
+    if (!snap.exists()) return false;
+    const draft = snap.val();
+    if (!draft || !Array.isArray(draft.questions) || !draft.questions.length) return false;
+    restoreState({
+      mode:mode,
+      qCounter:Number(draft.qCounter || 0),
+      questions:draft.questions,
+      mapZoom:map ? map.getZoom() : 12
+    });
+    showToast('Round questions restored');
+    return true;
+  } catch(e) {
+    console.warn('Round draft restore failed:', e);
+    return false;
+  }
+}
+
+async function syncRoundQuestion(id, manual=false) {
+  if (!activeRoundId || activeRoundIsTest || !isRealGoogleUser()) {
+    if (manual) showToast('Create a Google round first');
+    return;
+  }
+  const q = (questions || []).find(x => String(x.id) === String(id));
+  if (!q) return;
+  if (q._remote) {
+    // This question arrived from a teammate — don't re-push to Firebase.
+    if (manual) showToast('Already synced by teammate');
+    return;
+  }
+  q.synced = true;
+  q.syncedAt = Date.now();
+  try {
+    const { ref, set } = window.firebaseApi;
+    await set(ref(firebaseDb, `roundQuestions/${activeRoundId}/${q.id}`), sanitizeQuestionForFirebase(q));
+    decorateQuestionSyncButtons();
+    if (manual) showToast('Question synced');
+  } catch(e) {
+    console.warn('Question sync failed:', e);
+    if (manual) showToast('Sync failed');
+  }
+}
+
+// Render a question object into the sidebar + map. Mirrors the per-type logic
+// in restoreState() but is safe to call for an incoming synced question.
+// `q` must already be a plain object (no Leaflet markers attached).
+function _renderQuestionIntoApp(q) {
+  if (!q || !q.type) return;
+  if (questions.some(x => String(x.id) === String(q.id))) return; // already present
+  // Bump qCounter so future local questions don't collide with this id
+  const qNum = typeof q.id === 'string' && q.id.indexOf('aq') === 0
+    ? parseInt(q.id.slice(2), 10)
+    : parseInt(q.id, 10);
+  if (!isNaN(qNum) && qCounter < qNum) qCounter = qNum;
+  questions.push(q);
+  if (q.type === 'radar') {
+    if (q.hiderMode) { renderHiderRadarCard(q); redrawOutlineCircle(q); if (q.zone !== 'pending') redrawQuestionOverlay(q); }
+    else {
+      renderSeekerRadarCard(q); placeSeekerPin(q);
+      requestAnimationFrame(() => {
+        const el = document.getElementById(`rad-inp-${q.id}`);
+        if (el) el.value = q.radius;
+        document.getElementById(`unit-m-${q.id}`)?.classList.toggle('active', q.unit==='M');
+        document.getElementById(`unit-km-${q.id}`)?.classList.toggle('active', q.unit==='KM');
+        if (q.zone !== 'pending') {
+          document.getElementById(`zpend-${q.id}`)?.classList.remove('active-pend');
+          document.getElementById(`z${q.zone==='inside'?'in':'out'}-${q.id}`)?.classList.add(q.zone==='inside'?'active-in':'active-out');
+          redrawOutlineCircle(q); redrawQuestionOverlay(q);
+        } else { redrawOutlineCircle(q); }
+      });
+      if (q.locked) requestAnimationFrame(() => {
+        const btn = document.getElementById(`lock-btn-${q.id}`);
+        if (btn) { btn.textContent='🔓 Locked'; btn.classList.add('locked'); }
+        if (q.marker) q.marker.dragging.disable();
+      });
+    }
+  } else if (q.type === 'thermo') {
+    if (q.hiderMode) { renderHiderThermoCard(q); if (q.closer !== 'pending') redrawQuestionOverlay(q); }
+    else {
+      renderSeekerThermoCard(q); placeThermoPin(q,'A'); placeThermoPin(q,'B'); updateThermoDistance(q);
+      if (q.closer !== 'pending') requestAnimationFrame(() => setCloser(q.id, q.closer));
+      if (q.locked) requestAnimationFrame(() => {
+        const btn = document.getElementById(`tlock-btn-${q.id}`);
+        if (btn) { btn.textContent='🔓 Locked'; btn.classList.add('locked'); }
+        if (q.markerA) q.markerA.dragging.disable();
+        if (q.markerB) q.markerB.dragging.disable();
+      });
+    }
+  } else if (q.type === 'matching') {
+    if (q.hiderMode) { renderHiderMatchingCard(q); if (typeof checkHiderMatching === 'function') checkHiderMatching(q); }
+    else {
+      renderSeekerMatchingCard(q); placeSeekerMatchingPin(q);
+      if (typeof updateMatchingNearest === 'function') updateMatchingNearest(q);
+      if (typeof showMatchingLocMarkers === 'function') showMatchingLocMarkers(q);
+      if (typeof showAreaFeatures === 'function') showAreaFeatures(q);
+      if (q.answer !== 'pending') requestAnimationFrame(() => setMatchingAnswer(q.id, q.answer));
+      if (q.locked) requestAnimationFrame(() => {
+        const btn = document.getElementById(`mlock-btn-${q.id}`);
+        if (btn) { btn.textContent='🔓 Locked'; btn.classList.add('locked'); }
+        if (q.marker) q.marker.dragging.disable();
+      });
+    }
+  } else if (q.type === 'measuring') {
+    if (q.hiderMode) { renderHiderMeasuringCard(q); if (typeof checkHiderMeasuring === 'function') checkHiderMeasuring(q); }
+    else {
+      renderSeekerMeasuringCard(q); placeSeekerMeasuringPin(q);
+      if (typeof updateMeasuringNearest === 'function') updateMeasuringNearest(q);
+      if (typeof showMeasuringLocMarkers === 'function') showMeasuringLocMarkers(q);
+      if (q.answer !== 'pending') requestAnimationFrame(() => setMeasuringAnswer(q.id, q.answer));
+      if (q.locked) requestAnimationFrame(() => {
+        const btn = document.getElementById(`measlock-btn-${q.id}`);
+        if (btn) { btn.textContent='🔓 Locked'; btn.classList.add('locked'); }
+        if (q.marker) q.marker.dragging.disable();
+      });
+    }
+  } else if (q.type === 'angle') {
+    if (q.hiderMode) {
+      renderHiderAngleCard(q);
+      if (typeof checkHiderAngle === 'function') checkHiderAngle(q);
+    } else {
+      renderAngleCard(q);
+      angleQuestionSetupMap(q);
+      if (q.zone !== 'pending') requestAnimationFrame(() => redrawQuestionOverlay());
+    }
+  }
+  if (typeof _qAfterRestore === 'function') _qAfterRestore(q);
+  if (typeof scheduleRebuild === 'function') requestAnimationFrame(() => scheduleRebuild());
+  requestAnimationFrame(() => { if (typeof applyHideLockedPins === 'function') applyHideLockedPins(); });
+}
+
+// Merge an incoming question snapshot into local state. Adds new questions,
+// marks existing ones as synced, and picks up locked/answer updates from
+// teammates (without overwriting a local answer that's already set).
+function _mergeIncomingQuestions(incoming) {
+  if (!incoming || typeof incoming !== 'object') return false;
+  let added = 0, updated = 0;
+  for (const [id, remote] of Object.entries(incoming)) {
+    if (!remote || typeof remote !== 'object') continue;
+    const local = (questions || []).find(x => String(x.id) === String(id));
+    if (local) {
+      local.synced = true;
+      // Pick up lock state from teammates
+      if (remote.locked && !local.locked) {
+        local.locked = true;
+        // Update the lock button UI
+        const lockBtnId = local.type === 'radar' ? `lock-btn-${local.id}`
+          : local.type === 'thermo' ? `tlock-btn-${local.id}`
+          : local.type === 'matching' ? `mlock-btn-${local.id}`
+          : local.type === 'measuring' ? `measlock-btn-${local.id}` : null;
+        if (lockBtnId) {
+          const btn = document.getElementById(lockBtnId);
+          if (btn) { btn.textContent='🔓 Locked'; btn.classList.add('locked'); }
+        }
+        if (local.marker && local.marker.dragging) local.marker.dragging.disable();
+        if (local.markerA && local.markerA.dragging) local.markerA.dragging.disable();
+        if (local.markerB && local.markerB.dragging) local.markerB.dragging.disable();
+        if (typeof applyHideLockedPins === 'function') applyHideLockedPins();
+        updated++;
+      }
+      // Pick up answer if local hasn't answered yet (team collaboration)
+      const answerField = local.type === 'radar' ? 'zone'
+        : local.type === 'thermo' ? 'closer'
+        : (local.type === 'matching' || local.type === 'measuring') ? 'answer'
+        : local.type === 'angle' ? 'zone' : null;
+      if (answerField && local[answerField] === 'pending' && remote[answerField] && remote[answerField] !== 'pending') {
+        local[answerField] = remote[answerField];
+        // Apply the answer through the existing setter so the overlay + UI update
+        try {
+          if (local.type === 'radar') requestAnimationFrame(() => {
+            document.getElementById(`zpend-${local.id}`)?.classList.remove('active-pend');
+            document.getElementById(`z${local.zone==='inside'?'in':'out'}-${local.id}`)?.classList.add(local.zone==='inside'?'active-in':'active-out');
+            redrawOutlineCircle(local); redrawQuestionOverlay(local);
+          });
+          else if (local.type === 'thermo') requestAnimationFrame(() => setCloser(local.id, local.closer));
+          else if (local.type === 'matching') requestAnimationFrame(() => setMatchingAnswer(local.id, local.answer));
+          else if (local.type === 'measuring') requestAnimationFrame(() => setMeasuringAnswer(local.id, local.answer));
+          else if (local.type === 'angle') requestAnimationFrame(() => redrawQuestionOverlay());
+        } catch(e) { console.warn('Apply remote answer failed:', e); }
+        updated++;
+      }
+    } else {
+      // New question from a teammate — render it locally
+      const clone = Object.assign({}, remote);
+      clone.synced = true;
+      clone._remote = true; // flag: don't re-push to Firebase
+      _renderQuestionIntoApp(clone);
+      added++;
+    }
+  }
+  return added > 0 || updated > 0;
+}
+
+function subscribeRoundQuestions() {
+  if (roundQuestionsUnsubscribe) {
+    try { roundQuestionsUnsubscribe(); } catch(e) {}
+    roundQuestionsUnsubscribe = null;
+  }
+  if (!activeRoundId || activeRoundIsTest || !firebaseDb) return;
+  const { ref, onValue } = window.firebaseApi;
+  roundQuestionsUnsubscribe = onValue(ref(firebaseDb, `roundQuestions/${activeRoundId}`), snap => {
+    const incoming = snap.val() || {};
+    const changed = _mergeIncomingQuestions(incoming);
+    decorateQuestionSyncButtons();
+    if (changed && typeof saveState === 'function') saveState();
+  });
+}
+
+function decorateQuestionSyncButtons() {
+  if (!activeRoundId || activeRoundIsTest) return;
+  for (const q of questions || []) {
+    const card = (q.type === 'angle') ? document.getElementById('angle-card-' + q.id) : document.getElementById('q-card-' + q.id);
+    const header = card && card.querySelector('.q-card-header');
+    if (!header || header.querySelector('.sync-question-btn')) continue;
+    const btn = document.createElement('button');
+    btn.className = 'sync-question-btn';
+    btn.type = 'button';
+    btn.onclick = e => { e.stopPropagation(); syncRoundQuestion(q.id, true); };
+    header.appendChild(btn);
+  }
+  for (const btn of document.querySelectorAll('.sync-question-btn')) {
+    const card = btn.closest('.q-card, .angleq-card');
+    const id = card && card.id ? card.id.replace('q-card-', '').replace('angle-card-', '') : '';
+    const q = (questions || []).find(x => String(x.id) === String(id));
+    btn.textContent = q && q.synced ? 'Synced' : 'Sync';
+    btn.classList.toggle('synced', !!(q && q.synced));
+  }
+}
+
+function syncQuestionOnLock(id) {
+  const q = (questions || []).find(x => String(x.id) === String(id));
+  if (q && q.locked) syncRoundQuestion(id, false);
+}
+
+function restoreActiveRoundPointer() {
+  try {
+    const raw = localStorage.getItem(ACTIVE_ROUND_KEY);
+    if (!raw) return;
+    const st = JSON.parse(raw);
+    if (st && st.roundId) activateRound(st.roundId, !!st.test);
+  } catch(e) {}
+}
 window.addEventListener("load", initFirebase);
 </script>
 
@@ -3869,6 +4274,25 @@ window.addEventListener("load", initFirebase);
 <script>
 // ── FAB badge wiring (needs curses.js loaded) ──────────────────
 // Patch _cpAddToDeck and _cpRemove to keep badge up to date
+(function() {
+  const lockNames = ['toggleSeekerLock','toggleThermoLock','toggleMatchingLock','toggleMeasuringLock','toggleAngleLock'];
+  for (const name of lockNames) {
+    const original = window[name];
+    if (typeof original !== 'function') continue;
+    window[name] = function(id) {
+      const result = original.apply(this, arguments);
+      setTimeout(() => syncQuestionOnLock(id), 0);
+      return result;
+    };
+  }
+  const list = document.getElementById('question-list');
+  if (list) {
+    const obs = new MutationObserver(() => requestAnimationFrame(decorateQuestionSyncButtons));
+    obs.observe(list, { childList:true, subtree:true });
+  }
+  restoreActiveRoundPointer();
+})();
+
 const __origCpAdd = _cpAddToDeck;
 window._cpAddToDeck = function(id) {
   __origCpAdd(id);
@@ -3886,6 +4310,272 @@ window._cpRemove = function(idx) {
   if (btn) btn.classList.toggle('sp-active', _cpCollapseExtra);
   if (st)  st.textContent = _cpCollapseExtra ? 'ON' : 'OFF';
 })();
+</script>
+
+<!-- ── ROUND TIMELINE PANEL ──────────────────────────────────────────────── -->
+<div id="timeline-panel">
+  <div class="tl-head">
+    <span class="tl-title">📊 Round Timeline</span>
+    <span class="tl-time" id="tl-time-display">--:--:--</span>
+    <span class="tl-spacer"></span>
+    <button class="tl-btn" id="tl-play-btn" onclick="timelineTogglePlay()">▶ Play</button>
+    <button class="tl-btn" id="tl-fit-btn" onclick="timelineFitPath()">📍 Fit</button>
+    <button class="tl-btn" id="tl-close-btn" onclick="closeRoundTimeline()">✕ Close</button>
+  </div>
+  <input type="range" id="timeline-scrubber" min="0" max="1000" value="0" oninput="onTimelineScrub(this.value)">
+  <div class="tl-markers" id="tl-markers"></div>
+  <div class="tl-legend">
+    <span><span class="dot path"></span>Tracker path</span>
+    <span><span class="dot q"></span>Question synced</span>
+    <span><span class="dot locked"></span>Question locked</span>
+    <span id="tl-info" style="margin-left:auto;color:var(--muted)"></span>
+  </div>
+</div>
+
+<script>
+// ── ROUND TIMELINE — read-back + scrubber for past rounds ─────────────────────
+// Fetches tracker samples + synced questions for the active round and renders
+// a scrubable timeline. As you drag the time bar, the tracker path grows,
+// the tracker dot moves, and question pins appear on the map when they were
+// synced/locked. This gives a timestamped replay of how the round played out.
+let timelineActive = false;
+let timelineSamples = [];      // [{lat,lng,capturedAt,...}] sorted by capturedAt
+let timelineQuestions = [];    // [{...q, syncedAt, updatedAt}] sorted by syncedAt
+let timelineStartTs = 0;
+let timelineEndTs = 0;
+let timelineCurrentTs = 0;
+let timelinePlaying = false;
+let timelinePlayTimer = null;
+let timelinePathLayer = null;  // Leaflet polyline (full path, faded)
+let timelineActivePathLayer = null; // Leaflet polyline (up to scrubber, bright)
+let timelineDotMarker = null;  // Leaflet marker at scrubber position
+let timelineQuestionLayers = []; // Leaflet markers/circles for visible questions
+
+async function openRoundTimeline(roundId) {
+  if (!roundId || !firebaseDb) { showToast('No round selected'); return; }
+  // Activate the round (so its data is live) then open the timeline panel
+  if (activeRoundId !== roundId) activateRound(roundId, false);
+  showToast('Loading timeline…');
+  const { ref, get } = window.firebaseApi;
+  try {
+    // Fetch tracker samples
+    const trackSnap = await get(ref(firebaseDb, `roundTrackerTimeline/${roundId}`));
+    const trackData = trackSnap.val() || {};
+    timelineSamples = Object.values(trackData).filter(s => s && typeof s.lat === 'number').sort((a,b) => (a.capturedAt||0) - (b.capturedAt||0));
+    // Fetch synced questions
+    const qSnap = await get(ref(firebaseDb, `roundQuestions/${roundId}`));
+    const qData = qSnap.val() || {};
+    timelineQuestions = Object.values(qData).filter(q => q && q.type).sort((a,b) => (a.syncedAt||a.updatedAt||0) - (b.syncedAt||b.updatedAt||0));
+    if (!timelineSamples.length && !timelineQuestions.length) {
+      showToast('No timeline data for this round');
+      return;
+    }
+    // Compute time range
+    const allTs = [];
+    for (const s of timelineSamples) if (s.capturedAt) allTs.push(s.capturedAt);
+    for (const q of timelineQuestions) { if (q.syncedAt) allTs.push(q.syncedAt); if (q.updatedAt) allTs.push(q.updatedAt); }
+    if (!allTs.length) { showToast('No timestamps in timeline data'); return; }
+    timelineStartTs = Math.min(...allTs);
+    timelineEndTs = Math.max(...allTs);
+    timelineCurrentTs = timelineStartTs;
+    // Open UI
+    timelineActive = true;
+    document.getElementById('timeline-panel').classList.add('open');
+    document.body.classList.add('timeline-active');
+    // Clear any existing timeline layers
+    clearTimelineLayers();
+    // Render full path (faded) + markers on the scrubber bar
+    renderTimelineFullPath();
+    renderTimelineMarkers();
+    // Set scrubber to start
+    const scrub = document.getElementById('timeline-scrubber');
+    scrub.value = 0;
+    onTimelineScrub(0);
+    timelineFitPath();
+    showToast(`Timeline loaded: ${timelineSamples.length} samples, ${timelineQuestions.length} questions`);
+  } catch(e) {
+    console.warn('Timeline load failed:', e);
+    showToast('Timeline load failed: ' + (e.message || e));
+  }
+}
+
+function closeRoundTimeline() {
+  timelineActive = false;
+  timelinePause();
+  document.getElementById('timeline-panel').classList.remove('open');
+  document.body.classList.remove('timeline-active');
+  clearTimelineLayers();
+}
+
+function clearTimelineLayers() {
+  if (timelinePathLayer && map) { try { map.removeLayer(timelinePathLayer); } catch(e) {} timelinePathLayer = null; }
+  if (timelineActivePathLayer && map) { try { map.removeLayer(timelineActivePathLayer); } catch(e) {} timelineActivePathLayer = null; }
+  if (timelineDotMarker && map) { try { map.removeLayer(timelineDotMarker); } catch(e) {} timelineDotMarker = null; }
+  for (const layer of timelineQuestionLayers) {
+    if (layer && map) { try { map.removeLayer(layer); } catch(e) {} }
+  }
+  timelineQuestionLayers = [];
+}
+
+function renderTimelineFullPath() {
+  if (!map || !timelineSamples.length) return;
+  const pts = timelineSamples.map(s => [s.lat, s.lng]);
+  // Full path: faded grey
+  timelinePathLayer = L.polyline(pts, {
+    color: '#55ddaa', weight: 2, opacity: 0.2, interactive: false
+  }).addTo(map);
+  // Active path (up to scrubber): bright — will be updated by onTimelineScrub
+  timelineActivePathLayer = L.polyline([], {
+    color: '#55ddaa', weight: 3.5, opacity: 0.85, interactive: false
+  }).addTo(map);
+}
+
+function renderTimelineMarkers() {
+  const container = document.getElementById('tl-markers');
+  if (!container) return;
+  container.innerHTML = '';
+  if (!timelineEndTs || timelineEndTs <= timelineStartTs) return;
+  const span = timelineEndTs - timelineStartTs;
+  // Place a marker for each synced question
+  for (const q of timelineQuestions) {
+    const ts = q.syncedAt || q.updatedAt || 0;
+    if (!ts) continue;
+    const pct = ((ts - timelineStartTs) / span) * 100;
+    if (pct < 0 || pct > 100) continue;
+    const marker = document.createElement('div');
+    marker.className = 'tl-marker' + (q.locked ? ' locked' : '');
+    marker.style.left = pct + '%';
+    marker.title = `Q#${q.id} (${q.type}) ${q.locked ? 'locked' : 'synced'} at ${new Date(ts).toLocaleTimeString()}`;
+    marker.onclick = () => { timelineCurrentTs = ts; updateScrubberFromTs(); renderTimelineAtTs(); };
+    container.appendChild(marker);
+  }
+}
+
+function onTimelineScrub(value) {
+  if (!timelineActive || !timelineEndTs) return;
+  const pct = Number(value) / 1000;
+  timelineCurrentTs = timelineStartTs + pct * (timelineEndTs - timelineStartTs);
+  renderTimelineAtTs();
+}
+
+function updateScrubberFromTs() {
+  if (!timelineEndTs || timelineEndTs <= timelineStartTs) return;
+  const pct = (timelineCurrentTs - timelineStartTs) / (timelineEndTs - timelineStartTs);
+  const scrub = document.getElementById('timeline-scrubber');
+  if (scrub) scrub.value = Math.round(pct * 1000);
+}
+
+function renderTimelineAtTs() {
+  // Update time display
+  const display = document.getElementById('tl-time-display');
+  if (display) {
+    const d = new Date(timelineCurrentTs);
+    display.textContent = d.toLocaleTimeString();
+  }
+  // Update active path (samples up to current ts)
+  if (timelineActivePathLayer && timelineSamples.length) {
+    const pts = timelineSamples.filter(s => s.capturedAt <= timelineCurrentTs).map(s => [s.lat, s.lng]);
+    timelineActivePathLayer.setLatLngs(pts);
+  }
+  // Update tracker dot at the latest sample up to current ts
+  if (timelineSamples.length) {
+    let latest = null;
+    for (const s of timelineSamples) {
+      if (s.capturedAt <= timelineCurrentTs) latest = s;
+      else break;
+    }
+    if (latest) {
+      const ll = [latest.lat, latest.lng];
+      const html = '<span class="loc-pulse tracker-pulse"></span><div class="loc-dot tracker-dot">^</div>';
+      const icon = L.divIcon({ html, className:'', iconSize:[42,42], iconAnchor:[21,21] });
+      if (!timelineDotMarker) {
+        timelineDotMarker = L.marker(ll, { icon, zIndexOffset:860 }).addTo(map);
+      } else {
+        timelineDotMarker.setLatLng(ll).setIcon(icon);
+      }
+    } else if (timelineDotMarker) {
+      try { map.removeLayer(timelineDotMarker); } catch(e) {}
+      timelineDotMarker = null;
+    }
+  }
+  // Update question markers: show questions synced/locked up to current ts
+  // Remove old ones
+  for (const layer of timelineQuestionLayers) {
+    if (layer && map) { try { map.removeLayer(layer); } catch(e) {} }
+  }
+  timelineQuestionLayers = [];
+  let visibleQ = 0, lockedQ = 0;
+  for (const q of timelineQuestions) {
+    const ts = q.syncedAt || q.updatedAt || 0;
+    if (!ts || ts > timelineCurrentTs) continue;
+    visibleQ++;
+    if (q.locked) lockedQ++;
+    // Place a small marker at the question's location
+    let ll = null;
+    if (q.type === 'radar' || q.type === 'matching' || q.type === 'measuring') {
+      if (typeof q.lat === 'number' && typeof q.lng === 'number') ll = [q.lat, q.lng];
+    } else if (q.type === 'thermo') {
+      if (typeof q.latA === 'number') ll = [(q.latA + q.latB)/2, (q.lngA + q.lngB)/2];
+    } else if (q.type === 'angle') {
+      if (typeof q.lat === 'number') ll = [q.lat, q.lng];
+    }
+    if (!ll) continue;
+    const color = q.locked ? '#55ddaa' : 'rgba(255,200,80,.85)';
+    const marker = L.circleMarker(ll, {
+      radius: 7, color, weight: 2, fillColor: color, fillOpacity: 0.4
+    }).addTo(map);
+    marker.bindTooltip(`Q#${q.id} (${q.type}) ${q.locked ? '🔒 locked' : '🔓 synced'}\n${new Date(ts).toLocaleTimeString()}`, { permanent:false });
+    timelineQuestionLayers.push(marker);
+  }
+  // Update info text
+  const info = document.getElementById('tl-info');
+  if (info) info.textContent = `${visibleQ} questions visible (${lockedQ} locked)`;
+}
+
+function timelineTogglePlay() {
+  if (timelinePlaying) timelinePause();
+  else timelinePlay();
+}
+
+function timelinePlay() {
+  if (!timelineActive || !timelineEndTs) return;
+  timelinePlaying = true;
+  const btn = document.getElementById('tl-play-btn');
+  if (btn) btn.innerHTML = '⏸ Pause';
+  const span = timelineEndTs - timelineStartTs;
+  const playDurationMs = Math.min(30000, Math.max(8000, span / 100)); // 8-30s playback
+  const stepMs = 200;
+  const tsPerStep = span * (stepMs / playDurationMs);
+  timelinePlayTimer = setInterval(() => {
+    timelineCurrentTs += tsPerStep;
+    if (timelineCurrentTs >= timelineEndTs) {
+      timelineCurrentTs = timelineEndTs;
+      timelinePause();
+    }
+    updateScrubberFromTs();
+    renderTimelineAtTs();
+  }, stepMs);
+}
+
+function timelinePause() {
+  timelinePlaying = false;
+  if (timelinePlayTimer) { clearInterval(timelinePlayTimer); timelinePlayTimer = null; }
+  const btn = document.getElementById('tl-play-btn');
+  if (btn) btn.innerHTML = '▶ Play';
+}
+
+function timelineFitPath() {
+  if (!map || !timelineSamples.length) return;
+  const pts = timelineSamples.map(s => [s.lat, s.lng]);
+  // Also include question markers in the bounds
+  for (const q of timelineQuestions) {
+    if (typeof q.lat === 'number' && typeof q.lng === 'number') pts.push([q.lat, q.lng]);
+  }
+  if (pts.length) {
+    const bounds = L.latLngBounds(pts);
+    map.fitBounds(bounds, { padding:[40, 40], maxZoom: 15 });
+  }
+}
 </script>
 </body>
 </html>

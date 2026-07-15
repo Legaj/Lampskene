@@ -86,6 +86,7 @@ async function toggleCursePanel() {
   _cpOpen = true;
   document.getElementById('curse-panel').classList.add('open');
   document.getElementById('curse-btn').classList.add('open');
+  document.getElementById('mnav-curses-btn')?.classList.add('mnav-open');
   _cpRender();
 }
 
@@ -93,14 +94,16 @@ function _cpClose() {
   _cpOpen = false;
   document.getElementById('curse-panel').classList.remove('open');
   document.getElementById('curse-btn').classList.remove('open');
+  document.getElementById('mnav-curses-btn')?.classList.remove('mnav-open');
 }
 
 document.addEventListener('click', function(e) {
   if (!_cpOpen) return;
   const panel = document.getElementById('curse-panel');
   const btn   = document.getElementById('curse-btn');
+  const mbtn  = document.getElementById('mnav-curses-btn');
   const fab   = document.getElementById('curse-fab');
-  if (panel && btn && !panel.contains(e.target) && !btn.contains(e.target) && !(fab && fab.contains(e.target))) {
+  if (panel && btn && !panel.contains(e.target) && !btn.contains(e.target) && !(mbtn && mbtn.contains(e.target)) && !(fab && fab.contains(e.target))) {
     _cpClose();
   }
 }, true);

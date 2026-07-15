@@ -44,8 +44,10 @@ function _hideEndgameZoneLayer() {
 }
 
 // Archive current questions (with their markers/overlays cleaned up), clear
-// the sidebar, then draw the green viable-area circle.
-function _startEndgame(zone) {
+// the sidebar, then draw the green viable-area circle. If `isHider` is true,
+// also prompt the hider to place their endgame pin (their final hiding spot
+// for the endgame phase — all future questions answer from here).
+function _startEndgame(zone, isHider) {
   if (!zone) return;
   _endgameZone = zone;
   _endgameActive = true;
@@ -76,13 +78,21 @@ function _startEndgame(zone) {
   if (map) map.setView([zone.lat, zone.lng], 14);
 
   // Show endgame banner card at the top of the sidebar
-  _renderEndgameBanner();
+  _renderEndgameBanner(isHider);
+
+  // Hider: prompt to place the endgame pin (their final spot). All future
+  // questions will answer from this pin via getActiveHiderPin().
+  if (isHider && typeof addEndgameCard === 'function') {
+    setTimeout(() => addEndgameCard(), 300);
+  }
 
   if (typeof saveState !== 'undefined') saveState();
-  showToast('🏁 Endgame started — green circle marks the viable area');
+  showToast(isHider
+    ? '🏁 Endgame started — place your endgame pin + send the code to seekers'
+    : '🏁 Endgame started — track the hider inside the green zone');
 }
 
-function _renderEndgameBanner() {
+function _renderEndgameBanner(isHider) {
   let banner = document.getElementById('endgame-banner');
   if (!banner) {
     banner = document.createElement('div');
@@ -94,6 +104,15 @@ function _renderEndgameBanner() {
     if (ql) ql.insertBefore(banner, ql.firstChild);
   }
   if (!_endgameZone) { banner.remove(); return; }
+  const endgameCode = _endgameCodeFromZone(_endgameZone);
+  // Hider sees the code to share + a "copy" button. Seeker sees a "track the hider" message.
+  const codeBlock = isHider ? `
+      <div style="font-size:10px;color:var(--text2);margin-top:6px">Endgame code (send to seekers):</div>
+      <div class="coord-disp" style="font-family:monospace;user-select:all;word-break:break-all">${endgameCode}</div>
+      <div class="icon-btns" style="margin-top:4px">
+        <button class="icon-btn go-btn" style="border-color:rgba(85,221,170,.4);color:#55ddaa" onclick="copyEndgameZoneCode()">📋 Copy Code</button>
+      </div>` : `
+      <div style="font-size:11px;color:var(--text2);margin-top:6px">Track the hider inside this zone. All new questions answer from the hider's endgame spot.</div>`;
   banner.innerHTML = `
     <div class="q-card-header" style="background:rgba(85,221,170,.12)">
       <span style="font-size:14px">🏁</span>
@@ -103,7 +122,8 @@ function _renderEndgameBanner() {
       <div style="font-size:10px;color:var(--text2)">Hider's zone (viable area):</div>
       <div class="coord-disp">${_endgameZone.lat.toFixed(5)}, ${_endgameZone.lng.toFixed(5)}</div>
       <div style="font-size:10px;color:var(--text2)">Radius: <span style="color:#55ddaa;font-weight:500">${Math.round(_endgameZone.radius)} m</span></div>
-      <div class="icon-btns">
+      ${codeBlock}
+      <div class="icon-btns" style="margin-top:6px">
         <button class="icon-btn go-btn" style="border-color:rgba(85,221,170,.4);color:#55ddaa" onclick="map.setView([${_endgameZone.lat},${_endgameZone.lng}],14)">📍 Go to Zone</button>
         <button class="icon-btn" onclick="exitEndgame()">↩ Exit Endgame</button>
       </div>
@@ -113,11 +133,30 @@ function _renderEndgameBanner() {
 function exitEndgame() {
   if (!_endgameActive) return;
   if (!confirm('Exit endgame mode? Archived questions will be restored.')) return;
+  _endgameExitLocal();
+  // Hider pushes the cleared state to Firebase so seekers exit too.
+  if (typeof mode !== 'undefined' && mode === 'hider' && typeof pushEndgameState === 'function') {
+    pushEndgameState(false, null);
+  }
+}
+
+// Local-only exit (no Firebase push, no confirm prompt). Used when the hider
+// exits remotely and seekers just need to follow.
+function _endgameExitRemote() {
+  if (!_endgameActive) return;
+  _endgameExitLocal();
+  showToast('🏁 Endgame ended by hider — questions restored');
+}
+
+function _endgameExitLocal() {
   _endgameActive = false;
   _endgameZone = null;
   _hideEndgameZoneLayer();
   const banner = document.getElementById('endgame-banner');
   if (banner) banner.remove();
+  // Remove the endgame-pin card if it's still around
+  const egCard = document.getElementById('endgame-card');
+  if (egCard) egCard.remove();
   // Restore archived questions
   questions = _archivedQuestions.slice();
   _archivedQuestions = [];
@@ -155,32 +194,48 @@ function exitEndgame() {
   }
   if (questions.length > 0) requestAnimationFrame(() => scheduleRebuild());
   if (typeof saveState !== 'undefined') saveState();
-  showToast('Exited endgame — questions restored');
 }
 
-// Hider: copy the ENDZONE code for the current hider pin to the clipboard.
+// Hider: copy the ENDZONE code for the current hider pin (or current endgame
+// zone if endgame is already active) to the clipboard.
 function copyEndgameZoneCode() {
-  if (!hiderPin) { showToast('Place your hiding pin first'); return; }
-  if (_endgameActive) { showToast('Endgame already active'); return; }
-  const ll = hiderPin.getLatLng();
-  const radius = (typeof HIDER_ZONE_RADIUS !== 'undefined') ? HIDER_ZONE_RADIUS : 500;
-  const code = _endgameCodeFromZone({ lat: ll.lat, lng: ll.lng, radius });
+  let zone = null;
+  if (_endgameActive && _endgameZone) {
+    zone = _endgameZone;
+  } else if (hiderPin) {
+    const ll = hiderPin.getLatLng();
+    const radius = (typeof HIDER_ZONE_RADIUS !== 'undefined') ? HIDER_ZONE_RADIUS : 500;
+    zone = { lat: ll.lat, lng: ll.lng, radius };
+  } else {
+    showToast('Place your hiding pin first');
+    return;
+  }
+  const code = _endgameCodeFromZone(zone);
   navigator.clipboard.writeText(code).then(() => {
     showToast('✅ Endgame zone code copied — send it to the seekers');
   }).catch(() => showToast(code, 6000));
 }
 
-// Hider: start endgame right now using the current hider pin.
+// Hider: start endgame right now using the current hider pin. Archives all
+// current questions, shows the viable-area circle, displays the endgame code,
+// prompts for the endgame pin, and pushes the state to Firebase so seekers
+// see it instantly.
 function startEndgameNow() {
   if (!hiderPin) { showToast('Place your hiding pin first'); return; }
   if (_endgameActive) { showToast('Endgame already active'); return; }
-  if (!confirm('Start the endgame now?\n\nAll current questions will be archived (kept for export) and the question slate will be cleared. The hider zone will be shown as the viable area.')) return;
+  if (!confirm('Start the endgame now?\n\nAll current questions will be archived (hidden but kept for export) and the question slate will be cleared. The hider zone will be shown as the viable area. You will then be prompted to place your endgame pin (your final hiding spot).')) return;
   const ll = hiderPin.getLatLng();
   const radius = (typeof HIDER_ZONE_RADIUS !== 'undefined') ? HIDER_ZONE_RADIUS : 500;
-  _startEndgame({ lat: ll.lat, lng: ll.lng, radius });
+  const zone = { lat: ll.lat, lng: ll.lng, radius };
+  _startEndgame(zone, true); // isHider=true → prompt for endgame pin
+  // Push to Firebase so seekers in the same round see endgame start instantly.
+  if (typeof pushEndgameState === 'function') pushEndgameState(true, zone);
 }
 
-// Common: given an ENDZONE-... raw code, prompt and start the endgame.
+// Seeker: consume an ENDZONE-... code pasted into the seeker code field.
+// Archives all current questions and shows the viable-area circle so the
+// seeker can track the hider. Does NOT prompt for an endgame pin (seekers
+// don't place one — only the hider does).
 function _consumeEndgameCode(raw) {
   const zone = _parseEndgameCode(raw);
   if (!zone) return false;
@@ -188,7 +243,7 @@ function _consumeEndgameCode(raw) {
                'Center: ' + zone.lat.toFixed(5) + ', ' + zone.lng.toFixed(5) + '\n' +
                'Radius: ' + Math.round(zone.radius) + ' m\n\n' +
                'All current questions will be archived (hidden but kept for export).')) return true; // consumed but declined
-  _startEndgame(zone);
+  _startEndgame(zone, false); // isHider=false → seeker view, no pin prompt
   return true;
 }
 
@@ -289,14 +344,11 @@ function toggleQuestionCollapse(id) {
   card.classList.toggle('collapsed');
 }
 
-// Auto-collapse a question immediately after it's been answered.
+// Keep the summary fresh, but never collapse questions unless the user taps them.
 function _qAutoCollapse(q) {
   if (!_qIsAnswered(q)) return;
   const card = _qCardEl(q);
   if (!card) return;
-  // Don't auto-collapse if the user has manually expanded it.
-  if (card.dataset.userToggled === '1') return;
-  _qSetCollapsed(q, true);
   _qRefreshSummary(q);
 }
 
@@ -3133,14 +3185,10 @@ function removeAngleQuestion(id) {
 
 
 // Called from index.html restoreState() after each question card is rendered.
-// Refreshes the summary chip and auto-collapses if the question is answered.
+// Refreshes the summary chip without changing the card's expanded state.
 function _qAfterRestore(q) {
   if (!q) return;
   _qRefreshSummary(q);
-  if (_qIsAnswered(q)) {
-    // Slight delay to ensure the DOM is fully ready
-    requestAnimationFrame(() => _qAutoCollapse(q));
-  }
 }
 
 
