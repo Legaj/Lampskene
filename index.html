@@ -658,10 +658,17 @@
     }
     #sidebar.open { transform:translateX(0); }
     @media (min-width:769px) {
+      /* Desktop: sidebar is a narrow left-side bar, not a full-screen overlay.
+         The map stays full-width and visible — the sidebar just sits on top
+         of the left edge. No dimming. */
       #sidebar {
-        right:0; width:auto;
+        left:0; right:auto; width:340px;
+        top:var(--header-h); bottom:var(--bar-h);
+        border-right:1px solid var(--border);
+        box-shadow:4px 0 24px rgba(0,0,0,.18);
       }
-      body.sidebar-open #map { opacity:.35; }
+      /* Don't dim the map on desktop — the sidebar is narrow enough to sit beside it */
+      body.sidebar-open #map { opacity:1; }
     }
     .share-panel {
       border:1px solid var(--border); border-radius:var(--r);
@@ -719,13 +726,50 @@
       background:var(--surface2); color:var(--text); font-family:'DM Mono',monospace;
       font-size:10px; padding:7px 9px; outline:none; min-width:0;
     }
-    .account-list { display:flex; flex-direction:column; gap:6px; max-height:124px; overflow:auto; }
+    .account-list { display:flex; flex-direction:column; gap:6px; max-height:160px; overflow:auto; }
     .account-item {
       border:1px solid var(--border); border-radius:8px; padding:8px;
       display:grid; grid-template-columns:1fr auto; gap:8px; align-items:center;
       color:var(--text2); font-size:10px; background:rgba(0,0,0,.08);
     }
+    .account-item .ai-meta { color:var(--muted); font-size:8px; margin-top:2px; }
     .account-muted { color:var(--muted); font-size:9px; letter-spacing:.4px; line-height:1.45; }
+
+    /* ── Classic Google Sign-In button ───────────────────────────────────── */
+    .gsi-btn {
+      display:flex; align-items:center; justify-content:center; gap:10px;
+      width:100%; min-height:42px; padding:0 14px;
+      background:#fff; color:#3c4043; border:1px solid #dadce0; border-radius:6px;
+      font-family:'Roboto',Arial,sans-serif; font-size:14px; font-weight:500;
+      cursor:pointer; transition:background .15s, box-shadow .15s;
+      box-shadow:0 1px 2px rgba(60,64,67,.08);
+    }
+    .gsi-btn:hover { background:#f8f9fa; box-shadow:0 1px 3px rgba(60,64,67,.16); }
+    .gsi-btn:active { background:#f1f3f4; }
+    .gsi-btn:disabled { opacity:.5; cursor:not-allowed; }
+    .gsi-btn .gsi-icon {
+      width:18px; height:18px; flex-shrink:0;
+    }
+    .gsi-btn.signed-in {
+      background:#1a73e8; color:#fff; border-color:#1a73e8;
+    }
+    .gsi-btn.signed-in:hover { background:#1765cc; }
+    .gsi-btn.signed-in .gsi-icon { display:none; }
+
+    /* Account header shown after login */
+    .account-header {
+      display:flex; align-items:center; gap:10px; padding:8px 10px;
+      border:1px solid var(--border); border-radius:8px; background:rgba(0,0,0,.06);
+    }
+    .account-avatar {
+      width:36px; height:36px; border-radius:50%; flex-shrink:0;
+      background:var(--surface2); display:flex; align-items:center; justify-content:center;
+      font-size:16px; overflow:hidden;
+    }
+    .account-avatar img { width:100%; height:100%; object-fit:cover; }
+    .account-info { flex:1; min-width:0; }
+    .account-info .ai-name { font-size:12px; color:var(--text); font-weight:500; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+    .account-info .ai-email { font-size:10px; color:var(--muted); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
     .sync-question-btn {
       border:1px solid var(--border2); border-radius:999px; background:transparent;
       color:var(--muted); font-family:'DM Mono',monospace; font-size:8px;
@@ -877,18 +921,32 @@
   <h1>JET<span>LAG</span> STK</h1>
   <p>Choose your role to begin</p>
   <div class="account-panel">
-    <div class="account-row">
-      <button class="sp-btn" id="main-google-btn" onclick="mainGoogleSignInOrOut()">
-        <span>Google</span><span id="main-auth-status">OUT</span>
-      </button>
-      <button class="sp-btn" onclick="startGuestFlow()">
-        <span>Play Guest</span><span>Local</span>
+    <!-- Account header (shown after login) -->
+    <div id="account-header" class="account-header" style="display:none">
+      <div class="account-avatar" id="account-avatar"></div>
+      <div class="account-info">
+        <div class="ai-name" id="account-display-name">--</div>
+        <div class="ai-email" id="account-email">--</div>
+      </div>
+      <button class="sp-btn" style="width:auto;min-width:72px;justify-content:center" onclick="mainGoogleSignInOrOut()">
+        <span>Sign Out</span>
       </button>
     </div>
+    <!-- Google sign-in button (shown before login) -->
+    <button class="gsi-btn" id="main-google-btn" onclick="mainGoogleSignInOrOut()">
+      <svg class="gsi-icon" viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg">
+        <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/>
+        <path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/>
+        <path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/>
+        <path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/>
+      </svg>
+      <span id="main-google-label">Sign in with Google</span>
+    </button>
+    <!-- Signed-in tools (shown after login) -->
     <div id="account-signed-in-tools" style="display:none">
       <div class="account-row">
-        <input class="account-input" id="username-input" placeholder="Username">
-        <button class="sp-btn" onclick="saveUsernameUi()"><span>Save Username</span><span id="username-status">--</span></button>
+        <input class="account-input" id="username-input" placeholder="Username (3+ letters)">
+        <button class="sp-btn" onclick="saveUsernameUi()"><span>Save</span><span id="username-status">--</span></button>
       </div>
       <div class="account-row three" style="margin-top:8px">
         <button class="sp-btn" onclick="createRoundUi('seeker')"><span>New Round</span><span>Seeker</span></button>
@@ -897,25 +955,27 @@
       </div>
       <div class="account-row" style="margin-top:8px">
         <button class="sp-btn" onclick="createPartyUi()"><span>Create Party</span><span>Team</span></button>
-        <input class="account-input" id="invite-username-input" placeholder="Invite username">
+        <input class="account-input" id="invite-username-input" placeholder="Invite by username">
       </div>
       <div class="account-row" style="margin-top:8px">
-        <button class="sp-btn" onclick="inviteUsernameUi()"><span>Invite</span><span>Send</span></button>
-        <button class="sp-btn" onclick="refreshAccountLists()"><span>Refresh</span><span>Lists</span></button>
+        <button class="sp-btn" onclick="inviteUsernameUi()"><span>Send Invite</span></button>
+        <button class="sp-btn" onclick="refreshAccountLists()"><span>Refresh</span></button>
       </div>
       <div class="account-muted" id="active-party-status" style="margin-top:8px">No active party.</div>
-      <div class="account-row" style="margin-top:8px">
-        <div>
-          <div class="account-muted">Invites</div>
-          <div class="account-list" id="invite-list"></div>
-        </div>
-        <div>
-          <div class="account-muted">Round Library</div>
-          <div class="account-list" id="round-library-list"></div>
-        </div>
+      <div style="margin-top:10px">
+        <div class="account-muted">Pending Invites</div>
+        <div class="account-list" id="invite-list" style="margin-top:4px"></div>
+      </div>
+      <div style="margin-top:10px">
+        <div class="account-muted">Round History (tap Open to resume, 📊 to replay timeline)</div>
+        <div class="account-list" id="round-library-list" style="margin-top:4px"></div>
       </div>
     </div>
-    <div class="account-muted" id="account-help">Guest rounds stay on this device. Google rounds save rounds, parties, and synced team questions.</div>
+    <!-- Guest button: only shown after login (lets a logged-in user play a local round without saving) -->
+    <button class="sp-btn" id="guest-flow-btn" style="display:none" onclick="startGuestFlow()">
+      <span>Play as Guest (local only)</span>
+    </button>
+    <div class="account-muted" id="account-help">Sign in to save rounds, play with friends, and sync questions across devices. Or just pick Seeker / Hider below to play locally.</div>
   </div>
   <div class="mode-cards">
     <div class="mode-card seeker" onclick="chooseMode('seeker')"><div class="icon">🔍</div><div class="label">Seeker</div></div>
@@ -1037,6 +1097,16 @@
       </div>
       <input class="compact-input" id="tracker-project-id" placeholder="projectId" onchange="setTrackerConfigValue('projectId', this.value)">
       <div class="tracker-status" id="tracker-status">Sign in with an allowed Google account.</div>
+      <!-- Admin panel: shown only when the signed-in user is a tracker admin -->
+      <div id="tracker-admin-panel" style="display:none;margin-top:8px;padding:8px;border:1px solid var(--border2);border-radius:8px;background:rgba(85,221,170,.04)">
+        <div class="sp-label" style="margin:0 0 6px 0;color:#55ddaa">🔧 Tracker Admin — Allowed Emails</div>
+        <div class="account-list" id="tracker-admin-list" style="margin-bottom:6px"></div>
+        <div class="compact-grid slim">
+          <input class="compact-input" id="tracker-admin-email-input" type="email" placeholder="email@gmail.com">
+          <button class="sp-btn" onclick="trackerAdminAddEmail()" style="min-width:64px;justify-content:center"><span>Add</span></button>
+        </div>
+        <div class="account-muted" style="margin-top:4px">Anyone on this list can sign in and pull the tracker. To bootstrap the first admin, add their email in the Firebase console (see FIREBASE_SETUP.md).</div>
+      </div>
     </div>
   </div>
   <div class="advanced-only">
@@ -1994,9 +2064,8 @@ function trackerStatusText(loc, stale) {
 }
 
 function trackerDeniedStatus() {
-  const uid = trackerUser ? trackerUser.uid : '--';
   const email = trackerUser && trackerUser.email ? trackerUser.email : 'this Google account';
-  return `Not allowed yet. Add ${escapeHtml(email)} UID to trackerViewers.<br>UID: ${escapeHtml(uid)}`;
+  return `Not allowed yet. Ask a tracker admin to add <strong>${escapeHtml(email)}</strong> to the allowlist in their Settings → Tracker Admin panel.`;
 }
 
 function trackerAgeText(ts) {
@@ -2023,6 +2092,108 @@ function _syncTrackerUi() {
   if (pullStatus) pullStatus.textContent = trackerEnabled ? 'ON' : 'OFF';
   const pullBtn = document.getElementById('tracker-pull-btn');
   if (pullBtn) pullBtn.classList.toggle('sp-active', trackerEnabled);
+  // Check admin status + load admin list whenever auth state changes
+  if (trackerUser && trackerDb) trackerAdminCheckAndLoad();
+  else {
+    const panel = document.getElementById('tracker-admin-panel');
+    if (panel) panel.style.display = 'none';
+  }
+}
+
+// ── TRACKER ADMIN — email allowlist management ────────────────────────────────
+// The tracker rules allow read/write to /live and /admins only for users whose
+// email is in the /admins allowlist. The first admin is bootstrapped manually
+// in the Firebase console; after that, admins manage the list in-app here.
+let trackerIsAdmin = false;
+let trackerAdminUnsubscribe = null;
+
+function emailToKey(email) {
+  // Firebase keys can contain . and @ but to avoid path ambiguity we encode them
+  return String(email || '').trim().toLowerCase().replace(/\./g, ',');
+}
+function keyToEmail(key) {
+  return String(key || '').replace(/,/g, '.');
+}
+
+async function trackerAdminCheckAndLoad() {
+  if (!trackerUser || !trackerDb) return;
+  const { ref, get, onValue } = window.firebaseApi;
+  const myKey = emailToKey(trackerUser.email || '');
+  if (!myKey) return;
+  try {
+    // Check if current user is an admin
+    const snap = await get(ref(trackerDb, `admins/${myKey}`));
+    trackerIsAdmin = snap.exists();
+    const panel = document.getElementById('tracker-admin-panel');
+    if (panel) panel.style.display = trackerIsAdmin ? 'block' : 'none';
+    if (trackerIsAdmin) {
+      // Subscribe to the admin list so it stays in sync
+      if (trackerAdminUnsubscribe) { try { trackerAdminUnsubscribe(); } catch(e) {} }
+      trackerAdminUnsubscribe = onValue(ref(trackerDb, 'admins'), snap => {
+        trackerAdminRenderList(snap.val() || {});
+      });
+    }
+  } catch(e) {
+    console.warn('Tracker admin check failed:', e);
+  }
+}
+
+function trackerAdminRenderList(admins) {
+  const list = document.getElementById('tracker-admin-list');
+  if (!list) return;
+  const entries = Object.entries(admins);
+  if (!entries.length) {
+    list.innerHTML = '<div class="account-muted">No admins yet</div>';
+    return;
+  }
+  // Sort: current user first, then alphabetical
+  const myEmail = (trackerUser && trackerUser.email || '').toLowerCase();
+  entries.sort((a, b) => {
+    if (keyToEmail(a[0]) === myEmail) return -1;
+    if (keyToEmail(b[0]) === myEmail) return 1;
+    return keyToEmail(a[0]).localeCompare(keyToEmail(b[0]));
+  });
+  const rows = entries.map(([key, val]) => {
+    const email = keyToEmail(key);
+    const isMe = email === myEmail;
+    const addedAt = (val && val.addedAt) ? new Date(val.addedAt).toLocaleDateString() : '';
+    const removeBtn = isMe
+      ? '<span style="color:var(--muted);font-size:8px">(you)</span>'
+      : `<button class="sp-btn" style="min-width:48px;justify-content:center" onclick="trackerAdminRemoveEmail('${escapeHtml(email)}')"><span>✕</span></button>`;
+    return `<div class="account-item"><span>${escapeHtml(email)}${addedAt ? `<div class="ai-meta">added ${addedAt}</div>` : ''}</span>${removeBtn}</div>`;
+  });
+  list.innerHTML = rows.join('');
+}
+
+async function trackerAdminAddEmail() {
+  const input = document.getElementById('tracker-admin-email-input');
+  if (!input || !input.value) return;
+  const email = String(input.value).trim().toLowerCase();
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { showToast('Enter a valid email'); return; }
+  if (!trackerDb || !trackerIsAdmin) { showToast('Admin access required'); return; }
+  const { ref, set } = window.firebaseApi;
+  try {
+    await set(ref(trackerDb, `admins/${emailToKey(email)}`), { addedAt: Date.now(), addedBy: trackerUser.email || '' });
+    input.value = '';
+    showToast(`Added ${email}`);
+  } catch(e) {
+    console.warn('Tracker admin add failed:', e);
+    showToast('Add failed: ' + (e.message || ''));
+  }
+}
+
+async function trackerAdminRemoveEmail(email) {
+  if (!email) return;
+  if (!confirm(`Remove ${email} from the tracker allowlist?`)) return;
+  if (!trackerDb || !trackerIsAdmin) { showToast('Admin access required'); return; }
+  const { ref, remove } = window.firebaseApi;
+  try {
+    await remove(ref(trackerDb, `admins/${emailToKey(email)}`));
+    showToast(`Removed ${email}`);
+  } catch(e) {
+    console.warn('Tracker admin remove failed:', e);
+    showToast('Remove failed: ' + (e.message || ''));
+  }
 }
 
 function setTrackerDeviceId(value) {
@@ -3698,10 +3869,13 @@ async function initFirebase() {
       mainUser = user || null;
       window.currentUid = user ? user.uid : null;
       firebaseReady = !!user;
-      await loadMainProfile();
+      // Update the UI immediately so the user sees their login state,
+      // even if the profile load or list refresh fails (e.g. rules not deployed yet).
       syncAccountUi();
-      refreshAccountLists();
-      if (typeof loadActiveRoundDraft === 'function') loadActiveRoundDraft();
+      try { await loadMainProfile(); } catch(e) { console.warn('Profile load failed:', e); }
+      syncAccountUi(); // refresh again with profile data
+      try { await refreshAccountLists(); } catch(e) { console.warn('Account list refresh failed:', e); }
+      try { if (typeof loadActiveRoundDraft === 'function') await loadActiveRoundDraft(); } catch(e) { console.warn('Draft load failed:', e); }
     });
   }
 
@@ -3768,17 +3942,68 @@ async function loadMainProfile() {
 
 function syncAccountUi() {
   const signedIn = isRealGoogleUser();
-  const status = document.getElementById('main-auth-status');
+  const firebaseConfigured = !!(window.JETLAG_FIREBASE_CONFIGURED && firebaseAuth);
+
+  // Google sign-in button: show/hide based on login state
+  const gsiBtn = document.getElementById('main-google-btn');
+  const gsiLabel = document.getElementById('main-google-label');
+  const accountHeader = document.getElementById('account-header');
   const tools = document.getElementById('account-signed-in-tools');
+  const guestBtn = document.getElementById('guest-flow-btn');
+  const help = document.getElementById('account-help');
+
+  if (signedIn) {
+    // After login: hide the GSI button, show the account header + tools
+    if (gsiBtn) gsiBtn.style.display = 'none';
+    if (accountHeader) accountHeader.style.display = 'flex';
+    if (tools) tools.style.display = 'block';
+    // Show guest button only after login (lets a logged-in user play a local round without saving)
+    if (guestBtn) guestBtn.style.display = 'flex';
+    // Populate account header
+    const name = (mainUser && (mainUser.displayName || (mainProfile && mainProfile.username))) || 'Player';
+    const email = (mainUser && mainUser.email) || '--';
+    const dn = document.getElementById('account-display-name');
+    const em = document.getElementById('account-email');
+    if (dn) dn.textContent = name;
+    if (em) em.textContent = email;
+    const avatar = document.getElementById('account-avatar');
+    if (avatar) {
+      if (mainUser && mainUser.photoURL) {
+        avatar.innerHTML = `<img src="${escapeHtml(mainUser.photoURL)}" alt="" referrerpolicy="no-referrer">`;
+      } else {
+        avatar.textContent = String(name).charAt(0).toUpperCase();
+      }
+    }
+    if (help) help.textContent = 'Signed in. Create a round to play with friends, or pick Seeker / Hider below to play a local round.';
+  } else {
+    // Before login: show GSI button, hide account header + tools
+    if (gsiBtn) {
+      gsiBtn.style.display = 'flex';
+      gsiBtn.classList.remove('signed-in');
+      if (gsiLabel) gsiLabel.textContent = 'Sign in with Google';
+      gsiBtn.disabled = !firebaseConfigured;
+    }
+    if (accountHeader) accountHeader.style.display = 'none';
+    if (tools) tools.style.display = 'none';
+    if (guestBtn) guestBtn.style.display = 'none';
+    if (help) {
+      if (!window.JETLAG_FIREBASE_CONFIGURED) {
+        help.innerHTML = 'Firebase not configured — guest mode works. To enable Google login: edit <code>firebase-config.js</code> and see <code>FIREBASE_SETUP.md</code>. Or just pick Seeker / Hider below to play locally.';
+      } else {
+        help.textContent = 'Sign in with Google to save rounds, play with friends, and sync questions. Or just pick Seeker / Hider below to play locally.';
+      }
+    }
+  }
+
+  // Username input
   const username = document.getElementById('username-input');
   const usernameStatus = document.getElementById('username-status');
-  if (status) status.textContent = signedIn ? 'IN' : 'OUT';
-  document.getElementById('main-google-btn')?.classList.toggle('sp-active', signedIn);
-  if (tools) tools.style.display = signedIn ? 'block' : 'none';
   if (username) username.value = mainProfile && mainProfile.username ? mainProfile.username : '';
   if (usernameStatus) usernameStatus.textContent = mainProfile && mainProfile.username ? 'Saved' : '--';
+
+  // Active party status
   const party = document.getElementById('active-party-status');
-  if (party) party.textContent = activePartyId ? `Active party: ${activePartyId}` : 'No active party.';
+  if (party) party.textContent = activePartyId ? `Active party: ${activePartyId.slice(-8)}` : 'No active party.';
 }
 
 function cleanUsername(value) {
@@ -3967,33 +4192,71 @@ async function refreshAccountLists() {
   if (!firebaseDb || !isRealGoogleUser()) {
     const inv = document.getElementById('invite-list');
     const rounds = document.getElementById('round-library-list');
-    if (inv) inv.innerHTML = '';
-    if (rounds) rounds.innerHTML = '';
+    if (inv) inv.innerHTML = '<div class="account-muted">Sign in to see invites</div>';
+    if (rounds) rounds.innerHTML = '<div class="account-muted">Sign in to see round history</div>';
     return;
   }
   const { ref, get } = window.firebaseApi;
   try {
+    // ── Invites ──
     const inviteSnap = await get(ref(firebaseDb, `users/${mainUser.uid}/invites`));
     const inviteList = document.getElementById('invite-list');
     if (inviteList) {
       const invites = inviteSnap.val() || {};
       const rows = Object.entries(invites).map(([partyId, inv]) =>
-        `<div class="account-item"><span>${escapeHtml(inv.fromUsername || 'Player')} invited you</span><button class="sp-btn" onclick="acceptPartyInvite('${partyId}')"><span>Accept</span></button></div>`
+        `<div class="account-item"><span>${escapeHtml(inv.fromUsername || 'Player')} invited you<div class="ai-meta">${inv.createdAt ? new Date(inv.createdAt).toLocaleDateString() : ''}</div></span><button class="sp-btn" onclick="acceptPartyInvite('${partyId}')"><span>Accept</span></button></div>`
       );
-      inviteList.innerHTML = rows.join('') || '<div class="account-muted">No invites</div>';
+      inviteList.innerHTML = rows.join('') || '<div class="account-muted">No pending invites</div>';
     }
+
+    // ── Round history (with party members) ──
     const roundSnap = await get(ref(firebaseDb, `users/${mainUser.uid}/rounds`));
-    const roundIds = Object.keys(roundSnap.val() || {}).slice(-12).reverse();
+    const roundIds = Object.keys(roundSnap.val() || {}).slice(-20).reverse();
     const rows = [];
     for (const roundId of roundIds) {
       const rs = await get(ref(firebaseDb, `rounds/${roundId}`));
       const r = rs.val() || {};
-      rows.push(`<div class="account-item"><span>${escapeHtml(r.role || 'round')} ${r.createdAt ? new Date(r.createdAt).toLocaleDateString() : ''}</span><button class="sp-btn" onclick="openRound('${roundId}')"><span>Open</span></button><button class="sp-btn" onclick="openRoundTimeline('${roundId}')" title="Replay timeline"><span>📊</span></button></div>`);
+      // Fetch party members if this round belongs to a party
+      let membersText = 'solo';
+      try {
+        if (r.partyId) {
+          const partySnap = await get(ref(firebaseDb, `parties/${r.partyId}`));
+          const party = partySnap.val();
+          if (party && party.members) {
+            const memberUids = Object.keys(party.members);
+            // Look up usernames for each member
+            const names = [];
+            for (const uid of memberUids.slice(0, 8)) {
+              if (uid === mainUser.uid) { names.push('you'); continue; }
+              const ps = await get(ref(firebaseDb, `profiles/${uid}`));
+              const p = ps.val();
+              names.push(p && p.username ? p.username : (p && p.displayName ? p.displayName : 'player'));
+            }
+            membersText = names.join(', ');
+          }
+        } else {
+          membersText = 'solo';
+        }
+      } catch(e) { /* ignore member fetch failures */ }
+      const dateStr = r.createdAt ? new Date(r.createdAt).toLocaleDateString() : '';
+      const roleIcon = r.role === 'hider' ? '🫣' : '🔍';
+      const testTag = r.test ? ' <span style="color:var(--muted)">(test)</span>' : '';
+      rows.push(`<div class="account-item">
+        <span>${roleIcon} ${escapeHtml(r.role || 'round')}${testTag} <span style="color:var(--muted)">${dateStr}</span>
+          <div class="ai-meta">with: ${escapeHtml(membersText)}</div>
+        </span>
+        <span style="display:flex;gap:4px">
+          <button class="sp-btn" onclick="openRound('${roundId}')" title="Open round"><span>Open</span></button>
+          <button class="sp-btn" onclick="openRoundTimeline('${roundId}')" title="Replay timeline"><span>📊</span></button>
+        </span>
+      </div>`);
     }
     const roundList = document.getElementById('round-library-list');
-    if (roundList) roundList.innerHTML = rows.join('') || '<div class="account-muted">No rounds yet</div>';
+    if (roundList) roundList.innerHTML = rows.join('') || '<div class="account-muted">No rounds yet — create one above</div>';
   } catch(e) {
     console.warn('Account list refresh failed:', e);
+    const roundList = document.getElementById('round-library-list');
+    if (roundList) roundList.innerHTML = `<div class="account-muted">Could not load rounds: ${escapeHtml(e.message || '')}</div>`;
   }
 }
 
