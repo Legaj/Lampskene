@@ -8,13 +8,12 @@
 //   3. Enable Authentication > Google sign-in
 //   4. Create a Realtime Database and deploy database.rules.json
 //
-// Until you fill this in, Google login / rounds / parties / sync will be disabled
-// (guest mode and test rounds still work — they don't need Firebase).
+// Until you fill this in, the app stays locked on the Google sign-in screen.
 
 window.JETLAG_FIREBASE_CONFIG = {
   apiKey:           "AIzaSyC-U0lsFxqD6FECuVkDs9JX86xUvuxVas4",
   authDomain:       "lampskene-77ff9.firebaseapp.com",
-  databaseURL:      "https://lampskene-77ff9-default-rtdb.REGION.firebasedatabase.app",
+  databaseURL:      "https://lampskene-77ff9-default-rtdb.europe-west1.firebasedatabase.app",
   projectId:        "lampskene-77ff9",
   storageBucket:    "lampskene-77ff9.firebasestorage.app",
   messagingSenderId:"201288601364",

@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Lampskene Tracker Phone</title>
+  <style>
+    :root { color-scheme: dark; font-family: system-ui, sans-serif; background:#0d0f14; color:#dde4f0; }
+    body { margin:0; min-height:100vh; display:grid; place-items:center; padding:18px; }
+    main { width:min(460px,100%); border:1px solid #354060; border-radius:8px; background:#181d27; padding:16px; display:flex; flex-direction:column; gap:12px; }
+    h1 { margin:0; font-size:22px; letter-spacing:.04em; }
+    label { display:flex; flex-direction:column; gap:6px; color:#a8b4cc; font-size:13px; }
+    input, button { min-height:42px; border-radius:6px; border:1px solid #354060; background:#1f2535; color:#dde4f0; padding:0 12px; font:inherit; }
+    button { cursor:pointer; text-align:left; }
+    button.primary { background:#eeff55; color:#111; border-color:#eeff55; font-weight:700; }
+    button.danger { border-color:#8f3939; color:#ff9090; }
+    #status { border:1px solid #2a3045; border-radius:6px; padding:10px; color:#a8b4cc; line-height:1.45; min-height:52px; }
+  </style>
+</head>
+<body>
+  <main>
+    <h1>Lampskene tracker</h1>
+    <button id="login" class="primary">Sign in with Google</button>
+    <label>
+      Tracker id
+      <input id="tracker-id" value="stenskara" autocomplete="off">
+    </label>
+    <button id="start">Start broadcasting GPS</button>
+    <button id="stop" class="danger">Stop</button>
+    <div id="status">Signed out.</div>
+  </main>
+
+  <script src="firebase-config.js"></script>
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+    import { getAuth, GoogleAuthProvider, signInWithPopup, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+    import { getDatabase, ref, update } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
+
+    const app = initializeApp(window.JETLAG_FIREBASE_CONFIG);
+    const auth = getAuth(app);
+    const db = getDatabase(app);
+    const status = document.getElementById('status');
+    const trackerInput = document.getElementById('tracker-id');
+    let watchId = null;
+    let user = null;
+
+    function setStatus(text) { status.textContent = text; }
+    function trackerId() {
+      return String(trackerInput.value || 'stenskara').trim().toLowerCase().replace(/[^a-z0-9_-]/g, '') || 'stenskara';
+    }
+
+    document.getElementById('login').onclick = async () => {
+      const provider = new GoogleAuthProvider();
+      provider.setCustomParameters({ prompt:'select_account' });
+      await signInWithPopup(auth, provider);
+    };
+
+    document.getElementById('start').onclick = () => {
+      if (!user) { setStatus('Sign in first.'); return; }
+      if (!navigator.geolocation) { setStatus('GPS is not supported on this phone.'); return; }
+      if (watchId !== null) navigator.geolocation.clearWatch(watchId);
+      watchId = navigator.geolocation.watchPosition(async pos => {
+        const c = pos.coords;
+        const id = trackerId();
+        const now = Date.now();
+        try {
+          await update(ref(db), {
+            [`trackerLocations/${id}`]: {
+              lat:c.latitude,
+              lng:c.longitude,
+              accuracyMeters:c.accuracy || 0,
+              speedMps:typeof c.speed === 'number' ? c.speed : 0,
+              bearingDegrees:typeof c.heading === 'number' ? c.heading : 0,
+              updatedAt:now,
+              expiresAt:now + 45000,
+              sourceUid:user.uid,
+              sourceEmail:user.email || ''
+            },
+            [`trackers/${id}/lastAt`]: now,
+            [`trackers/${id}/status`]: 'live'
+          });
+          setStatus(`Broadcasting ${id}\n${c.latitude.toFixed(6)}, ${c.longitude.toFixed(6)}\nAccuracy ${Math.round(c.accuracy || 0)}m`);
+        } catch (e) {
+          setStatus(`Write denied or failed: ${e.message || e}`);
+        }
+      }, err => setStatus(err.message || 'GPS permission denied'), {
+        enableHighAccuracy:true,
+        maximumAge:3000,
+        timeout:15000
+      });
+    };
+
+    document.getElementById('stop').onclick = () => {
+      if (watchId !== null) navigator.geolocation.clearWatch(watchId);
+      watchId = null;
+      setStatus(user ? `Stopped. Signed in as ${user.email || user.uid}.` : 'Stopped.');
+    };
+
+    onAuthStateChanged(auth, next => {
+      user = next || null;
+      setStatus(user ? `Signed in as ${user.email || user.uid}. Ready.` : 'Signed out.');
+    });
+  </script>
+</body>
+</html>

@@ -777,6 +777,15 @@
       flex-shrink:0;
     }
     .sync-question-btn.synced { border-color:rgba(85,221,170,.38); color:#55ddaa; background:rgba(85,221,170,.08); }
+    .tracker-row {
+      border:1px solid var(--border); border-radius:8px; background:rgba(0,0,0,.08);
+      padding:8px; display:flex; flex-direction:column; gap:7px;
+    }
+    .tracker-row-main { display:grid; grid-template-columns:1fr auto; gap:8px; align-items:center; }
+    .tracker-name { color:var(--text); font-size:11px; overflow-wrap:anywhere; }
+    .tracker-meta { color:var(--muted); font-size:8px; line-height:1.45; margin-top:2px; }
+    .tracker-admin-tools { display:flex; gap:6px; align-items:center; }
+    #sl-btn, #mnav-sl-btn { display:none!important; }
 
     /* ── Round Timeline scrubber ─────────────────────────────────────────── */
     #timeline-panel {
@@ -919,7 +928,7 @@
 <!-- MODE SCREEN -->
 <div id="mode-screen">
   <h1>JET<span>LAG</span> STK</h1>
-  <p>Choose your role to begin</p>
+  <p id="mode-screen-subtitle">Sign in to continue</p>
   <div class="account-panel">
     <!-- Account header (shown after login) -->
     <div id="account-header" class="account-header" style="display:none">
@@ -928,9 +937,6 @@
         <div class="ai-name" id="account-display-name">--</div>
         <div class="ai-email" id="account-email">--</div>
       </div>
-      <button class="sp-btn" style="width:auto;min-width:72px;justify-content:center" onclick="mainGoogleSignInOrOut()">
-        <span>Sign Out</span>
-      </button>
     </div>
     <!-- Google sign-in button (shown before login) -->
     <button class="gsi-btn" id="main-google-btn" onclick="mainGoogleSignInOrOut()">
@@ -944,42 +950,31 @@
     </button>
     <!-- Signed-in tools (shown after login) -->
     <div id="account-signed-in-tools" style="display:none">
-      <div class="account-row">
-        <input class="account-input" id="username-input" placeholder="Username (3+ letters)">
-        <button class="sp-btn" onclick="saveUsernameUi()"><span>Save</span><span id="username-status">--</span></button>
+      <button class="sp-btn sp-active" onclick="openRoundRolePicker()" style="justify-content:center">
+        <span>Start a round</span><span id="active-round-menu-status">Ready</span>
+      </button>
+      <div class="account-row" id="round-role-picker" style="display:none;margin-top:8px">
+        <button class="sp-btn" onclick="createRoundUi('hider')"><span>Hider</span></button>
+        <button class="sp-btn" onclick="createRoundUi('seeker')"><span>Seeker</span></button>
       </div>
-      <div class="account-row three" style="margin-top:8px">
-        <button class="sp-btn" onclick="createRoundUi('seeker')"><span>New Round</span><span>Seeker</span></button>
-        <button class="sp-btn" onclick="createRoundUi('hider')"><span>New Round</span><span>Hider</span></button>
-        <button class="sp-btn" onclick="createTestRoundUi()"><span>Test Round</span><span>Local</span></button>
-      </div>
-      <div class="account-row" style="margin-top:8px">
-        <button class="sp-btn" onclick="createPartyUi()"><span>Create Party</span><span>Team</span></button>
-        <input class="account-input" id="invite-username-input" placeholder="Invite by username">
-      </div>
-      <div class="account-row" style="margin-top:8px">
-        <button class="sp-btn" onclick="inviteUsernameUi()"><span>Send Invite</span></button>
-        <button class="sp-btn" onclick="refreshAccountLists()"><span>Refresh</span></button>
-      </div>
-      <div class="account-muted" id="active-party-status" style="margin-top:8px">No active party.</div>
-      <div style="margin-top:10px">
-        <div class="account-muted">Pending Invites</div>
-        <div class="account-list" id="invite-list" style="margin-top:4px"></div>
+      <button class="sp-btn" onclick="openTrackerMenu()" style="margin-top:8px">
+        <span>Trackers</span><span id="menu-tracker-count">0</span>
+      </button>
+      <div class="account-list" id="main-tracker-list" style="display:none;margin-top:6px"></div>
+      <button class="sp-btn" onclick="toggleMenuAccountSettings()" style="margin-top:8px">
+        <span>Settings</span><span id="menu-settings-status">Closed</span>
+      </button>
+      <div id="menu-account-settings" style="display:none;margin-top:8px">
+        <div class="tracker-status" id="menu-account-email">--</div>
+        <button class="sp-btn" onclick="mainGoogleSignInOrOut()" style="margin-top:6px"><span>Logout</span></button>
+        <button class="sp-btn danger" onclick="deleteCurrentAccount()" style="margin-top:6px"><span>Delete account</span></button>
       </div>
       <div style="margin-top:10px">
         <div class="account-muted">Round History (tap Open to resume, 📊 to replay timeline)</div>
         <div class="account-list" id="round-library-list" style="margin-top:4px"></div>
       </div>
     </div>
-    <!-- Guest button: only shown after login (lets a logged-in user play a local round without saving) -->
-    <button class="sp-btn" id="guest-flow-btn" style="display:none" onclick="startGuestFlow()">
-      <span>Play as Guest (local only)</span>
-    </button>
-    <div class="account-muted" id="account-help">Sign in to save rounds, play with friends, and sync questions across devices. Or just pick Seeker / Hider below to play locally.</div>
-  </div>
-  <div class="mode-cards">
-    <div class="mode-card seeker" onclick="chooseMode('seeker')"><div class="icon">🔍</div><div class="label">Seeker</div></div>
-    <div class="mode-card hider"  onclick="chooseMode('hider')"><div class="icon">🫣</div><div class="label">Hider</div></div>
+    <div class="account-muted" id="account-help">Sign in with Google to play.</div>
   </div>
 </div>
 
@@ -1030,6 +1025,14 @@
     </button>
   </div>
   <div>
+    <div class="sp-label">Account</div>
+    <div class="tracker-status" id="settings-account-email">--</div>
+    <div class="settings-grid" style="margin-top:6px">
+      <button class="sp-btn" onclick="mainGoogleSignInOrOut()"><span>Logout</span></button>
+      <button class="sp-btn danger" onclick="deleteCurrentAccount()"><span>Delete account</span></button>
+    </div>
+  </div>
+  <div>
     <div class="sp-label">Map Layer</div>
     <div class="sp-pills">
       <button class="layer-btn"        id="btn-base"  onclick="setBase('tf-transport')">Transit</button>
@@ -1042,6 +1045,9 @@
       <button class="layer-btn" id="area-mode-medium" onclick="setGameAreaMode('medium')">Medium</button>
       <button class="layer-btn" id="area-mode-small" onclick="setGameAreaMode('small')">Small</button>
     </div>
+    <button class="sp-btn" onclick="toggleSlPanel()" style="margin-top:8px">
+      <span>SL Lines</span><span id="settings-lines-status">Open</span>
+    </button>
   </div>
   <div>
     <div class="sp-label">Comfort</div>
@@ -1078,35 +1084,19 @@
     <button class="sp-btn" id="loc-transit-btn" onclick="toggleOnTransit()" style="margin-top:6px">
       <span>Show Own GPS</span><span id="loc-transit-status">OFF</span>
     </button>
-    <div class="sp-label" style="margin-top:10px">Tracker Viewer</div>
-    <div class="settings-grid">
-      <button class="sp-btn" id="tracker-auth-btn" onclick="trackerSignInOrOut()">
-        <span>Google</span><span id="tracker-auth-status">OUT</span>
-      </button>
-      <button class="sp-btn" id="tracker-pull-btn" onclick="toggleTrackerViewer()">
-        <span>Pull GPS</span><span id="tracker-pull-status">OFF</span>
-      </button>
+    <div class="sp-label" style="margin-top:10px">Trackers</div>
+    <button class="sp-btn" onclick="openTrackerMenu()">
+      <span>Tracker Menu</span><span id="settings-tracker-count">0</span>
+    </button>
+    <div class="sp-slider-row">
+      <label>Pull</label>
+      <input type="range" class="sp-slider" id="tracker-pull-seconds-new" min="2" max="60" step="1" value="5" oninput="setTrackerPullSeconds(this.value)">
+      <span class="sp-val" id="tracker-pull-seconds-val">5s</span>
     </div>
-    <div class="compact-form">
-      <input class="compact-input" id="tracker-device-id" placeholder="Device ID" value="seeker-1" onchange="setTrackerDeviceId(this.value)">
-      <input class="compact-input" id="tracker-db-url" placeholder="Realtime databaseURL" onchange="setTrackerConfigValue('databaseURL', this.value)">
-      <input class="compact-input" id="tracker-api-key" placeholder="Firebase apiKey" onchange="setTrackerConfigValue('apiKey', this.value)">
-      <div class="compact-grid slim">
-        <input class="compact-input" id="tracker-auth-domain" placeholder="authDomain" onchange="setTrackerConfigValue('authDomain', this.value)">
-        <input class="compact-input" id="tracker-pull-seconds" type="number" min="1" max="300" step="1" value="5" title="Pull interval in seconds" onchange="setTrackerPullSeconds(this.value)">
-      </div>
-      <input class="compact-input" id="tracker-project-id" placeholder="projectId" onchange="setTrackerConfigValue('projectId', this.value)">
-      <div class="tracker-status" id="tracker-status">Sign in with an allowed Google account.</div>
-      <!-- Admin panel: shown only when the signed-in user is a tracker admin -->
-      <div id="tracker-admin-panel" style="display:none;margin-top:8px;padding:8px;border:1px solid var(--border2);border-radius:8px;background:rgba(85,221,170,.04)">
-        <div class="sp-label" style="margin:0 0 6px 0;color:#55ddaa">🔧 Tracker Admin — Allowed Emails</div>
-        <div class="account-list" id="tracker-admin-list" style="margin-bottom:6px"></div>
-        <div class="compact-grid slim">
-          <input class="compact-input" id="tracker-admin-email-input" type="email" placeholder="email@gmail.com">
-          <button class="sp-btn" onclick="trackerAdminAddEmail()" style="min-width:64px;justify-content:center"><span>Add</span></button>
-        </div>
-        <div class="account-muted" style="margin-top:4px">Anyone on this list can sign in and pull the tracker. To bootstrap the first admin, add their email in the Firebase console (see FIREBASE_SETUP.md).</div>
-      </div>
+    <div class="tracker-status" id="tracker-menu-status">No trackers selected.</div>
+    <div class="settings-grid" style="margin-top:6px">
+      <button class="sp-btn" onclick="returnToMainMenu(false)"><span>Main menu</span><span>Keep</span></button>
+      <button class="sp-btn danger" onclick="returnToMainMenu(true)"><span>Main menu</span><span>Delete</span></button>
     </div>
   </div>
   <div class="advanced-only">
@@ -1393,13 +1383,6 @@ let mode = null, questions = [], qCounter = 0;
 window.addEventListener('load', () => {
   // Apply saved layout prefs before mode screen is dismissed
   _applyBottomBarFromStorage();
-  try {
-    const raw = localStorage.getItem('jetlag_state_v1');
-    if (raw) {
-      const st = JSON.parse(raw);
-      if (st && (st.mode === 'seeker' || st.mode === 'hider')) chooseMode(st.mode);
-    }
-  } catch(e) {}
 });
 
 let sidebarOpen = false, typePickerOpen = false;
@@ -1427,12 +1410,6 @@ let _gameAreaGeoCache = {};
 
 const LOC_PREF_KEY = 'jetlag_location_prefs_v1';
 const TRACKER_PREF_KEY = 'jetlag_tracker_viewer_v1';
-const TRACKER_DEFAULT_CONFIG = {
-  apiKey: "AIzaSyDx03TJGucL4NRKYfGHU4W7cA2U8dxdelc",
-  authDomain: "lampskenetracker.firebaseapp.com",
-  databaseURL: "https://lampskenetracker-default-rtdb.europe-west1.firebasedatabase.app/",
-  projectId: "lampskenetracker"
-};
 const LOC_MODES = {
   off:      { label:'OFF', high:false, maxAge:Infinity, timeout:8000 },
   saver:    { label:'SAVER', high:false, maxAge:60000, timeout:18000 },
@@ -1450,20 +1427,7 @@ let _headingListenerAttached = false;
 let _locationName = 'Player';
 let _onTransit = false;
 let _locationAgeTimer = null;
-let trackerApp = null;
-let trackerDb = null;
-let trackerAuth = null;
-let trackerUser = null;
-let trackerEnabled = false;
-let trackerDeviceId = 'seeker-1';
 let trackerPullSeconds = 5;
-let trackerConfig = Object.assign({}, TRACKER_DEFAULT_CONFIG);
-let trackerUnsubscribe = null;
-let trackerPollTimer = null;
-let trackerUiTimer = null;
-let trackerLocation = null;
-let trackerMarker = null;
-let trackerAccuracyCircle = null;
 let trackerTimelineLastPush = 0;
 
 // ── MAP INIT ───────────────────────────────────────────────────
@@ -1805,421 +1769,368 @@ function _writeTrackerPrefs(patch) {
   catch(e) {}
 }
 
+function emailToKey(email) {
+  return String(email || '').trim().toLowerCase().replace(/\./g, ',');
+}
+
+// New tracker access model: all tracker reads use the main signed-in Firebase
+// account. Admins are users listed at /admins/{uid}. Normal users only see
+// trackers granted to them at /trackerAccess/{uid}/{trackerId}.
+let trackerCatalog = {};
+let trackerAccessMap = {};
+let trackerLocationMap = {};
+let trackerActiveIds = new Set();
+let trackerMarkers = {};
+let trackerAccuracyCircles = {};
+let trackerCatalogUnsub = null;
+let trackerAccessUnsub = null;
+let trackerMetaUnsub = {};
+let trackerLocationsUnsub = {};
+let appIsAdmin = false;
+
 function initTrackerViewer() {
   const prefs = _readTrackerPrefs();
-  trackerConfig = Object.assign({}, TRACKER_DEFAULT_CONFIG, prefs.config || {});
-  trackerDeviceId = String(prefs.deviceId || trackerDeviceId || 'seeker-1').trim() || 'seeker-1';
-  trackerPullSeconds = Math.max(1, Math.min(300, Number(prefs.pullSeconds || trackerPullSeconds) || 5));
-  trackerEnabled = !!prefs.enabled;
-  const ids = {
-    'tracker-device-id': trackerDeviceId,
-    'tracker-db-url': trackerConfig.databaseURL,
-    'tracker-api-key': trackerConfig.apiKey,
-    'tracker-auth-domain': trackerConfig.authDomain,
-    'tracker-project-id': trackerConfig.projectId,
-    'tracker-pull-seconds': trackerPullSeconds
-  };
-  for (const [id, value] of Object.entries(ids)) {
-    const el = document.getElementById(id);
-    if (el) el.value = value || '';
-  }
-  _syncTrackerUi();
-  try {
-    ensureTrackerFirebase();
-  } catch(e) {
-    _setTrackerStatus(e.message || 'Tracker Firebase config is incomplete');
-  }
-  if (!trackerUiTimer) trackerUiTimer = setInterval(() => {
-    if (trackerLocation) drawTrackerLocation();
-    _syncTrackerUi();
-  }, 1000);
+  trackerPullSeconds = Math.max(2, Math.min(60, Number(prefs.pullSeconds || trackerPullSeconds) || 5));
+  trackerActiveIds = new Set(Array.isArray(prefs.activeTrackers) ? prefs.activeTrackers.map(String) : []);
+  const slider = document.getElementById('tracker-pull-seconds-new') || document.getElementById('tracker-pull-seconds');
+  if (slider) slider.value = trackerPullSeconds;
+  const val = document.getElementById('tracker-pull-seconds-val');
+  if (val) val.textContent = trackerPullSeconds + 's';
+  refreshTrackerSubscriptions();
+  renderTrackerMenus();
 }
 
-function ensureTrackerFirebase() {
-  if (trackerApp && trackerDb && trackerAuth) return true;
-  const { initializeApp, getDatabase, getAuth, onAuthStateChanged } = window.firebaseApi || {};
-  if (!initializeApp || !getDatabase || !getAuth) throw new Error('Firebase SDK is not loaded yet');
-  if (!trackerConfig.apiKey || !trackerConfig.authDomain || !trackerConfig.databaseURL || !trackerConfig.projectId) {
-    throw new Error('Fill in the tracker Firebase config first');
+function openRoundRolePicker() {
+  const picker = document.getElementById('round-role-picker');
+  if (!picker) return;
+  picker.style.display = picker.style.display === 'none' ? 'grid' : 'none';
+}
+
+function toggleMenuAccountSettings() {
+  const panel = document.getElementById('menu-account-settings');
+  const status = document.getElementById('menu-settings-status');
+  if (!panel) return;
+  const open = panel.style.display === 'none';
+  panel.style.display = open ? 'block' : 'none';
+  if (status) status.textContent = open ? 'Open' : 'Closed';
+}
+
+function openTrackerMenu() {
+  const list = document.getElementById('main-tracker-list');
+  if (list) list.style.display = list.style.display === 'none' ? 'flex' : 'none';
+  if (typeof toggleSettingsPanel === 'function') {
+    const settings = document.getElementById('settings-panel');
+    if (settings && !settings.classList.contains('open')) toggleSettingsPanel(true);
   }
-  trackerApp = initializeApp(trackerConfig, 'tracker');
-  trackerDb = getDatabase(trackerApp);
-  trackerAuth = getAuth(trackerApp);
-  if (onAuthStateChanged) {
-    onAuthStateChanged(trackerAuth, user => {
-      trackerUser = user || null;
-      _syncTrackerUi();
-      if (trackerUser && trackerEnabled) startTrackerViewer(false);
-      if (!trackerUser) stopTrackerViewer(false);
+  renderTrackerMenus();
+}
+
+function trackerIsAvailable(id) {
+  return !!(appIsAdmin || trackerAccessMap[id]);
+}
+
+function trackerDisplayName(id, t) {
+  return (t && (t.name || t.label)) || id;
+}
+
+function trackerAgeFromLocation(loc) {
+  const ts = Number((loc && (loc.updatedAt || loc.ts)) || 0);
+  if (!ts) return 'never';
+  const seconds = Math.max(0, Math.round((Date.now() - ts) / 1000));
+  if (seconds < 60) return seconds + 's ago';
+  const minutes = Math.floor(seconds / 60);
+  if (minutes < 60) return minutes + 'm ago';
+  return new Date(ts).toLocaleString();
+}
+
+function trackerStatusFor(id) {
+  const loc = trackerLocationMap[id];
+  if (!loc) return 'No signal yet';
+  const expiresAt = Number(loc.expiresAt || 0);
+  if (expiresAt && expiresAt < Date.now()) return 'Offline';
+  const ts = Number(loc.updatedAt || loc.ts || 0);
+  return ts && Date.now() - ts < 30000 ? 'Live' : 'Stale';
+}
+
+function renderTrackerMenus() {
+  const ids = Object.keys(trackerCatalog).filter(trackerIsAvailable).sort((a,b) => trackerDisplayName(a, trackerCatalog[a]).localeCompare(trackerDisplayName(b, trackerCatalog[b])));
+  const selected = ids.filter(id => trackerActiveIds.has(id)).length;
+  for (const id of ['menu-tracker-count','settings-tracker-count']) {
+    const el = document.getElementById(id);
+    if (el) el.textContent = `${selected}/${ids.length}`;
+  }
+  const status = document.getElementById('tracker-menu-status');
+  if (status) status.textContent = ids.length ? `${selected} tracker${selected === 1 ? '' : 's'} shown on map.` : 'No trackers available to this account.';
+  const email = document.getElementById('menu-account-email');
+  if (email) email.textContent = mainUser && mainUser.email ? `Signed in as ${mainUser.email}` : '--';
+  const settingsEmail = document.getElementById('settings-account-email');
+  if (settingsEmail) settingsEmail.textContent = mainUser && mainUser.email ? `Signed in as ${mainUser.email}` : '--';
+  const html = ids.length ? ids.map(id => trackerRowHtml(id)).join('') : '<div class="account-muted">No trackers available yet.</div>';
+  for (const listId of ['main-tracker-list']) {
+    const list = document.getElementById(listId);
+    if (list) list.innerHTML = html;
+  }
+}
+
+function trackerRowHtml(id) {
+  const t = trackerCatalog[id] || {};
+  const loc = trackerLocationMap[id];
+  const on = trackerActiveIds.has(id);
+  const status = trackerStatusFor(id);
+  const adminTools = appIsAdmin ? `
+    <div class="tracker-admin-tools">
+      <input class="compact-input" id="grant-${id}" type="email" placeholder="friend@email.com">
+      <button class="sp-btn" onclick="grantTrackerAccess('${id}')" style="width:auto;min-width:58px;justify-content:center"><span>Add</span></button>
+    </div>` : '';
+  return `<div class="tracker-row">
+    <div class="tracker-row-main">
+      <div>
+        <div class="tracker-name">${escapeHtml(trackerDisplayName(id, t))}</div>
+        <div class="tracker-meta">${escapeHtml(status)} | updated ${escapeHtml(trackerAgeFromLocation(loc))}${appIsAdmin ? ' | admin' : ''}</div>
+      </div>
+      <button class="sp-btn ${on ? 'sp-active' : ''}" onclick="toggleUserTracker('${id}')" style="width:auto;min-width:74px;justify-content:center">
+        <span>${on ? 'Shown' : 'Hidden'}</span>
+      </button>
+    </div>
+    ${adminTools}
+  </div>`;
+}
+
+function toggleUserTracker(id) {
+  if (!trackerIsAvailable(id)) return;
+  if (trackerActiveIds.has(id)) trackerActiveIds.delete(id);
+  else trackerActiveIds.add(id);
+  _writeTrackerPrefs({ activeTrackers:Array.from(trackerActiveIds), pullSeconds:trackerPullSeconds });
+  refreshTrackerSubscriptions();
+  renderTrackerMenus();
+}
+
+function syncRoundStatusUi() {
+  const menuStatus = document.getElementById('active-round-menu-status');
+  if (menuStatus) menuStatus.textContent = activeRoundId ? 'Active' : 'Ready';
+  const badge = document.getElementById('mode-badge');
+  if (badge && mode) badge.textContent = activeRoundId ? `${mode} | round` : mode;
+}
+
+function setTrackerPullSeconds(value) {
+  trackerPullSeconds = Math.max(2, Math.min(60, Number(value) || 5));
+  const old = document.getElementById('tracker-pull-seconds');
+  const modern = document.getElementById('tracker-pull-seconds-new');
+  if (old) old.value = trackerPullSeconds;
+  if (modern) modern.value = trackerPullSeconds;
+  const val = document.getElementById('tracker-pull-seconds-val');
+  if (val) val.textContent = trackerPullSeconds + 's';
+  _writeTrackerPrefs({ pullSeconds:trackerPullSeconds, activeTrackers:Array.from(trackerActiveIds) });
+  refreshTrackerSubscriptions();
+}
+
+function refreshTrackerSubscriptions() {
+  if (!firebaseDb || !isRealGoogleUser()) return;
+  const { ref, onValue } = window.firebaseApi;
+  if (appIsAdmin && !trackerCatalogUnsub) {
+    trackerCatalogUnsub = onValue(ref(firebaseDb, 'trackers'), snap => {
+      trackerCatalog = snap.val() || {};
+      renderTrackerMenus();
+      refreshTrackerSubscriptions();
     });
   }
-  return true;
-}
-
-async function trackerSignInOrOut() {
-  try {
-    ensureTrackerFirebase();
-    const { GoogleAuthProvider, signInWithPopup, signOut } = window.firebaseApi;
-    if (trackerUser) {
-      await signOut(trackerAuth);
-      _setTrackerStatus('Signed out.');
-      return;
+  if (!appIsAdmin && trackerCatalogUnsub) {
+    try { trackerCatalogUnsub(); } catch(e) {}
+    trackerCatalogUnsub = null;
+    trackerCatalog = {};
+  }
+  if (!trackerAccessUnsub) {
+    trackerAccessUnsub = onValue(ref(firebaseDb, `trackerAccess/${mainUser.uid}`), snap => {
+      trackerAccessMap = snap.val() || {};
+      renderTrackerMenus();
+      refreshTrackerSubscriptions();
+    });
+  }
+  const metaWanted = appIsAdmin ? new Set() : new Set(Object.keys(trackerAccessMap || {}));
+  for (const id of Object.keys(trackerMetaUnsub)) {
+    if (!metaWanted.has(id)) {
+      try { trackerMetaUnsub[id](); } catch(e) {}
+      delete trackerMetaUnsub[id];
+      delete trackerCatalog[id];
     }
-    const provider = new GoogleAuthProvider();
-    provider.setCustomParameters({ prompt:'select_account' });
-    const cred = await signInWithPopup(trackerAuth, provider);
-    trackerUser = cred.user;
-    _setTrackerStatus(`Signed in as ${trackerUser.email || trackerUser.uid}. UID: ${trackerUser.uid}`);
-    if (trackerEnabled) startTrackerViewer(false);
-  } catch(e) {
-    console.warn('Tracker sign-in failed:', e);
-    _setTrackerStatus(e.message || 'Google sign-in failed');
-    showToast('Tracker sign-in failed');
-  } finally {
-    _syncTrackerUi();
   }
-}
-
-function toggleTrackerViewer() {
-  if (trackerEnabled) stopTrackerViewer();
-  else startTrackerViewer();
-}
-
-function startTrackerViewer(save=true) {
-  try {
-    ensureTrackerFirebase();
-  } catch(e) {
-    _setTrackerStatus(e.message || 'Tracker Firebase config is incomplete');
-    showToast('Tracker config needed');
-    return;
+  for (const id of metaWanted) {
+    if (trackerMetaUnsub[id]) continue;
+    trackerMetaUnsub[id] = onValue(ref(firebaseDb, `trackers/${id}`), snap => {
+      if (snap.exists()) trackerCatalog[id] = snap.val() || {};
+      else delete trackerCatalog[id];
+      renderTrackerMenus();
+    });
   }
-  if (!trackerUser) {
-    trackerEnabled = true;
-    if (save) _writeTrackerPrefs({ enabled:true });
-    _syncTrackerUi();
-    _setTrackerStatus('Sign in with Google before reading the tracker.');
-    showToast('Sign in with Google first');
-    return;
-  }
-  trackerEnabled = true;
-  if (save) _writeTrackerPrefs({ enabled:true });
-  subscribeTrackerLocation();
-  _syncTrackerUi();
-}
-
-function stopTrackerViewer(save=true) {
-  trackerEnabled = false;
-  if (save) _writeTrackerPrefs({ enabled:false });
-  if (trackerUnsubscribe) {
-    try { trackerUnsubscribe(); } catch(e) {}
-    trackerUnsubscribe = null;
-  }
-  if (trackerPollTimer) {
-    clearInterval(trackerPollTimer);
-    trackerPollTimer = null;
-  }
-  if (trackerMarker && map) map.removeLayer(trackerMarker);
-  if (trackerAccuracyCircle && map) map.removeLayer(trackerAccuracyCircle);
-  trackerMarker = null;
-  trackerAccuracyCircle = null;
-  trackerLocation = null;
-  _setTrackerStatus(trackerUser ? 'Tracker pull is off.' : 'Sign in with an allowed Google account.');
-  _syncTrackerUi();
-}
-
-function subscribeTrackerLocation() {
-  if (!trackerEnabled || !trackerDb || !trackerUser) return;
-  if (trackerUnsubscribe) {
-    try { trackerUnsubscribe(); } catch(e) {}
-    trackerUnsubscribe = null;
-  }
-  if (trackerPollTimer) clearInterval(trackerPollTimer);
-  const { ref, onValue, get } = window.firebaseApi;
-  const path = `live/${trackerDeviceId}`;
-  const trackerRef = ref(trackerDb, path);
-  trackerUnsubscribe = onValue(
-    trackerRef,
-    snap => handleTrackerSnapshot(snap.val()),
-    err => {
-      console.warn('Tracker read failed:', err);
-      _setTrackerStatus(err && err.code === 'PERMISSION_DENIED' ? trackerDeniedStatus() : (err.message || 'Tracker read failed'));
+  const wanted = new Set(Array.from(trackerActiveIds).filter(trackerIsAvailable));
+  for (const id of Object.keys(trackerLocationsUnsub)) {
+    if (!wanted.has(id)) {
+      try { trackerLocationsUnsub[id](); } catch(e) {}
+      delete trackerLocationsUnsub[id];
+      clearTrackerLayer(id);
     }
-  );
-  trackerPollTimer = setInterval(async () => {
-    try {
-      const snap = await get(trackerRef);
-      handleTrackerSnapshot(snap.val());
-    } catch(e) {
-      console.warn('Tracker poll failed:', e);
-      _setTrackerStatus(e && e.code === 'PERMISSION_DENIED' ? trackerDeniedStatus() : (e.message || 'Tracker poll failed'));
-    }
-  }, trackerPullSeconds * 1000);
-  _setTrackerStatus(`Watching /${path}`);
+  }
+  for (const id of wanted) {
+    if (trackerLocationsUnsub[id]) continue;
+    trackerLocationsUnsub[id] = onValue(ref(firebaseDb, `trackerLocations/${id}`), snap => {
+      handleAppTrackerSnapshot(id, snap.val());
+    }, err => console.warn('Tracker read failed:', id, err));
+  }
 }
 
-function handleTrackerSnapshot(value) {
+function handleAppTrackerSnapshot(id, value) {
   if (!value) {
-    trackerLocation = null;
-    if (trackerMarker && map) map.removeLayer(trackerMarker);
-    if (trackerAccuracyCircle && map) map.removeLayer(trackerAccuracyCircle);
-    trackerMarker = null;
-    trackerAccuracyCircle = null;
-    _setTrackerStatus(`No live data at /live/${trackerDeviceId}`);
+    delete trackerLocationMap[id];
+    clearTrackerLayer(id);
+    renderTrackerMenus();
     return;
   }
   const lat = Number(value.lat);
   const lng = Number(value.lng);
-  if (!Number.isFinite(lat) || !Number.isFinite(lng)) {
-    _setTrackerStatus('Tracker data is missing valid lat/lng.');
-    return;
-  }
-  trackerLocation = {
-    deviceId: String(value.deviceId || trackerDeviceId),
-    lat,
-    lng,
-    accuracyMeters: Math.max(0, Number(value.accuracyMeters || 0)),
-    speedMps: Number(value.speedMps || 0),
-    bearingDegrees: Number(value.bearingDegrees || 0),
-    provider: String(value.provider || 'gps'),
-    batteryPercent: Number(value.batteryPercent),
-    updatedAt: Number(value.updatedAt || 0),
-    expiresAt: Number(value.expiresAt || 0)
-  };
-  pushTrackerTimelineSample(trackerLocation);
-  drawTrackerLocation();
+  if (!Number.isFinite(lat) || !Number.isFinite(lng)) return;
+  trackerLocationMap[id] = Object.assign({}, value, { lat, lng, deviceId:id });
+  drawAppTrackerLocation(id);
+  pushTrackerTimelineSample(Object.assign({}, trackerLocationMap[id], { deviceId:id }));
+  renderTrackerMenus();
 }
 
-async function pushTrackerTimelineSample(loc) {
-  if (!loc || !activeRoundId || activeRoundIsTest || !isRealGoogleUser() || !firebaseDb) return;
-  const now = Date.now();
-  if (now - trackerTimelineLastPush < 10000) return;
-  trackerTimelineLastPush = now;
-  try {
-    const { ref, push, set, update } = window.firebaseApi;
-    const sampleRef = push(ref(firebaseDb, `roundTrackerTimeline/${activeRoundId}`));
-    await set(sampleRef, {
-      deviceId:loc.deviceId,
-      lat:loc.lat,
-      lng:loc.lng,
-      accuracyMeters:loc.accuracyMeters || 0,
-      speedMps:loc.speedMps || 0,
-      bearingDegrees:loc.bearingDegrees || 0,
-      trackerUpdatedAt:loc.updatedAt || 0,
-      capturedAt:now
-    });
-    await update(ref(firebaseDb, `rounds/${activeRoundId}`), {
-      trackerDeviceId:loc.deviceId,
-      trackerLastAt:now,
-      updatedAt:now
-    });
-  } catch(e) {
-    console.warn('Tracker timeline save failed:', e);
-  }
+function clearTrackerLayer(id) {
+  if (trackerMarkers[id] && map) map.removeLayer(trackerMarkers[id]);
+  if (trackerAccuracyCircles[id] && map) map.removeLayer(trackerAccuracyCircles[id]);
+  delete trackerMarkers[id];
+  delete trackerAccuracyCircles[id];
 }
 
-function drawTrackerLocation() {
-  if (!map || !trackerLocation) return;
-  const loc = trackerLocation;
-  const stale = loc.expiresAt && loc.expiresAt < Date.now();
+function drawAppTrackerLocation(id) {
+  if (!map || !trackerLocationMap[id]) return;
+  const loc = trackerLocationMap[id];
+  const stale = trackerStatusFor(id) !== 'Live';
   const ll = [loc.lat, loc.lng];
-  const bearing = Number.isFinite(loc.bearingDegrees) ? Math.round((loc.bearingDegrees + 360) % 360) : 0;
+  const bearing = Number.isFinite(Number(loc.bearingDegrees)) ? Math.round((Number(loc.bearingDegrees) + 360) % 360) : 0;
   const dotClass = stale ? 'loc-dot tracker-dot stale' : 'loc-dot tracker-dot';
   const html = `<span class="loc-pulse tracker-pulse"></span><div class="${dotClass}" style="transform:rotate(${bearing}deg)">^</div>`;
   const icon = L.divIcon({ html, className:'', iconSize:[42,42], iconAnchor:[21,21] });
-  if (!trackerMarker) {
-    trackerMarker = L.marker(ll, { icon, zIndexOffset:850 }).addTo(map);
-    trackerMarker.on('click', () => map.setView(ll, Math.max(map.getZoom(), 16)));
+  if (!trackerMarkers[id]) {
+    trackerMarkers[id] = L.marker(ll, { icon, zIndexOffset:850 }).addTo(map);
+    trackerMarkers[id].on('click', () => map.setView(ll, Math.max(map.getZoom(), 16)));
   } else {
-    trackerMarker.setLatLng(ll).setIcon(icon);
+    trackerMarkers[id].setLatLng(ll).setIcon(icon);
   }
-  const tooltip = trackerTooltipHtml(loc, stale);
-  trackerMarker.bindTooltip(tooltip, { permanent:false, direction:'top', className:'train-tip' });
-  if (loc.accuracyMeters > 0) {
-    const style = { radius:loc.accuracyMeters, color:stale ? '#6a7a96' : '#eeff55', opacity:.35, fillOpacity:.08, weight:1, interactive:false };
-    if (!trackerAccuracyCircle) trackerAccuracyCircle = L.circle(ll, style).addTo(map);
-    else trackerAccuracyCircle.setLatLng(ll).setRadius(loc.accuracyMeters).setStyle(style);
-  } else if (trackerAccuracyCircle) {
-    map.removeLayer(trackerAccuracyCircle);
-    trackerAccuracyCircle = null;
-  }
-  _setTrackerStatus(trackerStatusText(loc, stale));
-  _syncTrackerUi();
-}
-
-function trackerTooltipHtml(loc, stale) {
-  const age = trackerAgeText(loc.updatedAt);
-  const speed = Number.isFinite(loc.speedMps) ? `${loc.speedMps.toFixed(1)} m/s (${(loc.speedMps * 3.6).toFixed(1)} km/h)` : '--';
-  const battery = Number.isFinite(loc.batteryPercent) ? `${Math.round(loc.batteryPercent)}%` : '--';
-  const bearing = Number.isFinite(loc.bearingDegrees) ? `${Math.round(loc.bearingDegrees)} deg` : '--';
-  return `<div class="loc-tip">${escapeHtml(loc.deviceId)} ${stale ? 'OFFLINE' : 'LIVE'}<br>Updated ${age}<br>Speed ${speed}<br>Heading ${bearing}<br>Battery ${battery}</div>`;
-}
-
-function trackerStatusText(loc, stale) {
-  const uid = trackerUser ? `UID: ${trackerUser.uid}` : 'Signed out';
-  if (!loc) return uid;
-  const speed = Number.isFinite(loc.speedMps) ? `${loc.speedMps.toFixed(1)} m/s` : '--';
-  const bearing = Number.isFinite(loc.bearingDegrees) ? `${Math.round(loc.bearingDegrees)} deg` : '--';
-  const battery = Number.isFinite(loc.batteryPercent) ? `${Math.round(loc.batteryPercent)}%` : '--';
-  return `${stale ? 'OFFLINE/STALE' : 'LIVE'} ${escapeHtml(loc.deviceId)} | updated ${trackerAgeText(loc.updatedAt)} | speed ${speed} | heading ${bearing} | battery ${battery}<br>${escapeHtml(uid)}`;
-}
-
-function trackerDeniedStatus() {
-  const email = trackerUser && trackerUser.email ? trackerUser.email : 'this Google account';
-  return `Not allowed yet. Ask a tracker admin to add <strong>${escapeHtml(email)}</strong> to the allowlist in their Settings → Tracker Admin panel.`;
-}
-
-function trackerAgeText(ts) {
-  const n = Number(ts || 0);
-  if (!n) return '--';
-  const seconds = Math.max(0, Math.round((Date.now() - n) / 1000));
-  if (seconds < 60) return `${seconds}s ago`;
-  const minutes = Math.floor(seconds / 60);
-  if (minutes < 60) return `${minutes}m ago`;
-  return new Date(n).toLocaleString();
-}
-
-function _setTrackerStatus(text) {
-  const el = document.getElementById('tracker-status');
-  if (el) el.innerHTML = text || '';
-}
-
-function _syncTrackerUi() {
-  const authStatus = document.getElementById('tracker-auth-status');
-  if (authStatus) authStatus.textContent = trackerUser ? 'IN' : 'OUT';
-  const authBtn = document.getElementById('tracker-auth-btn');
-  if (authBtn) authBtn.classList.toggle('sp-active', !!trackerUser);
-  const pullStatus = document.getElementById('tracker-pull-status');
-  if (pullStatus) pullStatus.textContent = trackerEnabled ? 'ON' : 'OFF';
-  const pullBtn = document.getElementById('tracker-pull-btn');
-  if (pullBtn) pullBtn.classList.toggle('sp-active', trackerEnabled);
-  // Check admin status + load admin list whenever auth state changes
-  if (trackerUser && trackerDb) trackerAdminCheckAndLoad();
-  else {
-    const panel = document.getElementById('tracker-admin-panel');
-    if (panel) panel.style.display = 'none';
+  const name = trackerDisplayName(id, trackerCatalog[id]);
+  trackerMarkers[id].bindTooltip(`<div class="loc-tip">${escapeHtml(name)}<br>${escapeHtml(trackerStatusFor(id))}<br>Updated ${escapeHtml(trackerAgeFromLocation(loc))}</div>`, { permanent:false, direction:'top', className:'train-tip' });
+  const acc = Number(loc.accuracyMeters || loc.accuracy || 0);
+  if (acc > 0) {
+    const style = { radius:acc, color:stale ? '#6a7a96' : '#eeff55', opacity:.35, fillOpacity:.08, weight:1, interactive:false };
+    if (!trackerAccuracyCircles[id]) trackerAccuracyCircles[id] = L.circle(ll, style).addTo(map);
+    else trackerAccuracyCircles[id].setLatLng(ll).setRadius(acc).setStyle(style);
   }
 }
 
-// ── TRACKER ADMIN — email allowlist management ────────────────────────────────
-// The tracker rules allow read/write to /live and /admins only for users whose
-// email is in the /admins allowlist. The first admin is bootstrapped manually
-// in the Firebase console; after that, admins manage the list in-app here.
-let trackerIsAdmin = false;
-let trackerAdminUnsubscribe = null;
-
-function emailToKey(email) {
-  // Firebase keys can contain . and @ but to avoid path ambiguity we encode them
-  return String(email || '').trim().toLowerCase().replace(/\./g, ',');
-}
-function keyToEmail(key) {
-  return String(key || '').replace(/,/g, '.');
-}
-
-async function trackerAdminCheckAndLoad() {
-  if (!trackerUser || !trackerDb) return;
-  const { ref, get, onValue } = window.firebaseApi;
-  const myKey = emailToKey(trackerUser.email || '');
-  if (!myKey) return;
+async function refreshAdminStatus() {
+  appIsAdmin = false;
+  if (!firebaseDb || !isRealGoogleUser()) return;
   try {
-    // Check if current user is an admin
-    const snap = await get(ref(trackerDb, `admins/${myKey}`));
-    trackerIsAdmin = snap.exists();
-    const panel = document.getElementById('tracker-admin-panel');
-    if (panel) panel.style.display = trackerIsAdmin ? 'block' : 'none';
-    if (trackerIsAdmin) {
-      // Subscribe to the admin list so it stays in sync
-      if (trackerAdminUnsubscribe) { try { trackerAdminUnsubscribe(); } catch(e) {} }
-      trackerAdminUnsubscribe = onValue(ref(trackerDb, 'admins'), snap => {
-        trackerAdminRenderList(snap.val() || {});
+    const { ref, get } = window.firebaseApi;
+    const snap = await get(ref(firebaseDb, `admins/${mainUser.uid}`));
+    appIsAdmin = snap.exists();
+    await seedDefaultTrackers();
+  } catch(e) {
+    console.warn('Admin check failed:', e);
+  }
+}
+
+async function seedDefaultTrackers() {
+  if (!appIsAdmin || !firebaseDb) return;
+  const { ref, get, update } = window.firebaseApi;
+  const snap = await get(ref(firebaseDb, 'trackers/stenskara'));
+  if (snap.exists()) return;
+  await update(ref(firebaseDb), {
+    'trackers/stenskara': {
+      name:'stenskära',
+      createdAt:Date.now(),
+      createdBy:mainUser.uid,
+      status:'waiting-for-phone'
+    },
+    [`trackerAccess/${mainUser.uid}/stenskara`]: true
+  });
+}
+
+async function grantTrackerAccess(id) {
+  if (!appIsAdmin) { showToast('Admin access required'); return; }
+  const input = document.getElementById(`grant-${id}`);
+  const email = String((input && input.value) || '').trim().toLowerCase();
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { showToast('Enter an email'); return; }
+  try {
+    const { ref, get, update } = window.firebaseApi;
+    const key = emailToKey(email);
+    const snap = await get(ref(firebaseDb, `profilesByEmail/${key}`));
+    if (!snap.exists()) { showToast('That user must sign in once first'); return; }
+    const uid = snap.val();
+    await update(ref(firebaseDb), {
+      [`trackerAccess/${uid}/${id}`]: true,
+      [`trackers/${id}/allowed/${uid}`]: { email, addedAt:Date.now(), addedBy:mainUser.uid }
+    });
+    if (input) input.value = '';
+    showToast('Tracker access added');
+  } catch(e) {
+    console.warn('Grant tracker access failed:', e);
+    showToast('Could not add access');
+  }
+}
+
+async function returnToMainMenu(deleteRound=false) {
+  if (deleteRound && activeRoundId && !activeRoundIsTest && firebaseDb) {
+    if (!confirm('Delete this round and return to the main menu?')) return;
+    try {
+      const { ref, update } = window.firebaseApi;
+      await update(ref(firebaseDb), {
+        [`rounds/${activeRoundId}`]: null,
+        [`roundQuestions/${activeRoundId}`]: null,
+        [`roundEndgame/${activeRoundId}`]: null,
+        [`roundDrafts/${activeRoundId}/${mainUser.uid}`]: null,
+        [`users/${mainUser.uid}/rounds/${activeRoundId}`]: null
       });
+    } catch(e) {
+      console.warn('Round delete failed:', e);
+      showToast('Could not delete round');
+      return;
     }
-  } catch(e) {
-    console.warn('Tracker admin check failed:', e);
   }
+  activeRoundId = null;
+  activeRoundIsTest = false;
+  try { localStorage.removeItem(ACTIVE_ROUND_KEY); localStorage.removeItem(SAVE_KEY); } catch(e) {}
+  location.reload();
 }
 
-function trackerAdminRenderList(admins) {
-  const list = document.getElementById('tracker-admin-list');
-  if (!list) return;
-  const entries = Object.entries(admins);
-  if (!entries.length) {
-    list.innerHTML = '<div class="account-muted">No admins yet</div>';
-    return;
-  }
-  // Sort: current user first, then alphabetical
-  const myEmail = (trackerUser && trackerUser.email || '').toLowerCase();
-  entries.sort((a, b) => {
-    if (keyToEmail(a[0]) === myEmail) return -1;
-    if (keyToEmail(b[0]) === myEmail) return 1;
-    return keyToEmail(a[0]).localeCompare(keyToEmail(b[0]));
-  });
-  const rows = entries.map(([key, val]) => {
-    const email = keyToEmail(key);
-    const isMe = email === myEmail;
-    const addedAt = (val && val.addedAt) ? new Date(val.addedAt).toLocaleDateString() : '';
-    const removeBtn = isMe
-      ? '<span style="color:var(--muted);font-size:8px">(you)</span>'
-      : `<button class="sp-btn" style="min-width:48px;justify-content:center" onclick="trackerAdminRemoveEmail('${escapeHtml(email)}')"><span>✕</span></button>`;
-    return `<div class="account-item"><span>${escapeHtml(email)}${addedAt ? `<div class="ai-meta">added ${addedAt}</div>` : ''}</span>${removeBtn}</div>`;
-  });
-  list.innerHTML = rows.join('');
-}
-
-async function trackerAdminAddEmail() {
-  const input = document.getElementById('tracker-admin-email-input');
-  if (!input || !input.value) return;
-  const email = String(input.value).trim().toLowerCase();
-  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { showToast('Enter a valid email'); return; }
-  if (!trackerDb || !trackerIsAdmin) { showToast('Admin access required'); return; }
-  const { ref, set } = window.firebaseApi;
+async function deleteCurrentAccount() {
+  if (!isRealGoogleUser()) return;
+  if (!confirm('Delete your account data from this app? You may need to sign in again first.')) return;
   try {
-    await set(ref(trackerDb, `admins/${emailToKey(email)}`), { addedAt: Date.now(), addedBy: trackerUser.email || '' });
-    input.value = '';
-    showToast(`Added ${email}`);
+    const { ref, update, deleteUser } = window.firebaseApi;
+    await update(ref(firebaseDb), {
+      [`profiles/${mainUser.uid}`]: null,
+      [`users/${mainUser.uid}`]: null,
+      [`trackerAccess/${mainUser.uid}`]: null,
+      [`profilesByEmail/${emailToKey(mainUser.email || '')}`]: null
+    });
+    await deleteUser(mainUser);
+    localStorage.clear();
+    location.reload();
   } catch(e) {
-    console.warn('Tracker admin add failed:', e);
-    showToast('Add failed: ' + (e.message || ''));
-  }
-}
-
-async function trackerAdminRemoveEmail(email) {
-  if (!email) return;
-  if (!confirm(`Remove ${email} from the tracker allowlist?`)) return;
-  if (!trackerDb || !trackerIsAdmin) { showToast('Admin access required'); return; }
-  const { ref, remove } = window.firebaseApi;
-  try {
-    await remove(ref(trackerDb, `admins/${emailToKey(email)}`));
-    showToast(`Removed ${email}`);
-  } catch(e) {
-    console.warn('Tracker admin remove failed:', e);
-    showToast('Remove failed: ' + (e.message || ''));
-  }
-}
-
-function setTrackerDeviceId(value) {
-  trackerDeviceId = String(value || 'seeker-1').trim() || 'seeker-1';
-  _writeTrackerPrefs({ deviceId:trackerDeviceId });
-  if (trackerEnabled && trackerUser) subscribeTrackerLocation();
-}
-
-function setTrackerPullSeconds(value) {
-  trackerPullSeconds = Math.max(1, Math.min(300, Number(value) || 5));
-  const el = document.getElementById('tracker-pull-seconds');
-  if (el) el.value = trackerPullSeconds;
-  _writeTrackerPrefs({ pullSeconds:trackerPullSeconds });
-  if (trackerEnabled && trackerUser) subscribeTrackerLocation();
-}
-
-function setTrackerConfigValue(key, value) {
-  if (!['apiKey','authDomain','databaseURL','projectId'].includes(key)) return;
-  trackerConfig[key] = String(value || '').trim();
-  _writeTrackerPrefs({ config:trackerConfig });
-  if (trackerApp) {
-    _setTrackerStatus('Tracker Firebase config changed. Reload the page to reconnect with the new config.');
+    console.warn('Delete account failed:', e);
+    showToast(e && e.code === 'auth/requires-recent-login' ? 'Log out, sign in again, then delete account' : 'Delete account failed');
   }
 }
 
 function chooseMode(m) {
+  if (!isRealGoogleUser()) {
+    showToast('Sign in with Google first');
+    return;
+  }
+  if (!activeRoundId) {
+    showToast('Start a round first');
+    return;
+  }
   const ls = document.getElementById('loading-screen');
   ls.style.display = 'flex'; ls.style.opacity = '1';
   setTimeout(() => {
@@ -2230,6 +2141,7 @@ function chooseMode(m) {
     document.getElementById('s-mode').textContent = m.toUpperCase();
     const badge = document.getElementById('mode-badge');
     badge.textContent = m; badge.className = 'mode-badge ' + m;
+    syncRoundStatusUi();
     const tsl = document.getElementById('theme-sp-status');
     if (tsl) tsl.textContent = THEME_LABELS[currentTheme];
     const sm = document.getElementById('switch-mode-status');
@@ -2322,6 +2234,7 @@ function switchMode() {
   else { sf.style.display = 'none'; hf.style.display = 'block'; addHiderLocationCard(); map.on('click', onMapClick); }
   const sm = document.getElementById('switch-mode-status');
   if (sm) sm.textContent = newMode === 'seeker' ? '🫣 → Hider' : '🔍 → Seeker';
+  syncRoundStatusUi();
   _updateFabBadge();
   showToast('Switched to ' + newMode.toUpperCase() + ' mode');
 }
@@ -3799,11 +3712,11 @@ from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
 
 import {
   getAuth,
-  signInAnonymously,
   GoogleAuthProvider,
   signInWithPopup,
   signOut,
-  onAuthStateChanged
+  onAuthStateChanged,
+  deleteUser
 }
 from
 "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
@@ -3819,11 +3732,11 @@ window.firebaseApi = {
   push,
   remove,
   getAuth,
-  signInAnonymously,
   GoogleAuthProvider,
   signInWithPopup,
   signOut,
-  onAuthStateChanged
+  onAuthStateChanged,
+  deleteUser
 };
 
 
@@ -3843,17 +3756,17 @@ let roundQuestionsUnsubscribe = null;
 const ACTIVE_ROUND_KEY = 'jetlag_active_round_v1';
 
 async function initFirebase() {
-  const { initializeApp, getDatabase, getAuth, signInAnonymously, onAuthStateChanged } = window.firebaseApi;
+  const { initializeApp, getDatabase, getAuth, onAuthStateChanged } = window.firebaseApi;
 
   // Load config from firebase-config.js (user-editable). If not configured,
-  // bail out gracefully — guest/test mode still works.
+  // keep the app locked on the Google sign-in screen.
   const firebaseConfig = window.JETLAG_FIREBASE_CONFIG || null;
   if (!firebaseConfig || !window.JETLAG_FIREBASE_CONFIGURED || firebaseConfig.apiKey === 'PASTE_YOUR_API_KEY_HERE') {
-    console.warn('Firebase not configured — see firebase-config.js + FIREBASE_SETUP.md. Guest/test mode only.');
+    console.warn('Firebase not configured; see firebase-config.js + FIREBASE_SETUP.md.');
     const status = document.getElementById('main-auth-status');
     if (status) status.textContent = 'N/A';
     const help = document.getElementById('account-help');
-    if (help) help.innerHTML = '<strong>Firebase not configured.</strong> Guest mode works. To enable Google login, rounds & sync: edit <code>firebase-config.js</code> and see <code>FIREBASE_SETUP.md</code>.';
+    if (help) help.innerHTML = '<strong>Firebase not configured.</strong> Edit <code>firebase-config.js</code> and deploy <code>database.rules.json</code>.';
     // Disable the Google button visually
     document.getElementById('main-google-btn')?.setAttribute('disabled', 'true');
     firebaseReady = false;
@@ -3872,24 +3785,16 @@ async function initFirebase() {
       // Update the UI immediately so the user sees their login state,
       // even if the profile load or list refresh fails (e.g. rules not deployed yet).
       syncAccountUi();
+      try { if (user && !user.isAnonymous) await ensureMainProfile(); } catch(e) { console.warn('Profile ensure failed:', e); }
       try { await loadMainProfile(); } catch(e) { console.warn('Profile load failed:', e); }
+      try { await refreshAdminStatus(); } catch(e) { console.warn('Admin refresh failed:', e); }
       syncAccountUi(); // refresh again with profile data
       try { await refreshAccountLists(); } catch(e) { console.warn('Account list refresh failed:', e); }
       try { if (typeof loadActiveRoundDraft === 'function') await loadActiveRoundDraft(); } catch(e) { console.warn('Draft load failed:', e); }
     });
   }
 
-  // Anonymous auth and verification
-  try {
-    const cred = firebaseAuth.currentUser ? { user:firebaseAuth.currentUser } : await signInAnonymously(firebaseAuth);
-    window.currentUid = cred.user.uid;
-    firebaseReady = true;
-    console.log("UID:", window.currentUid);
-  } catch (err) {
-    console.error("Anonymous sign-in failed", err);
-    window.currentUid = null;
-    firebaseReady = false;
-  }
+  syncAccountUi();
 }
 
 function isRealGoogleUser() {
@@ -3921,13 +3826,6 @@ async function mainGoogleSignInOrOut() {
   }
 }
 
-function startGuestFlow() {
-  activeRoundId = null;
-  activeRoundIsTest = true;
-  try { localStorage.removeItem(ACTIVE_ROUND_KEY); } catch(e) {}
-  showToast('Guest mode: choose seeker or hider');
-}
-
 async function loadMainProfile() {
   mainProfile = null;
   if (!firebaseDb || !mainUser || mainUser.isAnonymous) return;
@@ -3940,6 +3838,22 @@ async function loadMainProfile() {
   }
 }
 
+async function ensureMainProfile() {
+  if (!firebaseDb || !mainUser || mainUser.isAnonymous) return;
+  const { ref, update } = window.firebaseApi;
+  const email = (mainUser.email || '').toLowerCase();
+  const displayName = mainUser.displayName || email || 'Player';
+  const updates = {};
+  updates[`profiles/${mainUser.uid}`] = {
+    email,
+    displayName,
+    photoURL:mainUser.photoURL || '',
+    updatedAt:Date.now()
+  };
+  if (email) updates[`profilesByEmail/${emailToKey(email)}`] = mainUser.uid;
+  await update(ref(firebaseDb), updates);
+}
+
 function syncAccountUi() {
   const signedIn = isRealGoogleUser();
   const firebaseConfigured = !!(window.JETLAG_FIREBASE_CONFIGURED && firebaseAuth);
@@ -3949,7 +3863,6 @@ function syncAccountUi() {
   const gsiLabel = document.getElementById('main-google-label');
   const accountHeader = document.getElementById('account-header');
   const tools = document.getElementById('account-signed-in-tools');
-  const guestBtn = document.getElementById('guest-flow-btn');
   const help = document.getElementById('account-help');
 
   if (signedIn) {
@@ -3957,8 +3870,6 @@ function syncAccountUi() {
     if (gsiBtn) gsiBtn.style.display = 'none';
     if (accountHeader) accountHeader.style.display = 'flex';
     if (tools) tools.style.display = 'block';
-    // Show guest button only after login (lets a logged-in user play a local round without saving)
-    if (guestBtn) guestBtn.style.display = 'flex';
     // Populate account header
     const name = (mainUser && (mainUser.displayName || (mainProfile && mainProfile.username))) || 'Player';
     const email = (mainUser && mainUser.email) || '--';
@@ -3974,7 +3885,11 @@ function syncAccountUi() {
         avatar.textContent = String(name).charAt(0).toUpperCase();
       }
     }
-    if (help) help.textContent = 'Signed in. Create a round to play with friends, or pick Seeker / Hider below to play a local round.';
+    if (help) help.textContent = 'Signed in. Start a round, then choose hider or seeker.';
+    const subtitle = document.getElementById('mode-screen-subtitle');
+    if (subtitle) subtitle.textContent = 'Main menu';
+    renderTrackerMenus();
+    refreshTrackerSubscriptions();
   } else {
     // Before login: show GSI button, hide account header + tools
     if (gsiBtn) {
@@ -3985,14 +3900,15 @@ function syncAccountUi() {
     }
     if (accountHeader) accountHeader.style.display = 'none';
     if (tools) tools.style.display = 'none';
-    if (guestBtn) guestBtn.style.display = 'none';
     if (help) {
       if (!window.JETLAG_FIREBASE_CONFIGURED) {
-        help.innerHTML = 'Firebase not configured — guest mode works. To enable Google login: edit <code>firebase-config.js</code> and see <code>FIREBASE_SETUP.md</code>. Or just pick Seeker / Hider below to play locally.';
+        help.innerHTML = 'Firebase is not configured. Edit <code>firebase-config.js</code> and deploy the database rules.';
       } else {
-        help.textContent = 'Sign in with Google to save rounds, play with friends, and sync questions. Or just pick Seeker / Hider below to play locally.';
+        help.textContent = 'Sign in with Google to play.';
       }
     }
+    const subtitle = document.getElementById('mode-screen-subtitle');
+    if (subtitle) subtitle.textContent = 'Sign in to continue';
   }
 
   // Username input
@@ -4087,34 +4003,33 @@ async function acceptPartyInvite(partyId) {
 
 async function createRoundUi(role) {
   if (!isRealGoogleUser()) { showToast('Sign in with Google first'); return; }
-  const { ref, push, update } = window.firebaseApi;
-  const roundRef = push(ref(firebaseDb, 'rounds'));
-  const roundId = roundRef.key;
-  const round = {
-    ownerUid:mainUser.uid,
-    ownerUsername:(mainProfile && mainProfile.username) || mainUser.email || 'player',
-    partyId:activePartyId || null,
-    role,
-    test:false,
-    createdAt:Date.now(),
-    updatedAt:Date.now(),
-    trackerDeviceId:trackerDeviceId || 'seeker-1'
-  };
-  const updates = {};
-  updates[`rounds/${roundId}`] = round;
-  updates[`users/${mainUser.uid}/rounds/${roundId}`] = true;
-  if (activePartyId) updates[`parties/${activePartyId}/rounds/${roundId}`] = true;
-  await update(ref(firebaseDb), updates);
-  activateRound(roundId, false);
-  showToast('Round created');
-  chooseMode(role);
-}
-
-function createTestRoundUi() {
-  activeRoundId = 'test-' + Date.now();
-  activeRoundIsTest = true;
-  try { localStorage.setItem(ACTIVE_ROUND_KEY, JSON.stringify({ roundId:activeRoundId, test:true })); } catch(e) {}
-  showToast('Test round: choose seeker or hider');
+  try {
+    const { ref, push, update } = window.firebaseApi;
+    const roundRef = push(ref(firebaseDb, 'rounds'));
+    const roundId = roundRef.key;
+    const selectedTrackerId = Array.from(trackerActiveIds || [])[0] || 'stenskara';
+    const round = {
+      ownerUid:mainUser.uid,
+      ownerUsername:(mainProfile && mainProfile.username) || mainUser.email || 'player',
+      partyId:activePartyId || null,
+      role,
+      test:false,
+      createdAt:Date.now(),
+      updatedAt:Date.now(),
+      trackerId:selectedTrackerId
+    };
+    const updates = {};
+    updates[`rounds/${roundId}`] = round;
+    updates[`users/${mainUser.uid}/rounds/${roundId}`] = true;
+    if (activePartyId) updates[`parties/${activePartyId}/rounds/${roundId}`] = true;
+    await update(ref(firebaseDb), updates);
+    activateRound(roundId, false);
+    showToast('Round created');
+    chooseMode(role);
+  } catch(e) {
+    console.warn('Round create failed:', e);
+    showToast('Round create failed: ' + (e && e.message ? e.message : e), 5000);
+  }
 }
 
 function activateRound(roundId, test=false) {
@@ -4124,6 +4039,7 @@ function activateRound(roundId, test=false) {
   subscribeRoundQuestions();
   subscribeRoundEndgame();
   syncAccountUi();
+  syncRoundStatusUi();
 }
 
 // ── ENDGAME FIREBASE SYNC ─────────────────────────────────────────────────────
@@ -4185,6 +4101,14 @@ async function pushEndgameState(active, zone) {
 
 async function openRound(roundId) {
   activateRound(roundId, false);
+  try {
+    const { ref, get } = window.firebaseApi;
+    const snap = await get(ref(firebaseDb, `rounds/${roundId}`));
+    const role = (snap.val() && snap.val().role) || 'seeker';
+    chooseMode(role === 'hider' ? 'hider' : 'seeker');
+  } catch(e) {
+    chooseMode('seeker');
+  }
   showToast('Round opened');
 }
 
@@ -4527,7 +4451,7 @@ function restoreActiveRoundPointer() {
     const raw = localStorage.getItem(ACTIVE_ROUND_KEY);
     if (!raw) return;
     const st = JSON.parse(raw);
-    if (st && st.roundId) activateRound(st.roundId, !!st.test);
+    if (st && st.roundId && !st.test) activateRound(st.roundId, false);
   } catch(e) {}
 }
 window.addEventListener("load", initFirebase);
