@@ -2,7 +2,8 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="theme-color" content="#142226" />
   <title>Jetlag Stockholm</title>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css" />
   <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
@@ -785,7 +786,6 @@
     .tracker-name { color:var(--text); font-size:11px; overflow-wrap:anywhere; }
     .tracker-meta { color:var(--muted); font-size:8px; line-height:1.45; margin-top:2px; }
     .tracker-admin-tools { display:flex; gap:6px; align-items:center; }
-    #sl-btn, #mnav-sl-btn { display:none!important; }
 
     /* ── Round Timeline scrubber ─────────────────────────────────────────── */
     #timeline-panel {
@@ -916,6 +916,11 @@
     }
     @media (min-width:769px) { #curse-fab { display:none!important; } }
   </style>
+  <link rel="stylesheet" href="map-experience.css?v=1" />
+  <link rel="stylesheet" href="question-experience.css?v=1" />
+  <link rel="stylesheet" href="tracker-experience.css?v=1" />
+  <link rel="stylesheet" href="departure-board.css?v=1" />
+  <link rel="stylesheet" href="app-shell.css?v=1" />
 </head>
 <body class="bambu">
 
@@ -1164,6 +1169,9 @@
     <button class="sp-btn" id="transit-layer-btn" onclick="toggleTransitLayer()" style="margin-top:5px">
       <span>🚇 Transit Lines</span><span id="transit-layer-status">OFF</span>
     </button>
+    <button class="sp-btn" id="city-boundary-btn" onclick="toggleCityBoundaryMask()" style="margin-top:5px">
+      <span>City Boundary</span><span id="city-boundary-status">OFF</span>
+    </button>
   </div>
   <div class="advanced-only">
     <div class="sp-label">SL Data</div>
@@ -1378,6 +1386,8 @@ const WORKER_URL = 'https://orange-silence-988f.artur-jed09.workers.dev/';
 
 // ── CORE STATE ─────────────────────────────────────────────────
 let mode = null, questions = [], qCounter = 0;
+let _modeStarting = false;
+let _sessionRoundId = null;
 
 // Auto-restore
 window.addEventListener('load', () => {
@@ -1865,10 +1875,34 @@ function renderTrackerMenus() {
   if (email) email.textContent = mainUser && mainUser.email ? `Signed in as ${mainUser.email}` : '--';
   const settingsEmail = document.getElementById('settings-account-email');
   if (settingsEmail) settingsEmail.textContent = mainUser && mainUser.email ? `Signed in as ${mainUser.email}` : '--';
-  const html = ids.length ? ids.map(id => trackerRowHtml(id)).join('') : '<div class="account-muted">No trackers available yet.</div>';
   for (const listId of ['main-tracker-list']) {
     const list = document.getElementById(listId);
-    if (list) list.innerHTML = html;
+    if (!list) continue;
+    const existing = new Map(Array.from(list.querySelectorAll('.tracker-row')).map(row => [row.dataset.trackerId, row]));
+    for (const [id,row] of existing) if (!ids.includes(id)) row.remove();
+    list.querySelectorAll('.account-muted').forEach(node => node.remove());
+    let previous = null;
+    for (const id of ids) {
+      const template = document.createElement('template'); template.innerHTML = trackerRowHtml(id);
+      const fresh = template.content.firstElementChild;
+      let row = existing.get(id);
+      if (!row) row = fresh;
+      else {
+        for (const selector of ['.tracker-name','.tracker-meta']) {
+          const target = row.querySelector(selector), next = fresh.querySelector(selector);
+          if (target && next && target.textContent !== next.textContent) target.textContent = next.textContent;
+        }
+        const target = row.querySelector('.tracker-row-main > button'), next = fresh.querySelector('.tracker-row-main > button');
+        if (target && next) { target.className = next.className; target.setAttribute('aria-pressed', next.getAttribute('aria-pressed')); target.querySelector('span').textContent = next.textContent.trim(); }
+        const tools = row.querySelector('.tracker-admin-tools'), nextTools = fresh.querySelector('.tracker-admin-tools');
+        if (tools && !nextTools) tools.remove();
+        else if (!tools && nextTools) row.append(nextTools);
+      }
+      const wantedNext = previous ? previous.nextElementSibling : list.firstElementChild;
+      if (wantedNext !== row) list.insertBefore(row, wantedNext);
+      previous = row;
+    }
+    if (!ids.length) { const empty = document.createElement('p'); empty.className = 'account-muted'; empty.textContent = 'No trackers available yet. Ask the host to grant access to this account.'; list.append(empty); }
   }
 }
 
@@ -1879,16 +1913,16 @@ function trackerRowHtml(id) {
   const status = trackerStatusFor(id);
   const adminTools = appIsAdmin ? `
     <div class="tracker-admin-tools">
-      <input class="compact-input" id="grant-${id}" type="email" placeholder="friend@email.com">
-      <button class="sp-btn" onclick="grantTrackerAccess('${id}')" style="width:auto;min-width:58px;justify-content:center"><span>Add</span></button>
+      <input class="compact-input" id="grant-${escapeHtml(id)}" type="email" placeholder="friend@email.com" aria-label="Email to grant access to ${escapeHtml(trackerDisplayName(id,t))}">
+      <button class="sp-btn" onclick="grantTrackerAccess(${escapeHtml(JSON.stringify(id))})" style="width:auto;min-width:58px;justify-content:center"><span>Add</span></button>
     </div>` : '';
-  return `<div class="tracker-row">
+  return `<div class="tracker-row" data-tracker-id="${escapeHtml(id)}">
     <div class="tracker-row-main">
       <div>
         <div class="tracker-name">${escapeHtml(trackerDisplayName(id, t))}</div>
         <div class="tracker-meta">${escapeHtml(status)} | updated ${escapeHtml(trackerAgeFromLocation(loc))}${appIsAdmin ? ' | admin' : ''}</div>
       </div>
-      <button class="sp-btn ${on ? 'sp-active' : ''}" onclick="toggleUserTracker('${id}')" style="width:auto;min-width:74px;justify-content:center">
+      <button class="sp-btn ${on ? 'sp-active' : ''}" aria-pressed="${on}" onclick="toggleUserTracker(${escapeHtml(JSON.stringify(id))})" style="width:auto;min-width:74px;justify-content:center">
         <span>${on ? 'Shown' : 'Hidden'}</span>
       </button>
     </div>
@@ -1987,7 +2021,7 @@ function handleAppTrackerSnapshot(id, value) {
   }
   const lat = Number(value.lat);
   const lng = Number(value.lng);
-  if (!Number.isFinite(lat) || !Number.isFinite(lng)) return;
+  if (!Number.isFinite(lat) || !Number.isFinite(lng) || Math.abs(lat) > 90 || Math.abs(lng) > 180) return;
   trackerLocationMap[id] = Object.assign({}, value, { lat, lng, deviceId:id });
   drawAppTrackerLocation(id);
   pushTrackerTimelineSample(Object.assign({}, trackerLocationMap[id], { deviceId:id }));
@@ -2012,7 +2046,7 @@ function drawAppTrackerLocation(id) {
   const icon = L.divIcon({ html, className:'', iconSize:[42,42], iconAnchor:[21,21] });
   if (!trackerMarkers[id]) {
     trackerMarkers[id] = L.marker(ll, { icon, zIndexOffset:850 }).addTo(map);
-    trackerMarkers[id].on('click', () => map.setView(ll, Math.max(map.getZoom(), 16)));
+    trackerMarkers[id].on('click', e => map.setView(e.target.getLatLng(), Math.max(map.getZoom(), 16)));
   } else {
     trackerMarkers[id].setLatLng(ll).setIcon(icon);
   }
@@ -2123,6 +2157,7 @@ async function deleteCurrentAccount() {
 }
 
 function chooseMode(m) {
+  if ((m !== 'seeker' && m !== 'hider') || _modeStarting) return;
   if (!isRealGoogleUser()) {
     showToast('Sign in with Google first');
     return;
@@ -2131,9 +2166,27 @@ function chooseMode(m) {
     showToast('Start a round first');
     return;
   }
+  if (map && mode) {
+    if (_sessionRoundId === activeRoundId && mode === m) { window.appShell?.close(); return; }
+    const requestedRound = activeRoundId;
+    _restoringState = true;
+    try { switchMode(m, true); } finally { _restoringState = false; }
+    _sessionRoundId = activeRoundId;
+    window.appShell?.close({restoreFocus:false});
+    Promise.resolve(loadActiveRoundDraft()).then(() => {
+      if (activeRoundId !== requestedRound || _sessionRoundId !== requestedRound || mode !== m) return;
+      subscribeRoundQuestions(); subscribeRoundEndgame();
+      if (window.lampskeneQuestions?.sync) window.lampskeneQuestions.sync();
+    });
+    return;
+  }
+  if (typeof L === 'undefined') { showToast('Map library unavailable. Check your connection and reload.', 5000); return; }
+  _modeStarting = true;
+  const requestedRound = activeRoundId;
   const ls = document.getElementById('loading-screen');
   ls.style.display = 'flex'; ls.style.opacity = '1';
   setTimeout(() => {
+    if (activeRoundId !== requestedRound) { _modeStarting = false; ls.style.display = 'none'; return; }
     mode = m;
     document.getElementById('mode-screen').style.display = 'none';
     document.getElementById('header').style.display = 'flex';
@@ -2180,7 +2233,7 @@ function chooseMode(m) {
     _initMobileNav(m);
     _initRevampPreferences();
 
-    initMap();
+    if (!map) initMap();
     initTrackerViewer();
     if (m === 'seeker') {
       document.getElementById('seeker-footer').style.display = 'block';
@@ -2193,12 +2246,16 @@ function chooseMode(m) {
 
     try {
       const _saved = loadSavedState && loadSavedState();
-      if (_saved && _saved.mode === m) restoreState(_saved);
+      if (_saved && _saved.mode === m && _saved.roundId === activeRoundId) restoreState(_saved);
     } catch(e) { console.warn('Restore failed:', e); }
     setTimeout(() => {
+      if (activeRoundId !== requestedRound || _sessionRoundId !== requestedRound || mode !== m) return;
       if (typeof loadActiveRoundDraft === 'function') loadActiveRoundDraft();
       if (typeof decorateQuestionSyncButtons === 'function') decorateQuestionSyncButtons();
     }, 900);
+    _sessionRoundId = activeRoundId;
+    _modeStarting = false;
+    subscribeRoundQuestions(); subscribeRoundEndgame();
 
     setTimeout(() => {
       ls.style.opacity = '0';
@@ -2207,17 +2264,34 @@ function chooseMode(m) {
   }, 50);
 }
 
-function switchMode() {
+function switchMode(targetMode, skipConfirm = false) {
   if (!mode) return;
-  const newMode = mode === 'seeker' ? 'hider' : 'seeker';
-  if (!confirm(`Switch to ${newMode.toUpperCase()} mode? All questions will be cleared.`)) return;
+  const newMode = ['seeker','hider'].includes(targetMode) ? targetMode : mode === 'seeker' ? 'hider' : 'seeker';
+  if (!skipConfirm && !confirm(`Switch to ${newMode.toUpperCase()} mode? All questions will be cleared.`)) return;
   questions.forEach(q => {
     if (q.marker)  map.removeLayer(q.marker);
     if (q.markerA) map.removeLayer(q.markerA);
     if (q.markerB) map.removeLayer(q.markerB);
     if (q.type === 'angle' && typeof clearAngleQuestionLayers !== 'undefined') clearAngleQuestionLayers(q);
+    if (typeof removeMatchingLocMarkers === 'function') removeMatchingLocMarkers(q.id);
+    if (typeof removeAreaFeatures === 'function') removeAreaFeatures(q.id);
+    if (typeof removeMeasuringLocMarkers === 'function') removeMeasuringLocMarkers(q.id);
+    if (q._markerMoveHandler) map.off('moveend', q._markerMoveHandler);
+    if (q._measMoveHandler) map.off('moveend', q._measMoveHandler);
   });
   questions = []; qCounter = 0;
+  if (window.lampskeneQuestions?.clearPreview) window.lampskeneQuestions.clearPreview();
+  hiderPinLocked = false;
+  if (typeof endgamePin !== 'undefined' && endgamePin) { map.removeLayer(endgamePin); endgamePin = null; }
+  if (typeof endgamePinLocked !== 'undefined') endgamePinLocked = false;
+  if (typeof _endgameActive !== 'undefined') _endgameActive = false;
+  if (typeof _endgameZone !== 'undefined') _endgameZone = null;
+  if (typeof _archivedQuestions !== 'undefined') _archivedQuestions = [];
+  if (typeof _hideEndgameZoneLayer === 'function') _hideEndgameZoneLayer();
+  if (typeof _pinUndoStack !== 'undefined') _pinUndoStack.length = 0;
+  if (typeof _anglePreviewLayer !== 'undefined' && _anglePreviewLayer) _anglePreviewLayer.clearLayers();
+  if (typeof _anglePreviewTimer !== 'undefined') clearTimeout(_anglePreviewTimer);
+  if (typeof updateUndoPinButton === 'function') updateUndoPinButton();
   if (hiderPin)        { map.removeLayer(hiderPin); hiderPin = null; }
   if (hiderZoneCircle) { map.removeLayer(hiderZoneCircle); hiderZoneCircle = null; }
   for (const id in outlineCircles) { map.removeLayer(outlineCircles[id]); }
@@ -2236,6 +2310,11 @@ function switchMode() {
   if (sm) sm.textContent = newMode === 'seeker' ? '🫣 → Hider' : '🔍 → Seeker';
   syncRoundStatusUi();
   _updateFabBadge();
+  _initMobileNav(newMode);
+  applySeekerQuestionCodeMenu();
+  if (typeof scheduleRebuild === 'function') scheduleRebuild();
+  if (typeof redrawThermoBorders === 'function') redrawThermoBorders();
+  saveState();
   showToast('Switched to ' + newMode.toUpperCase() + ' mode');
 }
 
@@ -3159,7 +3238,7 @@ function toggleHideLockedPins() {
   applyHideLockedPins();
 }
 
-let _seekerQuestionCodeMenu = false;
+let _seekerQuestionCodeMenu = true;
 function toggleSeekerQuestionCodeMenu() {
   _seekerQuestionCodeMenu = !_seekerQuestionCodeMenu;
   applySeekerQuestionCodeMenu();
@@ -3408,13 +3487,16 @@ function _updateQuestionTools() {
   let visible = 0;
   for (const card of cards) {
     const show = _cardMatchesFilter(card);
-    card.style.display = show ? '' : 'none';
+    const display = show ? '' : 'none';
+    if (card.style.display !== display) card.style.display = display;
     if (show) visible++;
   }
-  ql.classList.toggle('empty', cards.length === 0);
-  ql.classList.toggle('no-filter-match', cards.length > 0 && visible === 0);
+  const empty = cards.length === 0, noMatch = cards.length > 0 && visible === 0;
+  if (ql.classList.contains('empty') !== empty) ql.classList.toggle('empty', empty);
+  if (ql.classList.contains('no-filter-match') !== noMatch) ql.classList.toggle('no-filter-match', noMatch);
   const count = document.getElementById('question-count');
-  if (count) count.textContent = `${visible}/${cards.length} questions`;
+  const label = `${visible}/${cards.length} questions`;
+  if (count && count.textContent !== label) count.textContent = label;
 }
 
 function quickAddOrCode() {
@@ -3469,11 +3551,14 @@ function tearDropIcon(color, size=34) {
 
 // ── PERSISTENCE ────────────────────────────────────────────────
 const SAVE_KEY = 'jetlag_state_v1';
-function saveState() {
-  if (!mode) return;
+let _restoringState = false;
+function saveState(saveDraft = true) {
+  if (!mode || _restoringState) return;
+  if (map && typeof activeRoundId !== 'undefined' && activeRoundId && _sessionRoundId !== activeRoundId) return;
   try {
     const state = {
       mode, qCounter,
+      roundId: typeof activeRoundId !== 'undefined' ? activeRoundId : null,
       hiderPin: hiderPin ? [hiderPin.getLatLng().lat, hiderPin.getLatLng().lng] : null,
       hiderPinLocked,
       endgamePin: (typeof endgamePin!=='undefined'&&endgamePin) ? [endgamePin.getLatLng().lat, endgamePin.getLatLng().lng] : null,
@@ -3483,6 +3568,12 @@ function saveState() {
       slDisplayed: Array.from(_slDisplayed || []),
       slTypeOverlay: _slTypeOverlay,
       slBlueZoneBusOn: _slBlueZoneBusOn,
+      slSelectedStations: Array.from(_slSelectedStations),
+      slLineDetail: _slLineDetail,
+      slFerryStopsOn: _slFerryStopsOn,
+      transitLayerOn: _transitLayerOn,
+      hideLockedPins: _hideLockedPins,
+      cityBoundaryOn: typeof _cityBoundaryOn !== 'undefined' ? _cityBoundaryOn : false,
       seekerQuestionCodeMenu: _seekerQuestionCodeMenu,
       moveLockEnabled: typeof _moveLockEnabled !== 'undefined' ? _moveLockEnabled : false,
       thermoBordersOn: typeof _thermoBordersOn !== 'undefined' ? _thermoBordersOn : false,
@@ -3502,7 +3593,7 @@ function saveState() {
       })
     };
     localStorage.setItem(SAVE_KEY, JSON.stringify(state));
-    if (typeof saveActiveRoundDraft === 'function') saveActiveRoundDraft();
+    if (saveDraft && typeof saveActiveRoundDraft === 'function') saveActiveRoundDraft();
   } catch(e) { console.warn('Save failed', e); }
 }
 
@@ -3511,18 +3602,39 @@ function loadSavedState() {
     const raw = localStorage.getItem(SAVE_KEY);
     if (!raw) return false;
     const state = JSON.parse(raw);
-    if (!state || !state.mode || !state.questions) return false;
+    if (!state || !['seeker','hider'].includes(state.mode) || !Array.isArray(state.questions)) return false;
     return state;
   } catch(e) { return false; }
 }
 
 function restoreState(state) {
   if (!state) return;
+  const restoreRound = typeof activeRoundId !== 'undefined' ? activeRoundId : null, restoreRole = mode, restoreMap = map;
+  const restoreIsCurrent = () => mode === restoreRole && map === restoreMap && (typeof activeRoundId === 'undefined' || activeRoundId === restoreRound);
+  const restoreFrame = callback => requestAnimationFrame(() => { if (restoreIsCurrent()) callback(); });
+  const restoreTimeout = (callback, delay) => setTimeout(() => { if (restoreIsCurrent()) callback(); }, delay);
+  _restoringState = true;
+  try {
   if (state.slTypeOverlay && typeof state.slTypeOverlay === 'object') _slTypeOverlay = Object.assign(_slTypeOverlay, state.slTypeOverlay);
   if (typeof state.slBlueZoneBusOn === 'boolean') _slBlueZoneBusOn = state.slBlueZoneBusOn;
+  if (typeof state.cityBoundaryOn === 'boolean' && typeof setCityBoundaryMask === 'function') setCityBoundaryMask(state.cityBoundaryOn, false);
   if (typeof state.seekerQuestionCodeMenu === 'boolean') { _seekerQuestionCodeMenu = state.seekerQuestionCodeMenu; applySeekerQuestionCodeMenu(); }
   if (typeof state.moveLockEnabled === 'boolean' && typeof setMoveLockEnabled === 'function') setMoveLockEnabled(state.moveLockEnabled, false);
   if (typeof state.thermoBordersOn === 'boolean' && typeof setThermoBordersEnabled === 'function') setThermoBordersEnabled(state.thermoBordersOn, false);
+  if (typeof state.hideLockedPins === 'boolean') {
+    _hideLockedPins = state.hideLockedPins;
+    document.getElementById('hide-locked-btn')?.classList.toggle('sp-active', _hideLockedPins);
+    document.getElementById('hide-locked-status').textContent = _hideLockedPins ? 'ON' : 'OFF';
+  }
+  if (['fast','medium','data'].includes(state.slLineDetail)) setSlLineDetail(state.slLineDetail);
+  if (state.transitLayerOn && !_transitLayerOn) toggleTransitLayer();
+  if (Array.isArray(state.slSelectedStations) && state.slSelectedStations.length) {
+    _slSelectedStations = new Set(state.slSelectedStations.filter(name => typeof name === 'string'));
+    loadSlData().then(() => { if (restoreIsCurrent()) { renderSlSelectedStations(); refreshSlStationMarkers(); } });
+  }
+  if (state.slFerryStopsOn && !_slFerryStopsOn) {
+    loadSlData().then(() => { if (restoreIsCurrent() && !_slFerryStopsOn) toggleSlFerryStops(); });
+  }
   for (const t in _slTypeOverlay) {
     const idType = t === 'light_rail' ? 'light-rail' : t;
     document.getElementById(`sl-${idType}-all-btn`)?.classList.toggle('sp-active', !!_slTypeOverlay[t]);
@@ -3536,6 +3648,7 @@ function restoreState(state) {
   if ((Array.isArray(state.slDisplayed) && state.slDisplayed.length) || _slBlueZoneBusOn || Object.values(_slTypeOverlay).some(Boolean)) {
     _slDisplayed = new Set((state.slDisplayed || []).map(String));
     loadSlData().then(() => {
+      if (!restoreIsCurrent()) return;
       renderSlSelectedList();
       renderSlSearchResults();
       redrawSlLineLayers();
@@ -3550,7 +3663,7 @@ function restoreState(state) {
   }
   if (state.endgameActive && state.endgameZone && typeof _startEndgame === 'function') {
     // Defer until questions are restored so they get archived properly
-    setTimeout(() => {
+    restoreTimeout(() => {
       // If we already have questions restored, archive them now via the normal
       // endgame-start path (which preserves them in _archivedQuestions).
       // Otherwise just show the green zone.
@@ -3583,7 +3696,7 @@ function restoreState(state) {
       // If the hider had started endgame but hadn't placed the endgame pin yet
       // (no endgamePin in state), re-prompt them to place it.
       if (_isHider && !state.endgamePin && typeof addEndgameCard === 'function') {
-        setTimeout(() => addEndgameCard(), 300);
+        restoreTimeout(() => addEndgameCard(), 300);
       }
     }, 600);
   }
@@ -3596,7 +3709,7 @@ function restoreState(state) {
       if (q.hiderMode) { renderHiderRadarCard(q); redrawOutlineCircle(q); if (q.zone !== 'pending') redrawQuestionOverlay(q); }
       else {
         renderSeekerRadarCard(q); placeSeekerPin(q);
-        requestAnimationFrame(() => {
+        restoreFrame(() => {
           const el = document.getElementById(`rad-inp-${q.id}`);
           if (el) el.value = q.radius;
           document.getElementById(`unit-m-${q.id}`)?.classList.toggle('active', q.unit==='M');
@@ -3607,7 +3720,7 @@ function restoreState(state) {
             redrawOutlineCircle(q); redrawQuestionOverlay(q);
           } else { redrawOutlineCircle(q); }
         });
-        if (q.locked) requestAnimationFrame(() => {
+        if (q.locked) restoreFrame(() => {
           const btn = document.getElementById(`lock-btn-${q.id}`);
           if (btn) { btn.textContent='🔓 Locked'; btn.classList.add('locked'); }
           if (q.marker) q.marker.dragging.disable();
@@ -3617,8 +3730,8 @@ function restoreState(state) {
       if (q.hiderMode) { renderHiderThermoCard(q); if (q.closer !== 'pending') redrawQuestionOverlay(q); }
       else {
         renderSeekerThermoCard(q); placeThermoPin(q,'A'); placeThermoPin(q,'B'); updateThermoDistance(q);
-        if (q.closer !== 'pending') requestAnimationFrame(() => setCloser(q.id, q.closer));
-        if (q.locked) requestAnimationFrame(() => {
+        if (q.closer !== 'pending') restoreFrame(() => setCloser(q.id, q.closer));
+        if (q.locked) restoreFrame(() => {
           const btn = document.getElementById(`tlock-btn-${q.id}`);
           if (btn) { btn.textContent='🔓 Locked'; btn.classList.add('locked'); }
           if (q.markerA) q.markerA.dragging.disable();
@@ -3629,8 +3742,8 @@ function restoreState(state) {
       if (q.hiderMode) { renderHiderMatchingCard(q); checkHiderMatching(q); }
       else {
         renderSeekerMatchingCard(q); placeSeekerMatchingPin(q); updateMatchingNearest(q); showMatchingLocMarkers(q); showAreaFeatures(q);
-        if (q.answer !== 'pending') requestAnimationFrame(() => setMatchingAnswer(q.id, q.answer));
-        if (q.locked) requestAnimationFrame(() => {
+        if (q.answer !== 'pending') restoreFrame(() => setMatchingAnswer(q.id, q.answer));
+        if (q.locked) restoreFrame(() => {
           const btn = document.getElementById(`mlock-btn-${q.id}`);
           if (btn) { btn.textContent='🔓 Locked'; btn.classList.add('locked'); }
           if (q.marker) q.marker.dragging.disable();
@@ -3640,8 +3753,8 @@ function restoreState(state) {
       if (q.hiderMode) { renderHiderMeasuringCard(q); checkHiderMeasuring(q); }
       else {
         renderSeekerMeasuringCard(q); placeSeekerMeasuringPin(q); updateMeasuringNearest(q); showMeasuringLocMarkers(q);
-        if (q.answer !== 'pending') requestAnimationFrame(() => setMeasuringAnswer(q.id, q.answer));
-        if (q.locked) requestAnimationFrame(() => {
+        if (q.answer !== 'pending') restoreFrame(() => setMeasuringAnswer(q.id, q.answer));
+        if (q.locked) restoreFrame(() => {
           const btn = document.getElementById(`measlock-btn-${q.id}`);
           if (btn) { btn.textContent='🔓 Locked'; btn.classList.add('locked'); }
           if (q.marker) q.marker.dragging.disable();
@@ -3654,7 +3767,7 @@ function restoreState(state) {
       } else {
         renderAngleCard(q);
         angleQuestionSetupMap(q);
-        if (q.zone !== 'pending') requestAnimationFrame(() => redrawQuestionOverlay());
+        if (q.zone !== 'pending') restoreFrame(() => redrawQuestionOverlay());
       }
     }
     // Refresh collapse summary + auto-collapse if the restored question is
@@ -3662,16 +3775,17 @@ function restoreState(state) {
     if (typeof _qAfterRestore === 'function') _qAfterRestore(q);
   }
   if (state.endgamePin && mode === 'hider') {
-    setTimeout(() => {
+    restoreTimeout(() => {
       if (typeof addEndgameCard !== 'undefined') addEndgameCard();
-      setTimeout(() => {
+      restoreTimeout(() => {
         if (typeof placeEndgamePin !== 'undefined') placeEndgamePin(state.endgamePin[0], state.endgamePin[1]);
         if (state.endgamePinLocked && !endgamePinLocked) toggleEndgameLock();
       }, 100);
     }, 200);
   }
-  if (questions.length > 0) requestAnimationFrame(() => scheduleRebuild());
-  requestAnimationFrame(() => applyHideLockedPins());
+  if (questions.length > 0) restoreFrame(() => scheduleRebuild());
+  restoreFrame(() => applyHideLockedPins());
+  } finally { _restoringState = false; }
 }
 
 function resetAllData() {
@@ -3689,11 +3803,11 @@ function resetAllData() {
 <script src="measuring-data.js"></script>
 <script src="matching-area-data.js"></script>
 <script src="sl-line-voronoi-data.js?v=1"></script>
-<script src="questions.js?v=61"></script>
+<script src="questions.js?v=62"></script>
 <script src="vehicles.js?v=3"></script>
 <script src="curses.js?v=5"></script>
 
-///step 4
+<!-- Firebase module bootstrap -->
 <script type="module">
 import { initializeApp }
 from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
@@ -3742,7 +3856,7 @@ window.firebaseApi = {
 
 </script>
 
-///step 6
+<!-- Multiplayer and account state -->
 
 <script>
 let firebaseReady = false;
@@ -4033,11 +4147,14 @@ async function createRoundUi(role) {
 }
 
 function activateRound(roundId, test=false) {
+  const changedRound = activeRoundId !== roundId;
   activeRoundId = roundId;
   activeRoundIsTest = !!test;
   try { localStorage.setItem(ACTIVE_ROUND_KEY, JSON.stringify({ roundId, test:!!test })); } catch(e) {}
-  subscribeRoundQuestions();
-  subscribeRoundEndgame();
+  if (roundQuestionsUnsubscribe) { roundQuestionsUnsubscribe(); roundQuestionsUnsubscribe = null; }
+  if (typeof roundEndgameUnsubscribe !== 'undefined' && roundEndgameUnsubscribe) { roundEndgameUnsubscribe(); roundEndgameUnsubscribe = null; }
+  if (changedRound && typeof _endgameSyncedState !== 'undefined') _endgameSyncedState = null;
+  if (map && _sessionRoundId === roundId) { subscribeRoundQuestions(); subscribeRoundEndgame(); }
   syncAccountUi();
   syncRoundStatusUi();
 }
@@ -4055,9 +4172,11 @@ function subscribeRoundEndgame() {
     try { roundEndgameUnsubscribe(); } catch(e) {}
     roundEndgameUnsubscribe = null;
   }
-  if (!activeRoundId || activeRoundIsTest || !firebaseDb) return;
+  if (!activeRoundId || activeRoundIsTest || !firebaseDb || !map || _sessionRoundId !== activeRoundId) return;
   const { ref, onValue } = window.firebaseApi;
+  const subscribedRound = activeRoundId;
   roundEndgameUnsubscribe = onValue(ref(firebaseDb, `roundEndgame/${activeRoundId}`), snap => {
+    if (activeRoundId !== subscribedRound || _sessionRoundId !== subscribedRound) return;
     const remote = snap.val();
     const prevActive = _endgameSyncedState ? !!_endgameSyncedState.active : false;
     const remoteActive = remote ? !!remote.active : false;
@@ -4194,15 +4313,17 @@ function sanitizeQuestionForFirebase(q) {
 
 async function saveActiveRoundDraft() {
   if (!activeRoundId || activeRoundIsTest || !isRealGoogleUser()) return;
+  if (_restoringState || _sessionRoundId !== activeRoundId) return;
   try {
+    const roundAtStart = activeRoundId;
     const { ref, set, update } = window.firebaseApi;
-    await set(ref(firebaseDb, `roundDrafts/${activeRoundId}/${mainUser.uid}`), {
+    await set(ref(firebaseDb, `roundDrafts/${roundAtStart}/${mainUser.uid}`), {
       qCounter,
       mode,
       questions:(questions || []).map(sanitizeQuestionForFirebase),
       updatedAt:Date.now()
     });
-    await update(ref(firebaseDb, `rounds/${activeRoundId}`), { updatedAt:Date.now() });
+    await update(ref(firebaseDb, `rounds/${roundAtStart}`), { updatedAt:Date.now() });
   } catch(e) {
     console.warn('Round draft save failed:', e);
   }
@@ -4210,13 +4331,18 @@ async function saveActiveRoundDraft() {
 
 async function loadActiveRoundDraft() {
   if (!activeRoundId || activeRoundIsTest || !isRealGoogleUser() || !firebaseDb || !mode || !map) return false;
+  if (_sessionRoundId !== activeRoundId) return false;
   if (questions && questions.length) return false;
   try {
+    const roundAtStart = activeRoundId;
+    const roleAtStart = mode, mapAtStart = map;
     const { ref, get } = window.firebaseApi;
     const snap = await get(ref(firebaseDb, `roundDrafts/${activeRoundId}/${mainUser.uid}`));
+    if (activeRoundId !== roundAtStart || _sessionRoundId !== roundAtStart || mode !== roleAtStart || map !== mapAtStart || questions.length) return false;
     if (!snap.exists()) return false;
     const draft = snap.val();
     if (!draft || !Array.isArray(draft.questions) || !draft.questions.length) return false;
+    if (draft.mode && draft.mode !== mode) return false;
     restoreState({
       mode:mode,
       qCounter:Number(draft.qCounter || 0),
@@ -4410,9 +4536,11 @@ function subscribeRoundQuestions() {
     try { roundQuestionsUnsubscribe(); } catch(e) {}
     roundQuestionsUnsubscribe = null;
   }
-  if (!activeRoundId || activeRoundIsTest || !firebaseDb) return;
+  if (!activeRoundId || activeRoundIsTest || !firebaseDb || !map || _sessionRoundId !== activeRoundId) return;
   const { ref, onValue } = window.firebaseApi;
+  const subscribedRound = activeRoundId;
   roundQuestionsUnsubscribe = onValue(ref(firebaseDb, `roundQuestions/${activeRoundId}`), snap => {
+    if (activeRoundId !== subscribedRound || _sessionRoundId !== subscribedRound) return;
     const incoming = snap.val() || {};
     const changed = _mergeIncomingQuestions(incoming);
     decorateQuestionSyncButtons();
@@ -4537,11 +4665,11 @@ let timelinePathLayer = null;  // Leaflet polyline (full path, faded)
 let timelineActivePathLayer = null; // Leaflet polyline (up to scrubber, bright)
 let timelineDotMarker = null;  // Leaflet marker at scrubber position
 let timelineQuestionLayers = []; // Leaflet markers/circles for visible questions
+let _timelineRequestVersion = 0;
 
 async function openRoundTimeline(roundId) {
   if (!roundId || !firebaseDb) { showToast('No round selected'); return; }
-  // Activate the round (so its data is live) then open the timeline panel
-  if (activeRoundId !== roundId) activateRound(roundId, false);
+  const requestVersion = ++_timelineRequestVersion;
   showToast('Loading timeline…');
   const { ref, get } = window.firebaseApi;
   try {
@@ -4552,6 +4680,7 @@ async function openRoundTimeline(roundId) {
     // Fetch synced questions
     const qSnap = await get(ref(firebaseDb, `roundQuestions/${roundId}`));
     const qData = qSnap.val() || {};
+    if (requestVersion !== _timelineRequestVersion) return;
     timelineQuestions = Object.values(qData).filter(q => q && q.type).sort((a,b) => (a.syncedAt||a.updatedAt||0) - (b.syncedAt||b.updatedAt||0));
     if (!timelineSamples.length && !timelineQuestions.length) {
       showToast('No timeline data for this round');
@@ -4562,6 +4691,13 @@ async function openRoundTimeline(roundId) {
     for (const s of timelineSamples) if (s.capturedAt) allTs.push(s.capturedAt);
     for (const q of timelineQuestions) { if (q.syncedAt) allTs.push(q.syncedAt); if (q.updatedAt) allTs.push(q.updatedAt); }
     if (!allTs.length) { showToast('No timestamps in timeline data'); return; }
+    if (!map) {
+      if (typeof L === 'undefined') { showToast('Map unavailable. Check your connection.'); return; }
+      initMap();
+      document.getElementById('mode-screen').style.display = 'none';
+      document.getElementById('header').style.display = 'flex';
+    }
+    if (!map.getPane('timeline-replay')) { const pane = map.createPane('timeline-replay'); pane.style.zIndex = 650; }
     timelineStartTs = Math.min(...allTs);
     timelineEndTs = Math.max(...allTs);
     timelineCurrentTs = timelineStartTs;
@@ -4587,11 +4723,13 @@ async function openRoundTimeline(roundId) {
 }
 
 function closeRoundTimeline() {
+  _timelineRequestVersion++;
   timelineActive = false;
   timelinePause();
   document.getElementById('timeline-panel').classList.remove('open');
   document.body.classList.remove('timeline-active');
   clearTimelineLayers();
+  if (!mode) { document.getElementById('mode-screen').style.display = 'flex'; document.getElementById('header').style.display = 'none'; }
 }
 
 function clearTimelineLayers() {
@@ -4609,10 +4747,12 @@ function renderTimelineFullPath() {
   const pts = timelineSamples.map(s => [s.lat, s.lng]);
   // Full path: faded grey
   timelinePathLayer = L.polyline(pts, {
+    pane:'timeline-replay',
     color: '#55ddaa', weight: 2, opacity: 0.2, interactive: false
   }).addTo(map);
   // Active path (up to scrubber): bright — will be updated by onTimelineScrub
   timelineActivePathLayer = L.polyline([], {
+    pane:'timeline-replay',
     color: '#55ddaa', weight: 3.5, opacity: 0.85, interactive: false
   }).addTo(map);
 }
@@ -4676,7 +4816,7 @@ function renderTimelineAtTs() {
       const html = '<span class="loc-pulse tracker-pulse"></span><div class="loc-dot tracker-dot">^</div>';
       const icon = L.divIcon({ html, className:'', iconSize:[42,42], iconAnchor:[21,21] });
       if (!timelineDotMarker) {
-        timelineDotMarker = L.marker(ll, { icon, zIndexOffset:860 }).addTo(map);
+        timelineDotMarker = L.marker(ll, { icon, pane:'timeline-replay', zIndexOffset:860 }).addTo(map);
       } else {
         timelineDotMarker.setLatLng(ll).setIcon(icon);
       }
@@ -4704,14 +4844,15 @@ function renderTimelineAtTs() {
     } else if (q.type === 'thermo') {
       if (typeof q.latA === 'number') ll = [(q.latA + q.latB)/2, (q.lngA + q.lngB)/2];
     } else if (q.type === 'angle') {
-      if (typeof q.lat === 'number') ll = [q.lat, q.lng];
+      if (q.center && Number.isFinite(q.center.lat) && Number.isFinite(q.center.lng)) ll = [q.center.lat, q.center.lng];
     }
     if (!ll) continue;
     const color = q.locked ? '#55ddaa' : 'rgba(255,200,80,.85)';
     const marker = L.circleMarker(ll, {
+      pane:'timeline-replay',
       radius: 7, color, weight: 2, fillColor: color, fillOpacity: 0.4
     }).addTo(map);
-    marker.bindTooltip(`Q#${q.id} (${q.type}) ${q.locked ? '🔒 locked' : '🔓 synced'}\n${new Date(ts).toLocaleTimeString()}`, { permanent:false });
+    marker.bindTooltip(`Q#${escapeHtml(q.id)} (${escapeHtml(q.type)}) ${q.locked ? '🔒 locked' : '🔓 synced'}\n${new Date(ts).toLocaleTimeString()}`, { permanent:false, pane:'timeline-replay' });
     timelineQuestionLayers.push(marker);
   }
   // Update info text
@@ -4764,5 +4905,10 @@ function timelineFitPath() {
   }
 }
 </script>
+<script src="map-experience.js?v=1"></script>
+<script src="question-experience.js?v=1"></script>
+<script src="tracker-experience.js?v=1"></script>
+<script src="departure-board.js?v=1"></script>
+<script src="app-shell.js?v=1"></script>
 </body>
 </html>

@@ -1,0 +1,361 @@
+/* Stable application chrome. The map keeps its bounds while panels open. */
+body.app-shell {
+  --header-h: 64px;
+  --bar-h: 34px;
+  --r: 10px;
+  --shell-nav-h: 0px;
+  --shell-status-h: 34px;
+  --shell-top: calc(var(--header-h) + env(safe-area-inset-top, 0px));
+  --shell-bottom: calc(var(--shell-nav-h) + var(--shell-status-h) + env(safe-area-inset-bottom, 0px));
+  --bg: #0b141b;
+  --surface: #14212b;
+  --surface2: #1b2c37;
+  --border: #2c3e49;
+  --border2: #405660;
+  --accent: #80e0bd;
+  --accent2: #ffa57b;
+  --text: #edf5f5;
+  --text2: #b7c7cd;
+  --muted: #91a7b1;
+  --shell-shadow: 0 14px 45px rgba(0, 0, 0, .22);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  font-size: 14px;
+  line-height: 1.45;
+  -webkit-font-smoothing: antialiased;
+  overscroll-behavior: none;
+}
+body.app-shell.light {
+  --bg: #edf2f4; --surface: #fff; --surface2: #f1f5f6;
+  --border: #d9e2e5; --border2: #bacbd2;
+  --accent: #16664d; --accent2: #b85528;
+  --text: #192f3a; --text2: #4c626d; --muted: #607580;
+  --shell-shadow: 0 14px 45px rgba(24, 46, 59, .13);
+}
+body.app-shell.bambu {
+  --bg: #eeede5; --surface: #fcfcf6; --surface2: #f0f1e8;
+  --border: #d7ddce; --border2: #b8c4ad;
+  --accent: #416b49; --accent2: #a2502c;
+  --text: #253b2c; --text2: #536852; --muted: #63765d;
+  --shell-shadow: 0 14px 45px rgba(40, 65, 41, .13);
+}
+body.app-shell.statusbar-hidden { --shell-status-h: 0px; }
+body.app-shell.bottom-bar { --shell-nav-h: 64px; }
+.app-shell button, .app-shell input, .app-shell select, .app-shell textarea {
+  font-family: inherit;
+}
+.app-shell button { touch-action: manipulation; -webkit-tap-highlight-color: transparent; }
+.app-shell button:focus-visible, .app-shell input:focus-visible,
+.app-shell select:focus-visible, .app-shell summary:focus-visible,
+.app-shell [tabindex]:focus-visible {
+  outline: 3px solid var(--accent); outline-offset: 3px;
+}
+.app-shell [hidden] { display: none !important; }
+.shell-sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; border: 0; }
+.shell-icon { width: 20px; height: 20px; flex: 0 0 auto; fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
+body.app-shell #header, body.app-shell.bottom-bar #header {
+  top: 0; bottom: auto; height: var(--shell-top); padding: env(safe-area-inset-top, 0px) 18px 0;
+  border: 0; border-bottom: 1px solid var(--border); background: var(--surface);
+  padding-left: max(18px, env(safe-area-inset-left, 0px)); padding-right: max(18px, env(safe-area-inset-right, 0px));
+  gap: 16px; transition: none;
+}
+body.app-shell #header-left, body.app-shell.bottom-bar #header-left { display: flex; gap: 14px; }
+body.app-shell #header-right, body.app-shell.bottom-bar #header-right { display: flex; gap: 6px; }
+.app-shell #header h1 { font: 760 19px/1.05 -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; letter-spacing: -.5px; color: var(--text); }
+.app-shell #header h1 span { color: var(--accent); }
+.app-shell #header h1::after { content: 'STOCKHOLM'; display: block; color: var(--muted); font-family: inherit; font-weight: 600; font-size: 9px; line-height: 1.2; letter-spacing: 1.8px; margin-top: 4px; }
+.app-shell #mode-badge { font-size: 11px; letter-spacing: .2px; padding: 5px 9px; font-weight: 650; text-transform: capitalize; background: var(--surface2); }
+.app-shell #menu-btn, .app-shell .hdr-btn, .shell-top-button {
+  width: auto; min-width: 44px; height: 42px; padding: 0 12px; gap: 8px;
+  border: 1px solid transparent; border-radius: 10px; color: var(--text2);
+  background: transparent; font-size: 13px; font-weight: 600; display: inline-flex; align-items: center; justify-content: center;
+}
+.app-shell #menu-btn:hover, .app-shell .hdr-btn:hover, .shell-top-button:hover { background: var(--surface2); border-color: var(--border); color: var(--text); }
+.app-shell #menu-btn.open, .app-shell .hdr-btn.open { background: var(--surface2); color: var(--accent); border-color: var(--border2); }
+.app-shell #undo-pin-btn { padding: 0; width: 42px; }
+.app-shell .hdr-btn:disabled { opacity: .4; }
+.app-shell #map, body.app-shell.bottom-bar #map, body.app-shell.statusbar-hidden #map {
+  top: var(--shell-top); bottom: var(--shell-bottom); left: 0; right: 0;
+}
+body.app-shell #sidebar, body.app-shell.bottom-bar #sidebar, body.app-shell.statusbar-hidden #sidebar,
+body.app-shell #settings-panel, body.app-shell.bottom-bar #settings-panel, body.app-shell.statusbar-hidden #settings-panel,
+body.app-shell #sl-panel, body.app-shell.bottom-bar #sl-panel, body.app-shell.statusbar-hidden #sl-panel,
+body.app-shell #curse-panel, body.app-shell.bottom-bar #curse-panel, body.app-shell.statusbar-hidden #curse-panel {
+  top: calc(var(--shell-top) + 12px); bottom: calc(var(--shell-bottom) + 12px); max-height: none;
+  width: min(390px, calc(100vw - 32px)); border: 1px solid var(--border); border-radius: 16px;
+  box-shadow: var(--shell-shadow); padding: 0; gap: 0; z-index: 1100; overflow: hidden;
+  visibility: hidden; opacity: 0; pointer-events: none;
+  transform: translateX(12px); transition: opacity .15s ease, transform .15s ease, visibility .15s;
+}
+body.app-shell #sidebar, body.app-shell.bottom-bar #sidebar, body.app-shell.statusbar-hidden #sidebar { left: 16px; right: auto; width: min(var(--panel-w, 390px), calc(100vw - 32px)); transform: translateX(-12px); }
+body.app-shell #settings-panel, body.app-shell.bottom-bar #settings-panel,
+body.app-shell #sl-panel, body.app-shell.bottom-bar #sl-panel,
+body.app-shell #curse-panel, body.app-shell.bottom-bar #curse-panel { left: auto; right: 16px; }
+body.app-shell #sidebar.open, body.app-shell #settings-panel.open, body.app-shell #sl-panel.open, body.app-shell #curse-panel.open {
+  visibility: visible; opacity: 1; pointer-events: auto; transform: translateX(0);
+}
+body.app-shell #shell-main-menu-panel {
+  position: fixed; display: flex; flex-direction: column; z-index: 1100;
+  top: calc(var(--shell-top) + 12px); bottom: calc(var(--shell-bottom) + 12px); right: 16px;
+  width: min(410px, calc(100vw - 32px)); border: 1px solid var(--border); border-radius: 16px;
+  background: var(--surface); box-shadow: var(--shell-shadow); overflow: hidden;
+  visibility: hidden; opacity: 0; pointer-events: none; transform: translateX(12px);
+  transition: opacity .15s ease, transform .15s ease, visibility .15s;
+}
+body.app-shell #shell-main-menu-panel.open { visibility: visible; opacity: 1; pointer-events: auto; transform: translateX(0); }
+body.app-shell.questions-clean #sidebar-header { display: flex !important; }
+body.app-shell.questions-clean #question-search, body.app-shell.questions-clean #question-count, body.app-shell.questions-clean #qf-all, body.app-shell.questions-clean #qf-answered { display: block !important; }
+.app-shell #question-tools .q-filter-row:not(.type-row) { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+.app-shell #sidebar-grip { display: none; }
+.app-shell #question-tools { padding: 10px 12px; gap: 8px; max-height: 30%; overflow-y: auto; }
+.app-shell .q-filter { min-height: 38px; font-size: 11px; text-transform: none; letter-spacing: 0; }
+.app-shell #question-count { font-size: 11px; text-transform: none; letter-spacing: 0; padding-bottom: 0; }
+.app-shell #question-list.empty:has(.qe-empty)::before { display: none; }
+.app-shell .settings-head { padding: 0; border: 0; gap: 8px; }
+.app-shell .settings-title { font-family: inherit; font-size: 13px; letter-spacing: 0; }
+.app-shell .settings-sub, .app-shell .comfort-hint { font-size: 11px; letter-spacing: 0; text-transform: none; line-height: 1.5; }
+.app-shell .tracker-status, .app-shell .account-muted, .app-shell .tracker-meta { font-size: 11px; line-height: 1.55; letter-spacing: 0; }
+.app-shell .tracker-name { font-size: 13px; font-weight: 600; }
+.app-shell .shell-player-tracker-view { width: 100%; margin-top: 8px; min-height: 40px; }
+.app-shell .shell-player-tracker-view:disabled { opacity: .5; cursor: default; }
+.app-shell #round-role-picker { grid-template-columns: 1fr 1fr; }
+.app-shell .account-input, .app-shell .compact-input, .app-shell .share-input { min-height: 44px; font-size: 13px; }
+.app-shell .account-panel { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 18px; gap: 14px; }
+.app-shell #shell-menu-body .account-panel { width: auto; margin: 0; border: 0; border-radius: 0; padding: 16px; background: transparent; }
+.app-shell .account-header { background: var(--surface2); padding: 12px; border-radius: 10px; }
+.app-shell .account-info .ai-name { font-size: 14px; font-weight: 650; }
+.app-shell .account-info .ai-email { font-size: 11px; }
+.app-shell .account-item { font-size: 13px; line-height: 1.45; padding: 10px; }
+.app-shell .account-item .ai-meta { font-size: 11px; line-height: 1.5; }
+.app-shell .account-list { max-height: 260px; overscroll-behavior: contain; }
+.app-shell .account-row { gap: 8px; }
+.app-shell.density-roomy .sp-btn, .app-shell.density-roomy .type-option { min-height: 48px; }
+.app-shell.density-roomy #question-list { gap: 14px; }
+.app-shell.density-roomy .qe-summary { gap: 12px; }
+.app-shell.density-compact #question-list { gap: 7px; }
+.app-shell.density-compact .qe-summary { gap: 7px; }
+body.app-shell.has-account-menu #mode-screen { overflow-y: auto; justify-content: flex-start; gap: 18px; padding: max(32px, env(safe-area-inset-top, 0px)) 20px 32px; }
+body.app-shell.has-account-menu #mode-screen .account-panel { width: min(500px, 100%); margin: 0; flex-shrink: 0; }
+body.app-shell #quick-actions, body.app-shell.bottom-bar #quick-actions, body.app-shell.statusbar-hidden #quick-actions { bottom: calc(var(--shell-bottom) + 14px); }
+body.app-shell.shell-panel-open #quick-actions { display: none; }
+body.app-shell #timeline-panel { bottom: var(--shell-bottom); z-index: 900; background: var(--surface); color: var(--text); border-color: var(--border); border-radius: 14px 14px 0 0; padding: 12px 16px; }
+body.app-shell.shell-panel-open #timeline-panel { visibility: hidden; pointer-events: none; }
+.app-shell #timeline-panel .tl-head { flex-wrap: wrap; }
+.app-shell #timeline-panel .tl-btn { min-height: 40px; background: var(--surface2); border-color: var(--border2); color: var(--text); }
+.app-shell #timeline-panel .tl-legend { flex-wrap: wrap; font-size: 10px; }
+.app-shell #timeline-panel .tl-time { font-family: inherit; font-variant-numeric: tabular-nums; }
+.app-shell #timeline-scrubber { min-height: 32px; accent-color: var(--accent); -webkit-appearance: auto; appearance: auto; background: transparent; }
+.app-shell #sidebar-header, .app-shell .sl-header, .app-shell .cp-header, .shell-panel-header {
+  display: flex; align-items: center; flex-shrink: 0; gap: 10px; padding: 14px 16px;
+  min-height: 66px; border-bottom: 1px solid var(--border); background: var(--surface);
+}
+.app-shell .sh-title, .app-shell .sl-header-title, .app-shell .cp-header-title, .shell-panel-title {
+  flex: 1; font-family: inherit; font-weight: 720; font-size: 19px; line-height: 1.25; letter-spacing: -.3px; color: var(--text);
+}
+.shell-panel-heading { flex: 1; min-width: 0; }
+.shell-panel-subtitle { font-size: 11px; color: var(--muted); margin-top: 3px; line-height: 1.35; }
+.app-shell #sidebar-close, .app-shell .sl-close-btn, .app-shell .cp-close-btn, .shell-close-button {
+  display: inline-flex; width: 40px; height: 40px; flex: 0 0 40px; align-items: center; justify-content: center;
+  border: 1px solid var(--border); border-radius: 10px; background: var(--surface2); color: var(--text2); cursor: pointer;
+}
+.app-shell #question-list, .app-shell #sl-search-results, .app-shell .cp-list {
+  padding: 12px; gap: 10px; overscroll-behavior: contain; scrollbar-gutter: stable;
+}
+.shell-panel-scroll { flex: 1; min-height: 0; overflow-y: auto; overscroll-behavior: contain; scrollbar-gutter: stable; }
+.app-shell .shell-panel-scroll #sl-search-results, .app-shell .shell-panel-scroll .cp-list { flex: none; overflow: visible; scrollbar-gutter: auto; min-height: 140px; }
+.app-shell .shell-panel-scroll .sl-search-wrap, .app-shell .shell-panel-scroll .cp-search-wrap { position: sticky; top: 0; z-index: 2; background: var(--surface); }
+.app-shell .tracker-section > summary { min-height: 48px; }
+.app-shell .tracker-body { max-height: min(480px, 50dvh); }
+.app-shell #sidebar-footer { padding: 12px; background: var(--surface); max-height: 46%; overflow-y: auto; overscroll-behavior: contain; }
+.app-shell .add-q-btn { background: var(--accent); border: 1px solid var(--accent); color: var(--surface); border-radius: 10px; min-height: 44px; font-size: 13px; font-weight: 650; letter-spacing: 0; text-transform: none; }
+body.app-shell:not(.light):not(.bambu) .add-q-btn { color: #10251e; }
+.app-shell .type-option { min-height: 46px; font-size: 12px; text-transform: none; letter-spacing: 0; }
+.app-shell .decode-btn, .app-shell .code-input, .app-shell .sl-search, .app-shell .cp-search, .app-shell #cp-num-input { min-height: 44px; font-size: 13px; letter-spacing: 0; border-radius: 9px; }
+.app-shell .q-label { font-size: 11px; letter-spacing: .1px; text-transform: none; }
+.app-shell .code-input-row { gap: 8px; }
+.app-shell .decode-btn { text-transform: none; font-weight: 650; padding: 10px 14px; }
+.app-shell .sl-search-wrap, .app-shell .cp-search-wrap { padding: 12px; }
+.app-shell .sl-section-head { padding: 10px 12px 7px; }
+.app-shell .sl-section-title { font-size: 11px; font-weight: 600; letter-spacing: .2px; text-transform: none; }
+.app-shell #sl-selected-list { max-height: 180px; gap: 7px; }
+.app-shell .sl-mini-btn { font-size: 11px; text-transform: none; letter-spacing: 0; min-height: 34px; padding: 5px 10px; }
+.app-shell .sl-line-item { padding: 11px; min-height: 60px; gap: 10px; border-radius: 11px; }
+.app-shell .sl-line-name { font-size: 13px; letter-spacing: 0; font-weight: 600; }
+.app-shell .sl-line-sub { font-size: 11px; text-transform: none; letter-spacing: 0; }
+.app-shell .sl-line-action { font-size: 11px; text-transform: none; letter-spacing: 0; min-height: 40px; min-width: 64px; }
+.app-shell .sl-empty { font-size: 12px; line-height: 1.6; color: var(--muted); text-transform: none; letter-spacing: 0; }
+.app-shell .cp-tab { font-size: 12px; letter-spacing: .1px; min-height: 44px; text-transform: none; }
+.app-shell .cp-deck-stats, .app-shell .cp-deck-options, .app-shell #cp-quick-add { padding: 10px 12px; }
+.app-shell .cp-deck-stat, .app-shell .cp-opt-btn, .app-shell .cp-lock-btn { font-size: 11px; letter-spacing: 0; text-transform: none; }
+.app-shell .cp-lock-btn, .app-shell .cp-opt-btn { min-height: 36px; }
+.app-shell .cp-num-btn { min-height: 42px; font-size: 11px; letter-spacing: 0; text-transform: none; }
+.app-shell .cp-item { border-radius: 11px; }
+.app-shell .cp-item-header { min-height: 54px; padding: 11px 12px; gap: 9px; }
+.app-shell .cp-name { font-size: 13px; font-weight: 600; letter-spacing: 0; }
+.app-shell .cp-num { font-size: 11px; }
+.app-shell .cp-text { font-size: 13px; line-height: 1.65; letter-spacing: 0; }
+.app-shell .cp-section-label { font-size: 10px; letter-spacing: .6px; margin-top: 12px; }
+.app-shell .cp-compact-cost { font-size: 12px; letter-spacing: 0; }
+.app-shell .cp-badge { font-size: 10px; letter-spacing: .1px; padding: 4px 8px; text-transform: none; }
+.app-shell .cp-action-btn, .app-shell .cp-remove-btn { min-height: 42px; font-size: 12px; letter-spacing: 0; text-transform: none; }
+.app-shell .cp-empty-text, .app-shell .cp-empty-sub { font-size: 13px; letter-spacing: 0; text-transform: none; }
+.app-shell .cp-extra-toggle { min-height: 32px; font-size: 11px; text-transform: none; letter-spacing: 0; }
+.shell-settings-search { padding: 12px; border-bottom: 1px solid var(--border); flex-shrink: 0; background: var(--surface); }
+.shell-settings-search input { width: 100%; min-height: 42px; padding: 10px 12px; border: 1px solid var(--border2); border-radius: 10px; background: var(--surface2); color: var(--text); font-size: 13px; }
+.shell-settings-search input::placeholder { color: var(--muted); }
+#shell-settings-body { flex: 1; min-height: 0; overflow-y: auto; overscroll-behavior: contain; scrollbar-gutter: stable; padding: 12px; }
+.shell-settings-group { border: 1px solid var(--border); border-radius: 11px; margin-bottom: 10px; background: var(--surface); overflow: hidden; }
+.shell-settings-group > summary { list-style: none; display: flex; align-items: center; justify-content: space-between; padding: 13px 12px; min-height: 46px; cursor: pointer; font-size: 13px; font-weight: 650; color: var(--text); }
+.shell-settings-group > summary::-webkit-details-marker { display: none; }
+.shell-settings-group > summary::after { content: '+'; color: var(--muted); font-size: 18px; font-weight: 400; }
+.shell-settings-group[open] > summary::after { content: '−'; }
+.shell-settings-group[open] > summary { border-bottom: 1px solid var(--border); }
+.shell-settings-section { padding: 12px; }
+.shell-settings-section + .shell-settings-section { border-top: 1px solid var(--border); }
+.app-shell .sp-label { color: var(--muted); font-size: 11px; font-weight: 650; text-transform: none; letter-spacing: .1px; padding-bottom: 0; border: 0; margin-bottom: 9px; }
+.app-shell .sp-pills { gap: 6px; margin-bottom: 0; }
+.app-shell .layer-btn { min-height: 36px; padding: 7px 11px; font-size: 12px; text-transform: none; letter-spacing: 0; border-radius: 8px; }
+.app-shell .sp-btn { min-height: 42px; font-size: 12px; padding: 10px; text-transform: none; letter-spacing: 0; gap: 10px; }
+.app-shell .sp-btn.sp-active { border-color: var(--accent); color: var(--accent); background: color-mix(in srgb, var(--accent) 8%, var(--surface)); }
+.app-shell .layer-btn.active { color: var(--surface); }
+.app-shell .sl-line-action.on, .app-shell .cp-action-btn.cp-in-deck, .app-shell .cp-lock-btn:not(.cp-unlocked) { color: var(--accent); border-color: var(--accent); }
+body.app-shell:is(.light, .bambu) .thermo-dist, body.app-shell:is(.light, .bambu) .q-card.thermo .q-title, body.app-shell:is(.light, .bambu) .closer-btn.active-a { color: #846511 !important; }
+body.app-shell:is(.light, .bambu) .q-card.matching .q-title, body.app-shell:is(.light, .bambu) .zone-btn.active-in, body.app-shell:is(.light, .bambu) .answer-badge.inside, body.app-shell:is(.light, .bambu) .copy-btn.copied, body.app-shell:is(.light, .bambu) .cp-badge-green { color: #276143 !important; }
+body.app-shell:is(.light, .bambu) .q-card.measuring .q-title { color: #17667c !important; }
+body.app-shell:is(.light, .bambu) .closer-btn.active-b, body.app-shell:is(.light, .bambu) .cp-badge-orange { color: #985013 !important; }
+body.app-shell:is(.light, .bambu) .closer-btn.active-pend, body.app-shell:is(.light, .bambu) .cp-badge-yellow { color: #786014 !important; }
+body.app-shell:is(.light, .bambu) .zone-btn.active-out, body.app-shell:is(.light, .bambu) .answer-badge.outside, body.app-shell:is(.light, .bambu) .cp-badge-blue { color: #32618a !important; }
+body.app-shell:is(.light, .bambu) .q-card.hide-loc .q-title, body.app-shell:is(.light, .bambu) .cp-badge-red { color: #b03359 !important; }
+body.app-shell:is(.light, .bambu) .unit-btn.active { color: #fff; }
+body.app-shell:not(.light):not(.bambu) .angleq-card .q-title, body.app-shell:not(.light):not(.bambu) .angleq-card .copy-btn { color: #c9a3ff !important; }
+.app-shell .sp-btn > span:last-child:not(:first-child) { font-size: 10px; font-weight: 750; flex-shrink: 0; letter-spacing: .2px; }
+.shell-setting-description { color: var(--muted); font-size: 11px; line-height: 1.5; margin-top: 6px; }
+.app-shell .sp-slider-row { min-height: 36px; gap: 12px; }
+.app-shell .sp-slider-row label { font-size: 12px; text-transform: none; letter-spacing: 0; }
+.app-shell .sp-slider { min-height: 24px; background: transparent; accent-color: var(--accent); -webkit-appearance: auto; appearance: auto; }
+.app-shell #tf-key-input { min-height: 42px; padding: 10px !important; font-size: 12px !important; }
+.shell-settings-footer { padding: 10px 12px; border-top: 1px solid var(--border); flex-shrink: 0; }
+.shell-help-link { border: 0; background: transparent; color: var(--accent); font-size: 12px; font-weight: 650; min-height: 36px; cursor: pointer; }
+.shell-settings-empty { font-size: 13px; color: var(--muted); text-align: center; padding: 28px 16px; }
+body.app-shell #mobile-nav, body.app-shell.bottom-bar #mobile-nav {
+  position: fixed; z-index: 1200; bottom: 0; left: 0; right: 0; width: 100%;
+  height: calc(var(--shell-nav-h) + env(safe-area-inset-bottom, 0px));
+  padding: 5px 8px calc(5px + env(safe-area-inset-bottom, 0px));
+  background: var(--surface); border-top: 1px solid var(--border); gap: 4px;
+  padding-left: max(8px, env(safe-area-inset-left, 0px)); padding-right: max(8px, env(safe-area-inset-right, 0px));
+  display: none; align-items: stretch; justify-content: center;
+}
+body.app-shell.bottom-bar #mobile-nav { display: flex; }
+.app-shell .mnav-btn { position: relative; max-width: 150px; padding: 5px 0; gap: 4px; border: 0; border-radius: 10px; color: var(--text2); font-family: inherit; }
+.app-shell .mnav-btn:hover { background: var(--surface2); }
+.app-shell .mnav-btn.mnav-open { color: var(--accent); background: var(--surface2); }
+.app-shell .mnav-icon { display: flex; align-items: center; justify-content: center; height: 22px; font-size: 20px; }
+.app-shell .mnav-label { font-size: 10px; font-weight: 650; text-transform: none; letter-spacing: 0; }
+.shell-nav-badge { position: absolute; top: 2px; left: calc(50% + 8px); min-width: 17px; border-radius: 10px; padding: 0 4px; color: var(--surface); background: var(--accent); font-size: 9px; line-height: 17px; font-weight: 750; }
+body.app-shell #statusbar, body.app-shell.bottom-bar #statusbar {
+  top: auto; bottom: calc(var(--shell-nav-h) + env(safe-area-inset-bottom, 0px));
+  height: var(--shell-status-h); border-top: 1px solid var(--border); border-bottom: 0; padding: 0 18px; gap: 18px;
+}
+.app-shell .status-item { font-size: 10px; letter-spacing: .2px; text-transform: none; }
+.app-shell .status-dot { background: var(--accent); animation: none; }
+body.app-shell #curse-fab { display: none !important; }
+.app-shell .leaflet-control-zoom { border-radius: 11px !important; box-shadow: 0 3px 15px rgba(0,0,0,.1) !important; }
+.app-shell .leaflet-control-zoom a { width: 40px !important; height: 40px !important; line-height: 40px !important; }
+.app-shell .leaflet-top .leaflet-control { margin-top: 16px; }
+.app-shell .leaflet-popup-content-wrapper { background: var(--surface); color: var(--text); border-radius: 13px; padding: 4px; border: 1px solid var(--border); box-shadow: var(--shell-shadow); }
+.app-shell .leaflet-popup-tip { background: var(--surface); }
+.app-shell .leaflet-popup-content { margin: 12px 14px; font-family: inherit; font-size: 13px; line-height: 1.5; }
+.app-shell .leaflet-container a.leaflet-popup-close-button { width: 32px; height: 32px; font-size: 24px; line-height: 30px; color: var(--muted); }
+.app-shell .sl-stop-name { font-family: inherit; font-weight: 650; font-size: 14px; line-height: 1.3; }
+.app-shell .sl-stop-line { font-family: inherit; font-size: 12px; line-height: 1.5; }
+.app-shell .sl-popup-btn { min-height: 42px; font-family: inherit; font-weight: 600; font-size: 12px; line-height: 1.3; letter-spacing: 0; text-transform: none; }
+.app-shell #toast { bottom: calc(var(--shell-bottom) + 16px); max-width: calc(100vw - 32px); white-space: normal; text-align: center; border-radius: 11px; font-size: 13px; line-height: 1.4; letter-spacing: 0; padding: 11px 16px; box-shadow: var(--shell-shadow); }
+#shell-panel-backdrop { display: none; position: fixed; inset: var(--shell-top) 0 var(--shell-bottom); background: rgba(9,22,28,.2); z-index: 1050; border: 0; }
+.shell-map-coach { position: fixed; z-index: 450; top: calc(var(--shell-top) + 16px); left: 50%; transform: translateX(-50%); width: min(360px, calc(100vw - 150px)); padding: 13px 42px 13px 15px; border: 1px solid var(--border); border-radius: 13px; background: var(--surface); box-shadow: var(--shell-shadow); }
+.shell-map-coach strong { display: block; font-size: 13px; color: var(--text); margin-bottom: 4px; }
+.shell-map-coach p { font-size: 12px; color: var(--text2); line-height: 1.5; }
+.shell-map-coach .shell-close-button { position: absolute; top: 7px; right: 6px; width: 30px; height: 30px; border: 0; background: transparent; }
+.shell-map-coach .shell-help-link { min-height: 30px; margin-top: 4px; }
+.app-shell.shell-panel-open .shell-map-coach { display: none; }
+#shell-help { position: fixed; inset: 0; z-index: 10000; display: flex; align-items: center; justify-content: center; padding: 20px; background: rgba(8, 20, 26, .55); backdrop-filter: blur(5px); }
+.shell-help-card { width: min(500px, 100%); max-height: calc(100dvh - 40px); overflow-y: auto; border-radius: 18px; background: var(--surface); color: var(--text); box-shadow: var(--shell-shadow); border: 1px solid var(--border); padding: 24px; }
+.shell-help-card .shell-panel-header { padding: 0 0 18px; border: 0; min-height: 0; align-items: flex-start; }
+.shell-help-eyebrow { color: var(--accent); font-size: 10px; letter-spacing: 1.6px; font-weight: 700; text-transform: uppercase; margin-bottom: 6px; }
+.shell-help-card h2 { font-size: 24px; letter-spacing: -.7px; line-height: 1.2; }
+.shell-help-card p { color: var(--text2); font-size: 13px; line-height: 1.65; }
+.shell-help-steps { list-style: none; counter-reset: steps; margin: 18px 0; padding: 0; display: grid; gap: 10px; }
+.shell-help-steps li { counter-increment: steps; position: relative; padding: 12px 12px 12px 48px; background: var(--surface2); border-radius: 11px; border: 1px solid var(--border); }
+.shell-help-steps li::before { content: counter(steps); position: absolute; left: 13px; top: 13px; width: 23px; height: 23px; border-radius: 50%; background: var(--surface); color: var(--accent); font-size: 12px; font-weight: 750; text-align: center; line-height: 23px; }
+.shell-help-steps strong { display: block; font-size: 13px; margin-bottom: 3px; }
+.shell-help-steps p { font-size: 12px; }
+.shell-help-actions { display: flex; gap: 8px; margin-top: 20px; }
+.shell-primary, .shell-secondary { min-height: 44px; padding: 10px 16px; font-size: 13px; border-radius: 10px; font-weight: 650; cursor: pointer; }
+.shell-primary { background: var(--accent); color: var(--surface); border: 1px solid var(--accent); }
+body.app-shell:not(.light):not(.bambu) .shell-primary { color: #10251e; }
+.shell-secondary { background: var(--surface2); border: 1px solid var(--border2); color: var(--text2); }
+.app-shell #mode-screen { padding: 32px 20px; gap: 22px; background: radial-gradient(ellipse at 50% 40%, var(--surface2), var(--bg) 68%); }
+.app-shell #mode-screen h1 { font: 800 clamp(40px, 7vw, 60px)/1 -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; letter-spacing: -2px; color: var(--text); }
+.app-shell #mode-screen h1 span { color: var(--accent); }
+.app-shell #mode-screen > p { font-size: 13px; letter-spacing: 0; text-transform: none; }
+.shell-welcome-eyebrow { color: var(--accent); font-size: 11px; font-weight: 750; letter-spacing: 2px; text-transform: uppercase; }
+.app-shell .mode-cards { width: min(520px, 100%); gap: 14px; }
+.app-shell .mode-card { width: auto; flex: 1; height: auto; min-height: 190px; padding: 25px 18px; border-radius: 16px; align-items: flex-start; gap: 13px; box-shadow: 0 6px 20px rgba(0,0,0,.04); }
+.app-shell .mode-card:hover { transform: none; background: var(--surface2); box-shadow: 0 8px 24px rgba(0,0,0,.08); }
+.app-shell .mode-card .icon { font-size: 34px; line-height: 1; }
+.app-shell .mode-card .label { font-family: inherit; font-weight: 750; font-size: 22px; line-height: 1.2; letter-spacing: -.5px; text-transform: none; }
+.shell-role-description { font-size: 12px; color: var(--text2); line-height: 1.6; }
+.shell-welcome-note { font-size: 11px; color: var(--muted); max-width: 440px; text-align: center; line-height: 1.6; }
+.app-shell #loading-screen h2 { font-family: inherit; font-weight: 800; letter-spacing: -1px; }
+@media (max-width: 1040px) {
+  .app-shell #header { padding-left: max(12px, env(safe-area-inset-left, 0px)); padding-right: max(12px, env(safe-area-inset-right, 0px)); }
+  .app-shell #header-left { gap: 9px; }
+  .app-shell .hdr-label { display: none; }
+  .app-shell .hdr-btn { padding: 0; width: 42px; }
+}
+@media (max-width: 768px) {
+  body.app-shell, body.app-shell.bottom-bar { --header-h: 58px; --shell-nav-h: 66px; --shell-status-h: 28px; }
+  body.app-shell.statusbar-hidden { --shell-status-h: 0px; }
+  body.app-shell #mobile-nav { display: flex; }
+  body.app-shell #header-left, body.app-shell.bottom-bar #header-left { gap: 10px; }
+  body.app-shell #header-right, body.app-shell.bottom-bar #header-right { gap: 2px; }
+  .app-shell #header h1 { font-size: 18px; }
+  .app-shell #mode-badge { display: inline-block; font-size: 10px; padding: 4px 8px; max-width: 94px; overflow: hidden; text-overflow: ellipsis; }
+  .app-shell #menu-btn, .app-shell #sl-btn, .app-shell #curse-btn, .app-shell #settings-btn { display: none; }
+  .app-shell #undo-pin-btn, .app-shell #shell-help-btn { width: 38px; height: 38px; min-width: 38px; }
+  .app-shell #shell-main-menu-btn { width: 38px; height: 38px; min-width: 38px; padding: 0; }
+  .app-shell #shell-help-btn .hdr-label { display: none; }
+  body.app-shell #sidebar, body.app-shell.bottom-bar #sidebar, body.app-shell.statusbar-hidden #sidebar,
+  body.app-shell #settings-panel, body.app-shell.bottom-bar #settings-panel, body.app-shell.statusbar-hidden #settings-panel,
+  body.app-shell #sl-panel, body.app-shell.bottom-bar #sl-panel, body.app-shell.statusbar-hidden #sl-panel,
+  body.app-shell #curse-panel, body.app-shell.bottom-bar #curse-panel, body.app-shell.statusbar-hidden #curse-panel {
+    left: max(8px, env(safe-area-inset-left, 0px)); right: max(8px, env(safe-area-inset-right, 0px)); top: calc(var(--shell-top) + 8px); bottom: calc(var(--shell-bottom) + 8px);
+    width: auto; max-height: none; border-radius: 15px; transform: translateY(10px);
+  }
+  body.app-shell #shell-main-menu-panel { left: max(8px, env(safe-area-inset-left, 0px)); right: max(8px, env(safe-area-inset-right, 0px)); top: calc(var(--shell-top) + 8px); bottom: calc(var(--shell-bottom) + 8px); width: auto; border-radius: 15px; transform: translateY(10px); }
+  body.app-shell #shell-main-menu-panel.open { transform: translateY(0); }
+  body.app-shell #sidebar.open, body.app-shell #settings-panel.open, body.app-shell #sl-panel.open, body.app-shell #curse-panel.open { transform: translateY(0); }
+  .app-shell.shell-panel-open #shell-panel-backdrop { display: block; }
+  .app-shell #question-list, .app-shell #sl-search-results, .app-shell .cp-list { padding: 10px; }
+  .app-shell input:not([type="range"]):not([type="checkbox"]), .app-shell select, .app-shell #tf-key-input { font-size: 16px !important; }
+  .app-shell #statusbar { padding: 0 12px; gap: 14px; }
+  .app-shell .status-item { font-size: 9px; }
+  .app-shell .leaflet-top .leaflet-control { margin-top: 12px; }
+  .shell-map-coach { top: auto; bottom: calc(var(--shell-bottom) + 16px); width: min(360px, calc(100vw - 32px)); }
+  .shell-help-card { padding: 20px; }
+}
+@media (max-width: 380px) {
+  .app-shell #mode-badge { font-size: 9px; max-width: 78px; }
+  .app-shell #header-left { gap: 7px; }
+  .app-shell .mnav-label { font-size: 9px; }
+  .app-shell .mode-cards { gap: 10px; }
+  .app-shell .mode-card { padding: 19px 13px; }
+}
+@media (max-height: 540px) and (max-width: 900px) {
+  .app-shell #sidebar-header, .app-shell .sl-header, .app-shell .cp-header, .shell-panel-header { min-height: 52px; padding-top: 8px; padding-bottom: 8px; }
+  .app-shell #sidebar-footer { max-height: 40%; }
+  .shell-map-coach { display: none; }
+  .app-shell #mode-screen { gap: 13px; }
+  .app-shell .mode-card { min-height: 140px; padding: 16px; gap: 9px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .app-shell *, .app-shell *::before, .app-shell *::after { transition-duration: .001ms !important; animation-duration: .001ms !important; animation-iteration-count: 1 !important; }
+}

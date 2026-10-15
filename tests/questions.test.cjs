@@ -1,0 +1,66 @@
+const assert = require('node:assert/strict');
+const fs = require('node:fs');
+const path = require('node:path');
+const vm = require('node:vm');
+const nodes = new Map();
+const node = () => ({value:'',textContent:'',className:'',style:{},classList:{add(){},remove(){},toggle(){}},remove(){},querySelector(){return null;}});
+const context = vm.createContext({console,setInterval(){},setTimeout(){},clearTimeout(){},requestAnimationFrame(fn){fn();},navigator:{},questions:[],qCounter:0,sidebarOpen:true,typePickerOpen:false,hiderPin:null,hiderPinLocked:false,outlineCircles:{},saveState(){context.saves++;},saves:0,showToast(message){context.lastToast=message;},document:{body:{classList:{toggle(){}}},getElementById(id){if(!nodes.has(id))nodes.set(id,node());return nodes.get(id);}},map:{distance(a,b){return Math.hypot((a[0]-b[0])*111320,(a[1]-b[1])*57000);},setView(){},removeLayer(){},off(){},latLngToLayerPoint(p){return {x:p.lng*57000,y:-p.lat*111320};}},L:{latLng(lat,lng){return {lat,lng};}}});
+vm.runInContext(fs.readFileSync(path.join(__dirname,'..','questions.js'),'utf8'),context);
+const data={Park:[{id:'park-one',name:'First park',lat:59.33,lng:18.06},{id:'park_two',name:'Second park',lat:59.34,lng:18.07}],Museum:[{id:'museum',name:'Museum',lat:59.33,lng:18.06}],Area:[{id:'area-one',name:'One area',type:'polygon',rings:[[[18,59],[18.1,59],[18.1,59.1],[18,59.1],[18,59]]]}]};
+context.getAllMatchingData=()=>data;
+context.getMeasuringLocs=subcat=>data[subcat] || [];
+context.MEASURING_SUBCATS=['Park','Museum'];
+context._qRefreshSummary=()=>{};context._qAutoCollapse=()=>{};
+['redrawQuestionOverlay','redrawOutlineCircle','redrawThermoBorders','placeSeekerPin','placeThermoPin','placeSeekerMatchingPin','placeSeekerMeasuringPin','renderSeekerRadarCard','renderSeekerThermoCard','renderSeekerMatchingCard','renderSeekerMeasuringCard','renderAngleCard','angleQuestionSetupMap','renderHiderRadarCard','renderHiderThermoCard','renderHiderMatchingCard','renderHiderMeasuringCard','renderHiderAngleCard','showMatchingLocMarkers','showMeasuringLocMarkers','showAreaFeatures','showAnglePreview'].forEach(name=>context[name]=()=>{});
+const parse=code=>context.parseQuestionCode(code);
+assert.equal(parse('RAD--12.34567--77.12345-0.5KM-OUTSIDE').zone,'outside');
+assert.equal(parse('THM-59.33-18.06-59.34-18.07-a').closer,'A');
+assert.equal(parse('MAT-park-59.33-18.06-park-one-NO').nearestId,'park-one');
+assert.equal(parse('MAT-park-59.33-18.06-park-one').answer,'pending');
+assert.equal(parse('MAT-area-59.33-18.06-none-YES').nearestName,'Outside all areas');
+assert.equal(parse('MAT-park-59.33-18.06-none'),null);
+assert.ok(context._parseEndgameCode('ENDZONE-59.33-18.06-500'));
+assert.equal(context._parseEndgameCode('ENDZONE-91-18-500'),null);
+assert.equal(context._parseEndgameCode('ENDZONE-59-18-0'),null);
+assert.equal(parse('MEA-park-59.33-18.06-park-one-0-CLOSER').answer,'closer');
+assert.equal(parse('ANG-59.33-18.06-59.34-18.07-90-triple-0-INSIDE').zone,'inside');
+for(const invalid of ['RAD-91-18-500M','RAD-59-181-500M','RAD-59..3-18-500M','RAD-59-18-0M','RAD-59-18--100M','RAD-Infinity-18-500M','THM-59-18-59-18','THM-59-18--91-18','MAT-unknown-59-18-park-one','MAT-park-59-18-unknown','MEA-unknown-59-18-unknown-40','ANG-59-18-59.1-18-181-default-0','ANG-59-18-59.1-18-91-triple-0','ANG-59-18-59.1-18-40-invalid-0','ANG-59-18-59-18-40-default-0'])assert.equal(parse(invalid),null,invalid);
+for(const raw of ['RAD-59.33-18.06-500M-INSIDE','THM-59.33-18.06-59.34-18.07-B','MAT-park-59.33-18.06-park-one-YES','MEA-park-59.33-18.06-park-one-200-FURTHER','ANG-59.33-18.06-59.34-18.07-45-excludeRadius-0-OUTSIDE']){
+  const q=parse(raw); assert.ok(parse(context.questionCode(q,true)),raw);
+}
+const privateQuestion={...parse('MAT-park-59.33-18.06-park-one'),hiderMode:true,seekerLat:59.33,seekerLng:18.06,answer:'no'};
+context.hiderPin={getLatLng(){return {lat:60.123456,lng:19.654321};}};
+assert.equal(context.questionCode(privateQuestion,true),'MAT-park-59.33000-18.06000-park-one-NO');
+assert.ok(!context.questionCode(privateQuestion,true).includes('60.123'));
+context.hiderPin=null;
+const one=parse('RAD-59.33-18.06-500M');assert.equal(context.sameQuestionGeometry(one,parse('RAD-59.33-18.06-0.5KM')),true);
+assert.equal(context.sameQuestionGeometry(one,parse('RAD-59.33-18.06-600M')),false);
+assert.equal(context.sameQuestionGeometry(parse('THM-59.33-18.06-59.34-18.07'),parse('THM-59.33-18.06-59.35-18.07')),false);
+assert.equal(context.sameQuestionGeometry(parse('MAT-park-59.33-18.06-park-one'),parse('MAT-museum-59.33-18.06-museum')),false);
+// A question code never fabricates a matching Yes answer; only explicit suffixes apply.
+context.questions=[{...parse('MAT-park-59.33-18.06-park-one'),id:1}];
+nodes.get('seeker-code-field') || nodes.set('seeker-code-field',node());
+nodes.get('seeker-code-field').value='MAT-park-59.33-18.06-park-one';context.seekerDecodeAndAdd();assert.equal(context.questions[0].answer,'pending');
+nodes.get('seeker-code-field').value='MAT-park-59.33-18.06-park-one-NO';context.seekerDecodeAndAdd();assert.equal(context.questions[0].answer,'no');
+const originalLength=context.questions.length;nodes.get('seeker-code-field').value='RAD-91-18-500M';context.seekerDecodeAndAdd();assert.equal(context.questions.length,originalLength);
+// A moved pin invalidates its old answer; locked pins retain their undo history.
+const moved={id:2,type:'radar',lat:59.3,lng:18,zone:'inside',locked:true};context.questions=[moved];
+context.recordPinMove(moved,'radar',{id:999,pin:'radar',lat:59.2,lng:18},{lat:59.3,lng:18});assert.equal(vm.runInContext('_pinUndoStack.length',context),0);
+context.recordPinMove(moved,'radar',{id:2,pin:'radar',lat:59.2,lng:18},{lat:59.3,lng:18});assert.equal(moved.zone,'pending');
+context.undoLastPinMove();assert.equal(vm.runInContext('_pinUndoStack.length',context),1);assert.equal(moved.lat,59.3);
+moved.locked=false;context.undoLastPinMove();assert.equal(moved.lat,59.2);assert.equal(vm.runInContext('_pinUndoStack.length',context),0);assert.ok(context.saves>0);
+assert.equal(context.getRadiusMeters({radius:'-20',unit:'M'}),null);
+assert.equal(context.getRadiusMeters({radius:'10x',unit:'M'}),null);
+// Changing question geometry clears an answer; locked geometry cannot be edited or shared invalidly.
+const radiusQuestion={id:7,type:'radar',lat:59.3,lng:18,radius:'500',unit:'M',zone:'inside',locked:true};
+context.questions=[radiusQuestion];nodes.set('rad-inp-7',{...node(),value:'750'});
+context.onRadiusChange(7);assert.equal(radiusQuestion.radius,'500');assert.equal(radiusQuestion.zone,'inside');
+context.setUnit(7,'KM');assert.equal(radiusQuestion.unit,'M');
+radiusQuestion.locked=false;context.onRadiusChange(7);assert.equal(radiusQuestion.radius,'750');assert.equal(radiusQuestion.zone,'pending');
+radiusQuestion.zone='outside';context.setUnit(7,'KM');assert.equal(radiusQuestion.unit,'KM');assert.equal(radiusQuestion.zone,'pending');
+radiusQuestion.radius='-1';context.copyCode(7);assert.equal(context.lastToast,'Enter a positive radius first');
+const lockedAngle={...parse('ANG-59.33-18.06-59.34-18.07-45-default-0'),id:'aq8',locked:true};context.questions=[lockedAngle];
+context.setAngleQuestionAngle('aq8',100);assert.equal(lockedAngle.angle,45);
+lockedAngle.locked=false;context.setAngleQuestionAngle('aq8',181);assert.equal(lockedAngle.angle,45);
+assert.equal(context.questionEscapeHtml('<img src=x onerror="alert(1)">'),'&lt;img src=x onerror=&quot;alert(1)&quot;&gt;');
+console.log('Question regressions passed: code validation, round trips, explicit answers, private pin separation, geometry matching, move invalidation and lock-safe undo.');

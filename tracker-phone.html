@@ -2,104 +2,74 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Lampskene Tracker Phone</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#14212b">
+  <title>Lampskene · Phone tracker</title>
   <style>
-    :root { color-scheme: dark; font-family: system-ui, sans-serif; background:#0d0f14; color:#dde4f0; }
-    body { margin:0; min-height:100vh; display:grid; place-items:center; padding:18px; }
-    main { width:min(460px,100%); border:1px solid #354060; border-radius:8px; background:#181d27; padding:16px; display:flex; flex-direction:column; gap:12px; }
-    h1 { margin:0; font-size:22px; letter-spacing:.04em; }
-    label { display:flex; flex-direction:column; gap:6px; color:#a8b4cc; font-size:13px; }
-    input, button { min-height:42px; border-radius:6px; border:1px solid #354060; background:#1f2535; color:#dde4f0; padding:0 12px; font:inherit; }
-    button { cursor:pointer; text-align:left; }
-    button.primary { background:#eeff55; color:#111; border-color:#eeff55; font-weight:700; }
-    button.danger { border-color:#8f3939; color:#ff9090; }
-    #status { border:1px solid #2a3045; border-radius:6px; padding:10px; color:#a8b4cc; line-height:1.45; min-height:52px; }
+    *{box-sizing:border-box}:root{color-scheme:dark;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;background:#0b141b;color:#edf5f5}body{margin:0;min-height:100dvh;padding:max(20px,env(safe-area-inset-top)) max(18px,env(safe-area-inset-right)) max(24px,env(safe-area-inset-bottom)) max(18px,env(safe-area-inset-left));display:grid;place-items:center}
+    main{width:min(460px,100%);display:flex;flex-direction:column;gap:20px}.brand{font-size:15px;font-weight:750;color:#80e0bd;letter-spacing:.08em}.eyebrow{color:#91a7b1;font-size:11px;text-transform:uppercase;letter-spacing:1.5px;margin:0 0 8px}h1{font-size:32px;letter-spacing:-1px;margin:0 0 10px;line-height:1.12}p{font-size:14px;line-height:1.6;color:#b7c7cd;margin:0}
+    .card{background:#14212b;border:1px solid #2c3e49;border-radius:16px;padding:20px;display:flex;flex-direction:column;gap:16px}label{display:flex;flex-direction:column;gap:7px;color:#edf5f5;font-size:14px;font-weight:600}label small{font-size:12px;color:#91a7b1;font-weight:400;line-height:1.5}
+    input,button{min-height:48px;border-radius:10px;border:1px solid #405660;background:#1b2c37;color:#edf5f5;padding:12px 14px;font:inherit;font-size:16px}button{cursor:pointer;font-weight:650;touch-action:manipulation}input{width:100%}button:disabled{opacity:.45;cursor:default}button.primary{background:#80e0bd;color:#10251e;border-color:#80e0bd}.actions{display:grid;grid-template-columns:1fr 90px;gap:10px}.danger{color:#ffb0a2}button:focus-visible,input:focus-visible,a:focus-visible{outline:3px solid #80e0bd;outline-offset:3px}
+    .status-head{display:flex;align-items:center;gap:8px}.status-dot{width:8px;height:8px;border-radius:50%;background:#91a7b1}.live .status-dot{background:#80e0bd;box-shadow:0 0 0 4px #80e0bd19}.status-title{font-weight:650;font-size:14px}.status-detail{font-size:13px;white-space:pre-line;min-height:42px;overflow-wrap:anywhere}.facts{display:grid;grid-template-columns:1fr 1fr;gap:12px;border-top:1px solid #2c3e49;padding-top:14px}.facts dt{font-size:11px;color:#91a7b1}.facts dd{margin:3px 0 0;font-size:16px;font-variant-numeric:tabular-nums}.small{font-size:12px;color:#91a7b1}.back{color:#80e0bd;font-size:13px;text-decoration:none}.back:hover{text-decoration:underline}[hidden]{display:none!important}
   </style>
 </head>
 <body>
   <main>
-    <h1>Lampskene tracker</h1>
-    <button id="login" class="primary">Sign in with Google</button>
-    <label>
-      Tracker id
-      <input id="tracker-id" value="stenskara" autocomplete="off">
-    </label>
-    <button id="start">Start broadcasting GPS</button>
-    <button id="stop" class="danger">Stop</button>
-    <div id="status">Signed out.</div>
+    <div class="brand">LAMPSKENE</div>
+    <header><p class="eyebrow">Phone tracker</p><h1>Your phone. On the game map.</h1><p>Sign in, enter the tracker ID from your host, then start sharing. Approved players can view this tracker in the game’s Menu.</p></header>
+    <section class="card" aria-label="Tracker setup">
+      <button id="login" class="primary" disabled>Connecting to sign-in…</button>
+      <label for="tracker-id">Tracker ID<input id="tracker-id" placeholder="e.g. stenskara" autocomplete="off" autocapitalize="none" spellcheck="false" maxlength="64"><small>Use the ID assigned to this phone. Letters, numbers, hyphens and underscores.</small></label>
+      <div class="actions"><button id="start" class="primary" disabled>Start sharing GPS</button><button id="stop" class="danger" disabled>Stop</button></div>
+      <p class="small">Sharing sends this phone’s location to the game’s Firebase tracker. Keep this page open and allow location access when you start. Stopping ends new updates.</p>
+    </section>
+    <section class="card" id="status-card" aria-label="Tracker status">
+      <div class="status-head"><span class="status-dot" aria-hidden="true"></span><span class="status-title" id="status-title">Connecting</span></div>
+      <p class="status-detail" id="status" role="status" aria-live="polite">Preparing sign-in. Your location is not being shared.</p>
+      <dl class="facts" id="tracker-facts" hidden><div><dt>GPS accuracy</dt><dd id="gps-accuracy">—</dd></div><div><dt>Last sent</dt><dd id="last-sent">—</dd></div></dl>
+    </section>
+    <a class="back" href="index.html">← Open the game map</a>
   </main>
-
   <script src="firebase-config.js"></script>
+  <script>
+    window.trackerBootTimer=setTimeout(()=>{if(window.trackerPhoneReady)return;document.getElementById('status-title').textContent='Connection unavailable';document.getElementById('status').textContent='Sign-in could not load. Check your connection and reload this page.';},15000);
+  </script>
   <script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-    import { getAuth, GoogleAuthProvider, signInWithPopup, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
-    import { getDatabase, ref, update } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
-
-    const app = initializeApp(window.JETLAG_FIREBASE_CONFIG);
-    const auth = getAuth(app);
-    const db = getDatabase(app);
-    const status = document.getElementById('status');
-    const trackerInput = document.getElementById('tracker-id');
-    let watchId = null;
-    let user = null;
-
-    function setStatus(text) { status.textContent = text; }
-    function trackerId() {
-      return String(trackerInput.value || 'stenskara').trim().toLowerCase().replace(/[^a-z0-9_-]/g, '') || 'stenskara';
+    import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js';
+    import { getAuth, GoogleAuthProvider, signInWithPopup, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js';
+    import { getDatabase, ref, update } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js';
+    const el=id=>document.getElementById(id),config=window.JETLAG_FIREBASE_CONFIG;
+    if(!config||!window.JETLAG_FIREBASE_CONFIGURED){clearTimeout(window.trackerBootTimer);el('status-title').textContent='Tracker unavailable';el('status').textContent='This game’s sign-in has not been configured yet.';}
+    else {
+      const app=initializeApp(config),auth=getAuth(app),db=getDatabase(app);
+      let watchId=null,user=null,generation=0,sending=false,lastSentAt=0;
+      window.trackerPhoneReady=true;clearTimeout(window.trackerBootTimer);
+      function status(title,text,live=false){el('status-title').textContent=title;el('status').textContent=text;el('status-card').classList.toggle('live',live);}
+      function controls(){const running=watchId!==null;el('start').disabled=!user||running;el('stop').disabled=!running;el('tracker-id').disabled=running;el('login').disabled=running;}
+      function stop(){generation++;if(watchId!==null)navigator.geolocation.clearWatch(watchId);watchId=null;sending=false;controls();}
+      try{el('tracker-id').value=localStorage.getItem('lampskene_phone_tracker_id')||'';}catch(_){}
+      el('login').disabled=false;el('login').textContent='Sign in with Google';
+      el('login').onclick=async()=>{el('login').disabled=true;try{const provider=new GoogleAuthProvider();provider.setCustomParameters({prompt:'select_account'});await signInWithPopup(auth,provider);}catch(error){status('Sign-in incomplete',error.code==='auth/popup-closed-by-user'?'Sign-in was closed. Try again when ready.':'Unable to sign in. Check your connection and try again.');}finally{controls();}};
+      el('start').onclick=()=>{
+        if(!user)return;const id=el('tracker-id').value.trim().toLowerCase();
+        if(!/^[a-z0-9_-]{1,64}$/.test(id)){status('Check the tracker ID','Enter the ID supplied by the game host.');el('tracker-id').focus();return;}
+        if(!navigator.geolocation){status('GPS unavailable','This browser does not support location sharing.');return;}
+        try{localStorage.setItem('lampskene_phone_tracker_id',id);}catch(_){}
+        const token=++generation,owner=user;lastSentAt=0;status('Waiting for GPS','Allow location access to start sharing this phone.');
+        watchId=navigator.geolocation.watchPosition(async pos=>{
+          if(token!==generation||user?.uid!==owner.uid||sending||Date.now()-lastSentAt<5000)return;
+          const c=pos.coords,now=Date.now();if(!Number.isFinite(c.latitude)||!Number.isFinite(c.longitude))return;sending=true;
+          try{
+            await update(ref(db),{[`trackerLocations/${id}`]:{lat:c.latitude,lng:c.longitude,accuracyMeters:Number.isFinite(c.accuracy)?c.accuracy:0,speedMps:Number.isFinite(c.speed)?Math.max(0,c.speed):0,bearingDegrees:Number.isFinite(c.heading)?c.heading:0,updatedAt:now,expiresAt:now+45000,sourceUid:owner.uid,sourceEmail:owner.email||''},[`trackers/${id}/lastAt`]:now,[`trackers/${id}/status`]:'live'});
+            if(token!==generation)return;lastSentAt=now;el('tracker-facts').hidden=false;el('gps-accuracy').textContent=Number.isFinite(c.accuracy)?Math.round(c.accuracy)+' m':'Unavailable';status('Sharing location',`${id} · ${owner.email||'Signed in'}\nKeep this page open. Stop to end new updates.`,true);
+          }catch(error){if(token!==generation)return;stop();status('Sharing stopped','The game could not accept this tracker update. Check the tracker ID, your access, and your connection.');}finally{if(token===generation)sending=false;}
+        },error=>{if(token!==generation)return;stop();status('GPS unavailable',error.code===1?'Location access was denied. Allow it in browser settings, then start again.':error.code===3?'GPS timed out. Move to a better signal and start again.':'A location could not be found. Try again.');},{enableHighAccuracy:true,maximumAge:3000,timeout:15000});controls();
+      };
+      el('stop').onclick=()=>{stop();status('Sharing stopped','No new locations will be sent. The last position will expire on the game map.');};
+      onAuthStateChanged(auth,next=>{if(user?.uid!==next?.uid)stop();user=next||null;el('login').textContent=user?'Change Google account':'Sign in with Google';status(user?'Ready to share':'Signed out',user?`Signed in as ${user.email||'player'}. Enter your tracker ID to begin.`:'Sign in before sharing your location.');controls();});
+      window.addEventListener('pagehide',stop);
+      setInterval(()=>{if(lastSentAt){const age=Math.max(0,Math.floor((Date.now()-lastSentAt)/1000));el('last-sent').textContent=age<60?age+'s ago':Math.floor(age/60)+'m ago';if(watchId!==null&&age>=45)status('GPS signal stale','No recent update has been sent. Check your connection and keep this page open.');}},1000);
     }
-
-    document.getElementById('login').onclick = async () => {
-      const provider = new GoogleAuthProvider();
-      provider.setCustomParameters({ prompt:'select_account' });
-      await signInWithPopup(auth, provider);
-    };
-
-    document.getElementById('start').onclick = () => {
-      if (!user) { setStatus('Sign in first.'); return; }
-      if (!navigator.geolocation) { setStatus('GPS is not supported on this phone.'); return; }
-      if (watchId !== null) navigator.geolocation.clearWatch(watchId);
-      watchId = navigator.geolocation.watchPosition(async pos => {
-        const c = pos.coords;
-        const id = trackerId();
-        const now = Date.now();
-        try {
-          await update(ref(db), {
-            [`trackerLocations/${id}`]: {
-              lat:c.latitude,
-              lng:c.longitude,
-              accuracyMeters:c.accuracy || 0,
-              speedMps:typeof c.speed === 'number' ? c.speed : 0,
-              bearingDegrees:typeof c.heading === 'number' ? c.heading : 0,
-              updatedAt:now,
-              expiresAt:now + 45000,
-              sourceUid:user.uid,
-              sourceEmail:user.email || ''
-            },
-            [`trackers/${id}/lastAt`]: now,
-            [`trackers/${id}/status`]: 'live'
-          });
-          setStatus(`Broadcasting ${id}\n${c.latitude.toFixed(6)}, ${c.longitude.toFixed(6)}\nAccuracy ${Math.round(c.accuracy || 0)}m`);
-        } catch (e) {
-          setStatus(`Write denied or failed: ${e.message || e}`);
-        }
-      }, err => setStatus(err.message || 'GPS permission denied'), {
-        enableHighAccuracy:true,
-        maximumAge:3000,
-        timeout:15000
-      });
-    };
-
-    document.getElementById('stop').onclick = () => {
-      if (watchId !== null) navigator.geolocation.clearWatch(watchId);
-      watchId = null;
-      setStatus(user ? `Stopped. Signed in as ${user.email || user.uid}.` : 'Stopped.');
-    };
-
-    onAuthStateChanged(auth, next => {
-      user = next || null;
-      setStatus(user ? `Signed in as ${user.email || user.uid}. Ready.` : 'Signed out.');
-    });
   </script>
 </body>
 </html>
