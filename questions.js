@@ -1,5 +1,67 @@
 // questions.js — all question logic (radar, thermometer, hider pin, SVG overlay)
 
+// Question codes contain public question geometry and an optional explicit answer.
+// Never infer an answer from a question code or include the hiding coordinates.
+function questionEscapeHtml(value) {
+  return String(value == null ? '' : value).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+function validQuestionPoint(lat, lng) {
+  return Number.isFinite(lat) && Number.isFinite(lng) && Math.abs(lat) <= 90 && Math.abs(lng) <= 180;
+}
+function parseQuestionCode(raw) {
+  const code = String(raw || '').trim();
+  const n = '(-?\\d+(?:\\.\\d+)?)';
+  let m = code.match(new RegExp('^RAD-' + n + '-' + n + '-(\\d+(?:\\.\\d+)?)(KM|M)(?:-(INSIDE|OUTSIDE))?$', 'i'));
+  let q;
+  if (m) {
+    q = {type:'radar', lat:Number(m[1]), lng:Number(m[2]), radius:m[3], unit:m[4].toUpperCase(), zone:m[5] ? m[5].toLowerCase() : 'pending'};
+    if (!(getRadiusMeters(q) > 0)) return null;
+  } else if ((m = code.match(new RegExp('^THM-' + n + '-' + n + '-' + n + '-' + n + '(?:-(A|B))?$', 'i')))) {
+    q = {type:'thermo',latA:Number(m[1]),lngA:Number(m[2]),latB:Number(m[3]),lngB:Number(m[4]),closer:m[5] ? m[5].toUpperCase() : 'pending'};
+    if (!validQuestionPoint(q.latA,q.lngA) || !validQuestionPoint(q.latB,q.lngB) || (q.latA === q.latB && q.lngA === q.lngB)) return null;
+  } else if ((m = code.match(new RegExp('^MAT-([^-]+)-' + n + '-' + n + '-(.+?)(?:-(YES|NO))?$', 'i')))) {
+    const subcat = decodeSubcat(m[1]);
+    const locs = getAllMatchingData()[subcat] || [];
+    const loc = m[4].toLowerCase()==='none' && locs[0]?.type==='polygon' ? {id:'none',name:'Outside all areas'} : locs.find(x => String(x.id).toLowerCase() === m[4].toLowerCase());
+    if (!loc) return null;
+    q = {type:'matching',subcat,lat:Number(m[2]),lng:Number(m[3]),nearestId:loc.id,nearestName:loc.name,answer:m[5] ? m[5].toLowerCase() : 'pending'};
+  } else if ((m = code.match(new RegExp('^MEA-([^-]+)-' + n + '-' + n + '-(.+?)-(\\d+)(?:-(CLOSER|FURTHER))?$', 'i')))) {
+    const subcat = decodeSubcat(m[1]);
+    const loc = getMeasuringLocs(subcat).find(x => String(x.id).toLowerCase() === m[4].toLowerCase());
+    if (!loc || !Number.isFinite(Number(m[5]))) return null;
+    q = {type:'measuring',subcat,lat:Number(m[2]),lng:Number(m[3]),nearestId:loc.id,nearestName:loc.name,seekerDist:Number(m[5]),answer:m[6] ? m[6].toLowerCase() : 'pending'};
+  } else if ((m = code.match(new RegExp('^ANG-' + n + '-' + n + '-' + n + '-' + n + '-(\\d+)-([A-Za-z]+)-(\\d+)(?:-(INSIDE|OUTSIDE))?$', 'i')))) {
+    const mode = m[6].toLowerCase() === 'excluderadius' ? 'excludeRadius' : m[6].toLowerCase();
+    const angle = Number(m[5]);
+    if (!['default','bidirectional','triple','excludeRadius'].includes(mode) || angle < 1 || angle > (mode === 'triple' ? 90 : 180)) return null;
+    q = {type:'angle',center:{lat:Number(m[1]),lng:Number(m[2])},direction:{lat:Number(m[3]),lng:Number(m[4])},angle,mode,excludeRadius:Number(m[7]),zone:m[8] ? m[8].toLowerCase() : 'pending'};
+    if (!validQuestionPoint(q.center.lat,q.center.lng) || !validQuestionPoint(q.direction.lat,q.direction.lng) || !Number.isFinite(q.excludeRadius) || (q.center.lat === q.direction.lat && q.center.lng === q.direction.lng)) return null;
+  } else return null;
+  if (q.lat !== undefined && !validQuestionPoint(q.lat,q.lng)) return null;
+  return q;
+}
+
+function questionCode(q, includeAnswer = false) {
+  const lat = q.hiderMode ? q.seekerLat : q.lat, lng = q.hiderMode ? q.seekerLng : q.lng;
+  let code;
+  if (q.type === 'radar') code = buildCode(q);
+  if (q.type === 'thermo') code = `THM-${q.latA.toFixed(5)}-${q.lngA.toFixed(5)}-${q.latB.toFixed(5)}-${q.lngB.toFixed(5)}`;
+  if (q.type === 'matching') code = `MAT-${encodeSubcat(q.subcat)}-${lat.toFixed(5)}-${lng.toFixed(5)}-${q.nearestId}`;
+  if (q.type === 'measuring') code = `MEA-${encodeSubcat(q.subcat)}-${lat.toFixed(5)}-${lng.toFixed(5)}-${q.nearestId}-${Math.round(q.seekerDist)}`;
+  if (q.type === 'angle') code = `ANG-${q.center.lat.toFixed(5)}-${q.center.lng.toFixed(5)}-${q.direction.lat.toFixed(5)}-${q.direction.lng.toFixed(5)}-${q.angle}-${q.mode}-${q.excludeRadius}`;
+  const answer = q.type === 'thermo' ? q.closer : (q.type === 'matching' || q.type === 'measuring' ? q.answer : q.zone);
+  return code + (includeAnswer && answer && answer !== 'pending' ? '-' + answer.toUpperCase() : '');
+}
+function copyQuestionText(code, btn) {
+  const original = btn ? btn.textContent : '';
+  if (!navigator.clipboard || !navigator.clipboard.writeText) { showToast(code, 8000); return Promise.resolve(false); }
+  return navigator.clipboard.writeText(code).then(() => {
+    if (btn) { btn.textContent = 'Copied'; btn.classList.add('copied'); setTimeout(() => { if (btn.isConnected) { btn.textContent = original; btn.classList.remove('copied'); } }, 1800); }
+    else showToast('Code copied');
+    return true;
+  }).catch(() => { showToast(code, 8000); return false; });
+}
+
 // ── HIDER LOCATION ────────────────────────────────────────────
 
 // Endgame pin — when set, all question checks use this instead of hiderPin
@@ -25,7 +87,8 @@ function _endgameCodeFromZone(zone) {
 function _parseEndgameCode(raw) {
   const m = raw.match(/^ENDZONE-(-?\d+\.?\d*)-(-?\d+\.?\d*)-(\d+)$/i);
   if (!m) return null;
-  return { lat: parseFloat(m[1]), lng: parseFloat(m[2]), radius: parseInt(m[3], 10) };
+  const zone={lat:Number(m[1]),lng:Number(m[2]),radius:Number(m[3])};
+  return validQuestionPoint(zone.lat,zone.lng) && Number.isFinite(zone.radius) && zone.radius>0 ? zone : null;
 }
 
 function _showEndgameZoneLayer() {
@@ -49,6 +112,10 @@ function _hideEndgameZoneLayer() {
 // for the endgame phase — all future questions answer from here).
 function _startEndgame(zone, isHider) {
   if (!zone) return;
+  _pinUndoStack.length=0; updateUndoPinButton();
+  if (typeof window!=='undefined' && window.lampskeneQuestions) window.lampskeneQuestions.clearPreview();
+  if (_anglePreviewLayer) _anglePreviewLayer.clearLayers();
+  clearTimeout(_anglePreviewTimer);
   _endgameZone = zone;
   _endgameActive = true;
 
@@ -83,7 +150,7 @@ function _startEndgame(zone, isHider) {
   // Hider: prompt to place the endgame pin (their final spot). All future
   // questions will answer from this pin via getActiveHiderPin().
   if (isHider && typeof addEndgameCard === 'function') {
-    setTimeout(() => addEndgameCard(), 300);
+    setTimeout(() => { if(_endgameActive && _endgameZone===zone && typeof mode!=='undefined' && mode==='hider')addEndgameCard(); }, 300);
   }
 
   if (typeof saveState !== 'undefined') saveState();
@@ -211,9 +278,7 @@ function copyEndgameZoneCode() {
     return;
   }
   const code = _endgameCodeFromZone(zone);
-  navigator.clipboard.writeText(code).then(() => {
-    showToast('✅ Endgame zone code copied — send it to the seekers');
-  }).catch(() => showToast(code, 6000));
+  copyQuestionText(code).then(copied => {if(copied)showToast('Endgame zone code copied — send it to the seekers');});
 }
 
 // Hider: start endgame right now using the current hider pin. Archives all
@@ -243,7 +308,7 @@ function _consumeEndgameCode(raw) {
                'Center: ' + zone.lat.toFixed(5) + ', ' + zone.lng.toFixed(5) + '\n' +
                'Radius: ' + Math.round(zone.radius) + ' m\n\n' +
                'All current questions will be archived (hidden but kept for export).')) return true; // consumed but declined
-  _startEndgame(zone, false); // isHider=false → seeker view, no pin prompt
+  _startEndgame(zone, typeof mode!=='undefined' && mode==='hider');
   return true;
 }
 
@@ -418,13 +483,13 @@ function onMapClick(e) {
 function placeHiderPin(lat, lng) {
   if (hiderPin) map.removeLayer(hiderPin);
   if (hiderZoneCircle) { map.removeLayer(hiderZoneCircle); hiderZoneCircle = null; }
-  hiderPin = L.marker([lat, lng], { icon: tearDropIcon('#e8557a', 34), draggable: true }).addTo(map);
+  hiderPin = L.marker([lat, lng], { icon: tearDropIcon('#e8557a', 34), draggable: !hiderPinLocked }).addTo(map);
   hiderPin.on('dragstart', e => rememberPinStart({ id: 'hider', type: 'hider' }, 'hider', e.target.getLatLng()));
   hiderPin.on('dragend', e => {
     const p = e.target.getLatLng();
     recordPinMove({ id: 'hider', type: 'hider' }, 'hider', _lastPinStart, p);
     document.getElementById('hider-pin-coords').textContent = `${p.lat.toFixed(5)}, ${p.lng.toFixed(5)}`;
-    updateHiderZoneCircle(); checkAllHiderRadars(); checkAllHiderThermos(); if(typeof checkAllHiderMatching!=="undefined")checkAllHiderMatching(); if(typeof checkAllHiderMeasuring!=="undefined")checkAllHiderMeasuring();
+    updateHiderZoneCircle(); checkAllHiderRadars(); checkAllHiderThermos(); if(typeof checkAllHiderMatching!=="undefined")checkAllHiderMatching(); if(typeof checkAllHiderMeasuring!=="undefined")checkAllHiderMeasuring(); if(typeof saveState==='function')saveState();
   });
   document.getElementById('hider-pin-coords').textContent = `${lat.toFixed(5)}, ${lng.toFixed(5)}`;
   updateHiderZoneCircle(); checkAllHiderRadars(); checkAllHiderThermos(); if(typeof checkAllHiderMatching!=="undefined")checkAllHiderMatching(); if(typeof checkAllHiderMeasuring!=="undefined")checkAllHiderMeasuring();
@@ -435,10 +500,12 @@ function placeHiderPin(lat, lng) {
 function goToHiderPin() { if (hiderPin) map.setView(hiderPin.getLatLng(), 15); }
 
 function toggleHiderLock() {
+  if (!hiderPin) return;
   hiderPinLocked = !hiderPinLocked;
   const btn = document.getElementById('hider-lock-btn');
   if (hiderPinLocked) { btn.textContent='🔓 Locked'; btn.classList.add('locked'); if(hiderPin) hiderPin.dragging.disable(); showToast('Hiding spot locked 🔒'); }
   else                { btn.textContent='🔒 Lock';   btn.classList.remove('locked'); if(hiderPin) hiderPin.dragging.enable(); }
+  if(typeof saveState==='function')saveState();
 }
 
 function updateHiderZoneCircle() {
@@ -490,6 +557,7 @@ function placeSeekerPin(q) {
     redrawQuestionOverlay(q); redrawOutlineCircle(q); if(typeof saveState!=='undefined')saveState();
   });
   applyQuestionMoveLocks();
+  if(typeof saveState==='function')saveState();
 }
 
 function renderSeekerRadarCard(q) {
@@ -537,9 +605,9 @@ function renderSeekerRadarCard(q) {
   ql.appendChild(card);
 }
 
-function onRadiusChange(id) { const q=questions.find(x=>x.id===id); q.radius=document.getElementById(`rad-inp-${id}`).value; redrawQuestionOverlay(q); redrawOutlineCircle(q); }
-function setUnit(id,unit) { const q=questions.find(x=>x.id===id); q.unit=unit; document.getElementById(`unit-m-${id}`).classList.toggle('active',unit==='M'); document.getElementById(`unit-km-${id}`).classList.toggle('active',unit==='KM'); redrawQuestionOverlay(q); redrawOutlineCircle(q); }
-function goToSeekerPin(id) { const q=questions.find(x=>x.id===id); map.setView([q.lat,q.lng],14); }
+function onRadiusChange(id) { const q=questions.find(x=>x.id===id); if(!q||q.locked)return; q.radius=document.getElementById(`rad-inp-${id}`).value; invalidateQuestionAnswer(q); redrawQuestionOverlay(q); redrawOutlineCircle(q); if(typeof saveState==='function')saveState(); }
+function setUnit(id,unit) { const q=questions.find(x=>x.id===id); if(!q||q.locked||!['M','KM'].includes(unit))return; q.unit=unit; invalidateQuestionAnswer(q); document.getElementById(`unit-m-${id}`).classList.toggle('active',unit==='M'); document.getElementById(`unit-km-${id}`).classList.toggle('active',unit==='KM'); redrawQuestionOverlay(q); redrawOutlineCircle(q); if(typeof saveState==='function')saveState(); }
+function goToSeekerPin(id) { const q=questions.find(x=>String(x.id)===String(id)); if(q)map.setView([q.lat,q.lng],14); }
 function toggleSeekerLock(id) {
   const q=questions.find(x=>x.id===id); q.locked=!q.locked;
   if (q.locked) q.lockedAt = Date.now(); else q.lockedAt = null;
@@ -547,6 +615,7 @@ function toggleSeekerLock(id) {
   if(q.locked){btn.textContent='🔓 Locked';btn.classList.add('locked');if(q.marker)q.marker.dragging.disable();if(rb){rb.disabled=true;rb.style.opacity='0.25';rb.style.pointerEvents='none';}showToast(`Radar #${id} locked 🔒`); if(typeof saveState!=='undefined')saveState(); if(typeof applyHideLockedPins!=='undefined')applyHideLockedPins();}
   else{btn.textContent='🔒 Lock';btn.classList.remove('locked');if(q.marker)q.marker.dragging.enable();if(rb){rb.disabled=false;rb.style.opacity='';rb.style.pointerEvents='';}if(typeof applyHideLockedPins!=='undefined')applyHideLockedPins();}
   applyQuestionMoveLocks();
+  if(typeof saveState==='function')saveState();
 }
 
 // ── THERMOMETER SEEKER ────────────────────────────────────────
@@ -597,6 +666,7 @@ function placeThermoPin(q, pin) {
   q[key].on('dragstart', e => rememberPinStart(q, pin === 'A' ? 'thermoA' : 'thermoB', e.target.getLatLng()));
   q[key].on('dragend',e=>{const p=e.target.getLatLng();recordPinMove(q, pin === 'A' ? 'thermoA' : 'thermoB', q._pinStart, p);if(pin==='A'){q.latA=p.lat;q.lngA=p.lng;}else{q.latB=p.lat;q.lngB=p.lng;}updateThermoDistance(q);const el=document.getElementById(`coord-${pin.toLowerCase()}-${q.id}`);if(el)el.textContent=`${p.lat.toFixed(4)}, ${p.lng.toFixed(4)}`;redrawQuestionOverlay(q);redrawThermoBorders();if(typeof saveState!=='undefined')saveState();});
   applyQuestionMoveLocks();
+  if(typeof saveState==='function')saveState();
 }
 function updateThermoDistance(q){const dist=map.distance([q.latA,q.lngA],[q.latB,q.lngB]);const el=document.getElementById(`thermo-dist-${q.id}`);if(el)el.textContent=dist>=1000?`${(dist/1000).toFixed(2)} km`:`${Math.round(dist)} m`;}
 function goToThermoPin(id,pin){const q=questions.find(x=>x.id===id);map.setView([pin==='A'?q.latA:q.latB,pin==='A'?q.lngA:q.lngB],14);}
@@ -607,10 +677,11 @@ function toggleThermoLock(id){
   if(q.locked){btn.textContent='🔓 Locked';btn.classList.add('locked');if(q.markerA)q.markerA.dragging.disable();if(q.markerB)q.markerB.dragging.disable();if(rb){rb.disabled=true;rb.style.opacity='0.25';rb.style.pointerEvents='none';}showToast(`Thermometer #${id} locked 🔒`); if(typeof saveState!=='undefined')saveState(); if(typeof applyHideLockedPins!=='undefined')applyHideLockedPins();}
   else{btn.textContent='🔒 Lock';btn.classList.remove('locked');if(q.markerA)q.markerA.dragging.enable();if(q.markerB)q.markerB.dragging.enable();if(rb){rb.disabled=false;rb.style.opacity='';rb.style.pointerEvents='';}if(typeof applyHideLockedPins!=='undefined')applyHideLockedPins();}
   applyQuestionMoveLocks();
+  if(typeof saveState==='function')saveState();
 }
-function setCloser(id,closer){const q=questions.find(x=>x.id===id);q.closer=closer;_qRefreshSummary(q);document.getElementById(`cpend-${id}`).className='closer-btn'+(closer==='pending'?' active-pend':'');document.getElementById(`ca-${id}`).className='closer-btn'+(closer==='A'?' active-a':'');document.getElementById(`cb-${id}`).className='closer-btn'+(closer==='B'?' active-b':'');redrawQuestionOverlay(q);}
+function setCloser(id,closer){const q=questions.find(x=>x.id===id);q.closer=closer;_qRefreshSummary(q);document.getElementById(`cpend-${id}`).className='closer-btn'+(closer==='pending'?' active-pend':'');document.getElementById(`ca-${id}`).className='closer-btn'+(closer==='A'?' active-a':'');document.getElementById(`cb-${id}`).className='closer-btn'+(closer==='B'?' active-b':'');redrawQuestionOverlay(q);if(typeof saveState==='function')saveState();}
 function toggleThermoBorder(id){const q=questions.find(x=>x.id===id);if(!q)return;q.thermoBorder=!q.thermoBorder;const btn=document.getElementById(`tborder-btn-${id}`);if(btn){btn.style.borderColor=q.thermoBorder?'#f5d020':'';btn.style.color=q.thermoBorder?'#f5d020':'';btn.style.background=q.thermoBorder?'rgba(245,208,32,.12)':'';}redrawThermoBorders();if(typeof saveState!=='undefined')saveState();}
-function copyThermoCode(id){const q=questions.find(x=>x.id===id);const code=`THM-${q.latA.toFixed(5)}-${q.lngA.toFixed(5)}-${q.latB.toFixed(5)}-${q.lngB.toFixed(5)}`;const btn=document.getElementById(`tcopy-btn-${id}`);navigator.clipboard.writeText(code).then(()=>{btn.textContent='✅ Copied!';setTimeout(()=>{btn.textContent='📋 Copy Question Code';},2200);}).catch(()=>showToast(code,5000));}
+function copyThermoCode(id){const q=questions.find(x=>x.id===id);if(q)copyQuestionText(questionCode(q),document.getElementById(`tcopy-btn-${id}`));}
 
 function setZone(id,zone){
   const q=questions.find(x=>x.id===id);q.zone=zone;
@@ -623,8 +694,8 @@ function setZone(id,zone){
   if(typeof saveState!=='undefined')saveState();
 }
 function buildCode(q){return `RAD-${q.lat.toFixed(5)}-${q.lng.toFixed(5)}-${q.radius}${q.unit}`;}
-function copyCode(id){const q=questions.find(x=>x.id===id);if(!q.radius){showToast('Set a radius first!');return;}const code=buildCode(q);const btn=document.getElementById(`copy-btn-${id}`);navigator.clipboard.writeText(code).then(()=>{btn.textContent='✅ Copied!';btn.classList.add('copied');setTimeout(()=>{btn.textContent='📋 Copy Question Code';btn.classList.remove('copied');},2200);}).catch(()=>showToast(code,5000));}
-function getRadiusMeters(q){const v=parseFloat(q.radius);if(!v||isNaN(v))return null;return q.unit==='KM'?v*1000:v;}
+function copyCode(id){const q=questions.find(x=>x.id===id);if(!q||!getRadiusMeters(q)){showToast('Enter a positive radius first');return;}copyQuestionText(questionCode(q),document.getElementById(`copy-btn-${id}`));}
+function getRadiusMeters(q){const v=Number(q.radius);const r=q.unit==='KM'?v*1000:v;return Number.isFinite(r)&&r>0?r:null;}
 
 const _pinUndoStack = [];
 let _lastPinStart = null;
@@ -640,7 +711,9 @@ function rememberPinStart(q, pin, latlng) {
 }
 function recordPinMove(q, pin, before, after) {
   if (!before || !after) return;
+  if (String(before.id) !== String(q.id) || before.pin !== pin) return;
   if (Math.abs(before.lat - after.lat) < 1e-9 && Math.abs(before.lng - after.lng) < 1e-9) return;
+  if (q.type !== 'hider' && q.type !== 'endgame') invalidateQuestionAnswer(q);
   _pinUndoStack.push({ id: q.id, type: q.type, pin, before: { lat: before.lat, lng: before.lng } });
   if (_pinUndoStack.length > 60) _pinUndoStack.shift();
   updateUndoPinButton();
@@ -650,20 +723,30 @@ function updateUndoPinButton() {
   if (btn) btn.disabled = !_pinUndoStack.length;
 }
 function undoLastPinMove() {
-  const move = _pinUndoStack.pop();
-  updateUndoPinButton();
+  const move = _pinUndoStack[_pinUndoStack.length-1];
   if (!move) return;
+  const q = questions.find(x => x.id === move.id);
+  if ((move.type === 'hider' && hiderPinLocked) || (move.type === 'endgame' && endgamePinLocked) || (q && !questionMoveAllowed(q))) { showToast('Unlock the pin before undoing its move'); return; }
+  _pinUndoStack.pop(); updateUndoPinButton();
   applyPinMove(move, move.before);
   showToast('Pin moved back');
 }
 function applyPinMove(move, pos) {
+  if (move.type === 'endgame' && endgamePin) {
+    if (endgamePinLocked) { showToast('Unlock the endgame pin before undoing its move'); return; }
+    endgamePin.setLatLng([pos.lat,pos.lng]); updateEndgameCoords(pos.lat,pos.lng); checkAllHiderRadars();
+    if(typeof saveState==='function')saveState(); return;
+  }
   if (move.type === 'hider' && hiderPin) {
+    if (hiderPinLocked) { showToast('Unlock the hiding pin before undoing its move'); return; }
     hiderPin.setLatLng([pos.lat, pos.lng]);
     document.getElementById('hider-pin-coords').textContent = `${pos.lat.toFixed(5)}, ${pos.lng.toFixed(5)}`;
-    updateHiderZoneCircle(); checkAllHiderRadars(); return;
+    updateHiderZoneCircle(); checkAllHiderRadars(); if(typeof saveState==='function')saveState(); return;
   }
   const q = questions.find(x => x.id === move.id);
   if (!q) return;
+  if (!questionMoveAllowed(q)) { showToast('Unlock the question before undoing its move'); return; }
+  invalidateQuestionAnswer(q);
   if (move.pin === 'radar') { q.lat = pos.lat; q.lng = pos.lng; q.marker?.setLatLng([pos.lat,pos.lng]); const el=document.getElementById(`coord-disp-${q.id}`); if(el)el.textContent=`Pin: ${pos.lat.toFixed(5)}, ${pos.lng.toFixed(5)}`; redrawOutlineCircle(q); }
   if (move.pin === 'thermoA') { q.latA = pos.lat; q.lngA = pos.lng; q.markerA?.setLatLng([pos.lat,pos.lng]); const el=document.getElementById(`coord-a-${q.id}`); if(el)el.textContent=`${pos.lat.toFixed(4)}, ${pos.lng.toFixed(4)}`; updateThermoDistance(q); }
   if (move.pin === 'thermoB') { q.latB = pos.lat; q.lngB = pos.lng; q.markerB?.setLatLng([pos.lat,pos.lng]); const el=document.getElementById(`coord-b-${q.id}`); if(el)el.textContent=`${pos.lat.toFixed(4)}, ${pos.lng.toFixed(4)}`; updateThermoDistance(q); }
@@ -673,6 +756,12 @@ function applyPinMove(move, pos) {
   if (move.pin === 'angleDirection') { q.direction = { lat: pos.lat, lng: pos.lng }; q._dirMarker?.setLatLng([pos.lat,pos.lng]); angleQuestionUpdateGeometry(q); renderAngleCard(q); }
   redrawQuestionOverlay(q); redrawThermoBorders();
   if (typeof saveState !== 'undefined') saveState();
+}
+function invalidateQuestionAnswer(q) {
+  if (q.hiderMode) return;
+  if (q.type === 'thermo') q.closer='pending';
+  else if (q.type === 'matching' || q.type === 'measuring') q.answer='pending';
+  else q.zone='pending';
 }
 function questionMarkers(q) { return [q.marker, q.markerA, q.markerB, q._centerMarker, q._dirMarker].filter(Boolean); }
 function questionMoveAllowed(q) { return !q.locked && (!_moveLockEnabled || (q._moveWindowUntil && Date.now() < q._moveWindowUntil)); }
@@ -758,6 +847,7 @@ function _nearestPointLoc(lat, lng, locs) {
 }
 function isLatLngInBlueZone(lat, lng) {
   if (!map || typeof questions === 'undefined') return false;
+  if (_cityBoundaryOn && _cityBoundaryData && !isLatLngInsideCityBoundary(lat, lng)) return true;
   if (typeof isGameAreaRestrictionReady === 'function' &&
       typeof isLatLngInsideGameArea === 'function' &&
       isGameAreaRestrictionReady() &&
@@ -798,7 +888,7 @@ function isLatLngInBlueZone(lat, lng) {
       const same = nearestLocId === String(q.nearestId);
       if ((q.answer === 'yes' && !same) || (q.answer === 'no' && same)) return true;
     } else if (q.type === 'measuring') {
-      if (q.answer === 'pending' || !q.seekerDist) continue;
+      if (q.answer === 'pending' || !Number.isFinite(q.seekerDist) || q.seekerDist < 0) continue;
       const locs = getMeasuringLocs(q.subcat);
       const insideAny = locs.some(loc => map.distance([lat,lng], [loc.lat,loc.lng]) <= q.seekerDist);
       if ((q.answer === 'closer' && !insideAny) || (q.answer === 'further' && insideAny)) return true;
@@ -843,6 +933,11 @@ let _blueOverlayOpacity = 0.30;
 const BLUE = '#4882dc';
 const NS   = 'http://www.w3.org/2000/svg';
 const OPAD = 10000;
+const CITY_BOUNDARY_FILE = 'boundaries.geojson';
+const CITY_BOUNDARY_FALLBACK_DATA = {"type":"FeatureCollection","features":[{"type":"Feature","properties":{},"geometry":{"type":"Polygon","coordinates":[[[17.996378,59.311946],[17.983675,59.313876],[17.981958,59.314403],[17.980928,59.315888],[17.979126,59.317202],[17.978354,59.318473],[17.978954,59.319963],[17.980585,59.321628],[17.982988,59.323381],[17.984962,59.324695],[17.987366,59.326492],[17.987537,59.328156],[17.989254,59.329646],[17.992773,59.33121],[17.994876,59.333211],[17.994747,59.336233],[17.995949,59.338259],[17.99921,59.340317],[18.003588,59.341441],[18.010197,59.341046],[18.013501,59.340653],[18.015819,59.340192],[18.017782,59.339848],[18.020035,59.339985],[18.021623,59.340204],[18.0235,59.339928],[18.03129,59.338223],[18.026075,59.341307],[18.024273,59.342556],[18.022685,59.343999],[18.021011,59.345769],[18.017235,59.34877],[18.015003,59.353822],[18.014789,59.354634],[18.015711,59.354809],[18.017492,59.353966],[18.024445,59.353857],[18.032105,59.353693],[18.036611,59.354502],[18.043156,59.350911],[18.045044,59.352948],[18.045387,59.354742],[18.048198,59.355792],[18.050044,59.359019],[18.050923,59.359987],[18.048134,59.361213],[18.045945,59.363357],[18.038607,59.371038],[18.0441,59.3748],[18.046718,59.375469],[18.048692,59.375737],[18.050258,59.375584],[18.068218,59.376422],[18.085728,59.371609],[18.093624,59.369597],[18.148899,59.339129],[18.167095,59.326952],[18.151731,59.317413],[18.145123,59.31509],[18.1392,59.313644],[18.13684,59.312893],[18.132505,59.31119],[18.125038,59.310269],[18.1183,59.308862],[18.111563,59.307964],[18.105125,59.307332],[18.099375,59.307122],[18.094697,59.306798],[18.082294,59.304007],[18.073368,59.302497],[18.059464,59.303758],[18.055429,59.306739],[18.037362,59.310484],[18.028522,59.307502],[18.026462,59.308178],[18.024863,59.308542],[18.023361,59.309113],[18.022363,59.309212],[18.021172,59.309086],[18.020175,59.309196],[18.019069,59.309689],[18.018233,59.309634],[18.016902,59.309672],[18.016248,59.311731],[18.014574,59.311774],[18.012686,59.311904],[18.008137,59.312166],[17.996378,59.311946]]]}}]};
+let _cityBoundaryOn = false;
+let _cityBoundaryData = null;
+let _cityBoundaryLoadPromise = null;
 
 function setBlueOverlayOpacity(value) {
   const n = Math.max(0.08, Math.min(0.65, Number(value) || 0.30));
@@ -888,6 +983,91 @@ function geoRingToPx(ring) {
     const p = map.latLngToLayerPoint(L.latLng(lat, lng));
     return [p.x, p.y];
   });
+}
+
+function cityBoundaryPolygons() {
+  if (!_cityBoundaryData || !_cityBoundaryData.features) return [];
+  const polygons = [];
+  for (const feature of _cityBoundaryData.features) {
+    const geom = feature.geometry || {};
+    if (geom.type === 'Polygon') polygons.push(geom.coordinates);
+    else if (geom.type === 'MultiPolygon') polygons.push(...(geom.coordinates || []));
+  }
+  return polygons.filter(poly => Array.isArray(poly) && poly.length && Array.isArray(poly[0]));
+}
+
+function pointInGeoRing(lat, lng, ring) {
+  let inside = false;
+  for (let i = 0, j = ring.length - 1; i < ring.length; j = i++) {
+    const xi = ring[i][0], yi = ring[i][1];
+    const xj = ring[j][0], yj = ring[j][1];
+    const intersects = ((yi > lat) !== (yj > lat)) && (lng < (xj - xi) * (lat - yi) / ((yj - yi) || 1e-12) + xi);
+    if (intersects) inside = !inside;
+  }
+  return inside;
+}
+
+function isLatLngInsideCityBoundary(lat, lng) {
+  for (const poly of cityBoundaryPolygons()) {
+    if (!pointInGeoRing(lat, lng, poly[0])) continue;
+    const inHole = poly.slice(1).some(ring => pointInGeoRing(lat, lng, ring));
+    if (!inHole) return true;
+  }
+  return false;
+}
+
+function loadCityBoundary() {
+  if (_cityBoundaryData) return Promise.resolve(_cityBoundaryData);
+  if (_cityBoundaryLoadPromise) return _cityBoundaryLoadPromise;
+  _cityBoundaryLoadPromise = fetch(CITY_BOUNDARY_FILE, { cache:'force-cache' })
+    .then(r => {
+      if (!r.ok) throw new Error(CITY_BOUNDARY_FILE + ' HTTP ' + r.status);
+      return r.json();
+    })
+    .catch(err => {
+      console.warn('City boundary file unavailable, using embedded fallback:', err.message);
+      return CITY_BOUNDARY_FALLBACK_DATA;
+    })
+    .then(data => {
+      _cityBoundaryData = data;
+      return data;
+    });
+  return _cityBoundaryLoadPromise;
+}
+
+function setCityBoundaryMask(on, save = true) {
+  _cityBoundaryOn = !!on;
+  const btn = document.getElementById('city-boundary-btn');
+  const st = document.getElementById('city-boundary-status');
+  if (btn) btn.classList.toggle('sp-active', _cityBoundaryOn);
+  if (st) st.textContent = _cityBoundaryOn ? 'ON' : 'OFF';
+  if (_cityBoundaryOn) {
+    loadCityBoundary().then(() => {
+      redrawQuestionOverlay();
+      if (typeof redrawSlLineLayers === 'function') redrawSlLineLayers();
+    }).catch(() => setCityBoundaryMask(false, save));
+  } else {
+    redrawQuestionOverlay();
+    if (typeof redrawSlLineLayers === 'function') redrawSlLineLayers();
+  }
+  if (save && typeof saveState === 'function') saveState();
+}
+
+function toggleCityBoundaryMask() {
+  setCityBoundaryMask(!_cityBoundaryOn);
+}
+
+function addCityBoundaryMaskPath() {
+  if (!_cityBoundaryOn || !_cityBoundaryData) return;
+  const outers = [];
+  const holes = [];
+  for (const poly of cityBoundaryPolygons()) {
+    if (!poly[0] || poly[0].length < 3) continue;
+    outers.push(geoRingToPx(poly[0]));
+    for (const inner of poly.slice(1)) if (inner.length >= 3) holes.push(geoRingToPx(inner));
+  }
+  if (outers.length) addYesPathMulti(outers);
+  for (const hole of holes) addNoPath(hole);
 }
 
 function rectToPx(rect) {
@@ -1158,6 +1338,8 @@ function rebuildAll(){
   const allData = getAllMatchingData();
   const closerCirclesPts = [];
 
+  addCityBoundaryMaskPath();
+
   for(const q of questions){
 
     // ── Radar ─────────────────────────────────────────────────
@@ -1244,7 +1426,7 @@ function rebuildAll(){
             // Valid area = inside ANY polygon. Blue = outside all polygons.
             const outers = locs.map(loc => geoRingToPx(loc.rings[0]));
             addYesPathMulti(outers); // Fills world, punches out all polygons
-            
+
             // Inner rings (holes in the polygon) are not "inside", so paint them blue
             for (const loc of locs) {
               for (let i = 1; i < loc.rings.length; i++) {
@@ -1311,123 +1493,49 @@ function _getGPS(callback) {
   if (!navigator.geolocation) { showToast('Geolocation not supported'); return; }
   navigator.geolocation.getCurrentPosition(
     pos => callback(pos.coords.latitude, pos.coords.longitude),
-    ()  => showToast('Could not get location')
+    ()  => showToast('Could not get location. Check browser location permissions.'),
+    {enableHighAccuracy:true,timeout:15000,maximumAge:30000}
   );
 }
-function setMyLocation_radar(id) {
+function setQuestionGPS(id, pin) {
+  const q = questions.find(x=>String(x.id)===String(id));
+  if (!q || !questionMoveAllowed(q)) { showToast('Unlock this question before changing its pin'); return; }
   _getGPS((lat,lng) => {
-    const q = questions.find(x=>x.id===id); if(!q||q.locked) return;
-    q.lat=lat; q.lng=lng;
-    if(q.marker) q.marker.setLatLng([lat,lng]);
-    const el=document.getElementById(`coord-disp-${id}`);
-    if(el) el.textContent=`Pin: ${lat.toFixed(5)}, ${lng.toFixed(5)}`;
-    redrawQuestionOverlay(q); redrawOutlineCircle(q);
+    if (!questions.includes(q) || !questionMoveAllowed(q)) return;
+    const before = {id:q.id,pin,lat:pin==='thermoA'?q.latA:pin==='thermoB'?q.latB:q.lat,lng:pin==='thermoA'?q.lngA:pin==='thermoB'?q.lngB:q.lng};
+    recordPinMove(q,pin,before,{lat,lng});
+    applyPinMove({id:q.id,type:q.type,pin},{lat,lng});
     map.setView([lat,lng],15);
   });
 }
-function setMyLocation_thermoA(id) {
-  _getGPS((lat,lng) => {
-    const q = questions.find(x=>x.id===id); if(!q||q.locked) return;
-    q.latA=lat; q.lngA=lng;
-    if(q.markerA) q.markerA.setLatLng([lat,lng]);
-    const el=document.getElementById(`coord-a-${id}`);
-    if(el) el.textContent=`${lat.toFixed(4)}, ${lng.toFixed(4)}`;
-    updateThermoDistance(q); redrawQuestionOverlay(q); map.setView([lat,lng],15);
-  });
-}
-function setMyLocation_thermoB(id) {
-  _getGPS((lat,lng) => {
-    const q = questions.find(x=>x.id===id); if(!q||q.locked) return;
-    q.latB=lat; q.lngB=lng;
-    if(q.markerB) q.markerB.setLatLng([lat,lng]);
-    const el=document.getElementById(`coord-b-${id}`);
-    if(el) el.textContent=`${lat.toFixed(4)}, ${lng.toFixed(4)}`;
-    updateThermoDistance(q); redrawQuestionOverlay(q); map.setView([lat,lng],15);
-  });
-}
-function setMyLocation_matching(id) {
-  _getGPS((lat,lng) => {
-    const q = questions.find(x=>x.id===id); if(!q||q.locked) return;
-    q.lat=lat; q.lng=lng;
-    if(q.marker) q.marker.setLatLng([lat,lng]);
-    const el=document.getElementById(`match-coord-${id}`);
-    if(el) el.textContent=`${lat.toFixed(4)}, ${lng.toFixed(4)}`;
-    updateMatchingNearest(q); map.setView([lat,lng],15);
-  });
-}
-function setMyLocation_measuring(id) {
-  _getGPS((lat,lng) => {
-    const q = questions.find(x=>x.id===id); if(!q||q.locked) return;
-    q.lat=lat; q.lng=lng;
-    if(q.marker) q.marker.setLatLng([lat,lng]);
-    const el=document.getElementById(`meas-coord-${id}`);
-    if(el) el.textContent=`${lat.toFixed(4)}, ${lng.toFixed(4)}`;
-    updateMeasuringNearest(q); map.setView([lat,lng],15);
-  });
-}
+function setMyLocation_radar(id) { setQuestionGPS(id,'radar'); }
+function setMyLocation_thermoA(id) { setQuestionGPS(id,'thermoA'); }
+function setMyLocation_thermoB(id) { setQuestionGPS(id,'thermoB'); }
+function setMyLocation_matching(id) { setQuestionGPS(id,'matching'); }
+function setMyLocation_measuring(id) { setQuestionGPS(id,'measuring'); }
 
 // ── HIDER DECODE ──────────────────────────────────────────────
-function decodeAndAdd(){
-  const raw=document.getElementById('hider-code-field').value.trim().toUpperCase().replace(/\s/g,'');
-  if(!raw)return;
-  // ENDZONE — start endgame flow
-  if (raw.indexOf('ENDZONE-') === 0) {
-    if (_consumeEndgameCode(raw)) { document.getElementById('hider-code-field').value=''; }
-    return;
-  }
-  const radarMatch=raw.match(/^RAD-([\-\d.]+)-([\-\d.]+)-(\d+\.?\d*)(KM|M)$/);
-  if(radarMatch){const lat=parseFloat(radarMatch[1]),lng=parseFloat(radarMatch[2]),rad=radarMatch[3],unit=radarMatch[4];qCounter++;const q={id:qCounter,type:'radar',lat,lng,radius:rad,unit,zone:'pending',locked:true,hiderMode:true};questions.push(q);renderHiderRadarCard(q);redrawOutlineCircle(q);checkHiderRadar(q);map.setView([lat,lng],13);document.getElementById('hider-code-field').value='';showToast('Radar question added!');return;}
-  const thermoMatch=raw.match(/^THM-([\-\d.]+)-([\-\d.]+)-([\-\d.]+)-([\-\d.]+)$/);
-  if(thermoMatch){const latA=parseFloat(thermoMatch[1]),lngA=parseFloat(thermoMatch[2]),latB=parseFloat(thermoMatch[3]),lngB=parseFloat(thermoMatch[4]);qCounter++;const q={id:qCounter,type:'thermo',latA,lngA,latB,lngB,closer:'pending',locked:true,hiderMode:true};questions.push(q);renderHiderThermoCard(q);checkHiderThermo(q);map.setView([(latA+latB)/2,(lngA+lngB)/2],13);document.getElementById('hider-code-field').value='';showToast('Thermometer question added!');return;}
-  // MATCHING — parse from original (not uppercased) to preserve case
-  const rawOrig = document.getElementById('hider-code-field').value.trim();
-  const matchMatch = rawOrig.toUpperCase().startsWith('MAT-')
-    ? rawOrig.match(/^MAT-([^-]+)-([\-\d.]+)-([\-\d.]+)-([^-]+)$/i)
-    : null;
-  if (matchMatch) {
-    const subcat = decodeSubcat(matchMatch[1].toLowerCase());
-    const seekerLat = parseFloat(matchMatch[2]), seekerLng = parseFloat(matchMatch[3]);
-    const nearestId = matchMatch[4].toLowerCase();
-    const locs = getAllMatchingData()[subcat] || [];
-    const nearestStr = String(matchMatch[4]).toLowerCase();
-    const loc = nearestStr === 'none' ? { name: 'Outside all areas' } : (locs.find(x => String(x.id).toLowerCase() === nearestStr) || { name: nearestStr });
-    qCounter++;
-    const q = { id: qCounter, type: 'matching', subcat, seekerLat, seekerLng, nearestId, nearestName: loc.name, answer: 'pending', locked: true, hiderMode: true };
-    questions.push(q);
-    renderHiderMatchingCard(q);
-    checkHiderMatching(q);
-    document.getElementById('hider-code-field').value = '';
-    showToast('Matching question added!');
-    return;
-  }
-
-  // MEASURING
-  if (rawOrig.toUpperCase().startsWith('MEA-')) {
-    if (decodeMeasuring(rawOrig)) return;
-  }
-
-  const angleMatch = rawOrig.match(/^ANG-([\-\d.]+)-([\-\d.]+)-([\-\d.]+)-([\-\d.]+)-(\d+)-([A-Za-z]+)-(\d+)$/i);
-  if (angleMatch) {
-    const centerLat = parseFloat(angleMatch[1]), centerLng = parseFloat(angleMatch[2]);
-    const dirLat = parseFloat(angleMatch[3]), dirLng = parseFloat(angleMatch[4]);
-    const angle = parseInt(angleMatch[5], 10);
-    const modeRaw = angleMatch[6].toLowerCase();
-    const mode = modeRaw === 'excluderadius' ? 'excludeRadius' : modeRaw;
-    const excludeRadius = parseInt(angleMatch[7], 10) || 0;
-    qCounter++;
-    const q = { id: qCounter, type: 'angle', angle, mode, excludeRadius, center: { lat: centerLat, lng: centerLng }, direction: { lat: dirLat, lng: dirLng }, zone: 'pending', locked: true, hiderMode: true };
-    questions.push(q);
-    renderHiderAngleCard(q);
-    checkHiderAngle(q);
-    showAnglePreview(q);
-    map.setView([centerLat, centerLng], 13);
-    document.getElementById('hider-code-field').value = '';
-    showToast('Angle question added!');
-    if (typeof saveState !== 'undefined') saveState();
-    return;
-  }
-
-  showToast('Invalid code — check format');
+function decodeAndAdd() {
+  const field = document.getElementById('hider-code-field');
+  if (!field || !field.value.trim()) return;
+  if (/^ENDZONE-/i.test(field.value.trim())) { if (_consumeEndgameCode(field.value.trim())) field.value=''; return; }
+  const parsed = parseQuestionCode(field.value);
+  if (!parsed) { showToast('Invalid question code. Check the coordinates, category and values.'); return; }
+  qCounter++;
+  const q = Object.assign(parsed, {id:qCounter,locked:true,hiderMode:true});
+  if (q.type === 'matching' || q.type === 'measuring') { q.seekerLat=q.lat; q.seekerLng=q.lng; delete q.lat; delete q.lng; q.answer='pending'; }
+  if (q.type === 'radar' || q.type === 'angle') q.zone='pending';
+  if (q.type === 'thermo') q.closer='pending';
+  questions.push(q);
+  if (q.type === 'radar') { renderHiderRadarCard(q); redrawOutlineCircle(q); checkHiderRadar(q); }
+  if (q.type === 'thermo') { renderHiderThermoCard(q); checkHiderThermo(q); }
+  if (q.type === 'matching') { renderHiderMatchingCard(q); checkHiderMatching(q); }
+  if (q.type === 'measuring') { renderHiderMeasuringCard(q); checkHiderMeasuring(q); }
+  if (q.type === 'angle') { renderHiderAngleCard(q); checkHiderAngle(q); showAnglePreview(q); }
+  const pos = q.center || {lat:q.seekerLat ?? q.lat ?? q.latA,lng:q.seekerLng ?? q.lng ?? q.lngA};
+  map.setView([pos.lat,pos.lng],13);
+  field.value=''; showToast('Question added. Copy the answer when your hiding pin is set.');
+  if (typeof saveState === 'function') saveState();
 }
 
 function renderHiderThermoCard(q){if(typeof _initQuestionCollapseDelegation==='function')_initQuestionCollapseDelegation();const ql=document.getElementById('question-list');const dist=map.distance([q.latA,q.lngA],[q.latB,q.lngB]);const distStr=dist>=1000?`${(dist/1000).toFixed(2)} km`:`${Math.round(dist)} m`;const card=document.createElement('div');card.className='q-card thermo';card.id=`q-card-${q.id}`;card.innerHTML=`<div class="q-card-header"><span style="font-size:14px">🌡️</span><span class="q-title">Thermometer</span><span class="q-num">#${q.id}</span></div><div class="q-card-body"><div style="font-size:10px;color:var(--text2)">Pin A–B distance: <span class="thermo-dist">${distStr}</span></div><div class="icon-btns"><button class="icon-btn go-btn" onclick="map.setView([${q.latA},${q.lngA}],14)">📍 Pin A</button><button class="icon-btn go-btn" onclick="map.setView([${q.latB},${q.lngB}],14)">📍 Pin B</button></div><div id="hider-ans-${q.id}" class="answer-badge waiting">Place your hiding pin first…</div><button class="remove-btn" onclick="removeQuestion(${q.id})">✕ Remove</button></div>`;ql.appendChild(card);}
@@ -1463,7 +1571,24 @@ function checkHiderAngle(q){
 
 _qRefreshSummary(q);_qAutoCollapse(q);}
 
-function removeQuestion(id){const q=questions.find(x=>x.id===id);if(!q)return;if(q.marker)map.removeLayer(q.marker);if(q.markerA)map.removeLayer(q.markerA);if(q.markerB)map.removeLayer(q.markerB);if(outlineCircles[id]){map.removeLayer(outlineCircles[id]);delete outlineCircles[id];}if(typeof removeMatchingLocMarkers!=='undefined')removeMatchingLocMarkers(id);if(typeof removeAreaFeatures!=='undefined')removeAreaFeatures(id);if(typeof removeMeasuringLocMarkers!=='undefined')removeMeasuringLocMarkers(id);clearQuestionOverlay(id);questions=questions.filter(x=>x.id!==id);const card=document.getElementById(`q-card-${id}`);if(card)card.remove();showToast('Question removed');if(typeof saveState!=='undefined')saveState();}
+function removeQuestion(id) {
+  const q=questions.find(x=>String(x.id)===String(id));
+  if (!q) return;
+  if (q.locked && !q.hiderMode) { showToast('Unlock this question before removing it'); return; }
+  questionMarkers(q).forEach(marker => map.removeLayer(marker));
+  if (q.type === 'angle') clearAngleQuestionLayers(q);
+  if (outlineCircles[q.id]) { map.removeLayer(outlineCircles[q.id]); delete outlineCircles[q.id]; }
+  removeMatchingLocMarkers(q.id); removeAreaFeatures(q.id); removeMeasuringLocMarkers(q.id);
+  for (let i=_pinUndoStack.length-1;i>=0;i--) if (String(_pinUndoStack[i].id) === String(q.id)) _pinUndoStack.splice(i,1);
+  updateUndoPinButton();
+  questions=questions.filter(x=>x!==q);
+  document.getElementById(`q-card-${q.id}`)?.remove();
+  document.getElementById(`angle-card-${q.id}`)?.remove();
+  if (_anglePreviewQuestionId === q.id) { _anglePreviewLayer?.clearLayers(); clearTimeout(_anglePreviewTimer); }
+  clearQuestionOverlay(); rebuildVoronoiLines();
+  showToast('Question removed');
+  if (typeof saveState === 'function') saveState();
+}
 
 function checkAllHiderRadars(){questions.filter(q=>q.hiderMode&&q.type==='radar').forEach(q=>checkHiderRadar(q));questions.filter(q=>q.hiderMode&&q.type==='thermo').forEach(q=>checkHiderThermo(q));questions.filter(q=>q.hiderMode&&q.type==='matching').forEach(q=>checkHiderMatching(q));questions.filter(q=>q.hiderMode&&q.type==='measuring').forEach(q=>checkHiderMeasuring(q));questions.filter(q=>q.hiderMode&&q.type==='angle').forEach(q=>checkHiderAngle(q));}
 
@@ -1498,7 +1623,7 @@ function showMatchingLocMarkers(q) {
       weight: isNearest ? 2 : 1,
       opacity: 0.9,
       interactive: true
-    }).bindTooltip(loc.name, { permanent: false, direction: 'top', className: 'train-tip' }).addTo(map);
+    }).bindTooltip(questionEscapeHtml(loc.name), { permanent: false, direction: 'top', className: 'train-tip' }).addTo(map);
     return m;
   });
   // Re-render when map moves so markers stay current
@@ -1556,14 +1681,16 @@ function placeSeekerMatchingPin(q) {
     const coordEl = document.getElementById(`match-coord-${q.id}`);
     if (coordEl) coordEl.textContent = `${q.lat.toFixed(4)}, ${q.lng.toFixed(4)}`;
     updateMatchingNearest(q);
+    if(typeof saveState==='function')saveState();
   });
   applyQuestionMoveLocks();
+  if(typeof saveState==='function')saveState();
 }
 
 function updateMatchingNearest(q) {
   const locations = (getAllMatchingData()[q.subcat]) || [];
-  if (!locations.length) return;
-  
+  if (!locations.length) { q.nearestId=null; q.nearestName=null; q.answer='pending'; return; }
+  // Find nearest/containing location based on type
   let best = null;
   let isOutsideAll = false;
 
@@ -1608,10 +1735,10 @@ function updateMatchingNearest(q) {
   const noteEl = document.getElementById(`match-note-${q.id}`);
   if (noteEl) {
     noteEl.textContent = locations.length === 1
-      ? 'Only one location in this category — answer must be Yes'
+      ? 'Only one place in this category; a matching answer may not narrow the search.'
       : '';
   }
-  
+
   if (!q.locked) showMatchingLocMarkers(q);
   if (!q.locked) showAreaFeatures(q);
   redrawQuestionOverlay(q);
@@ -1626,12 +1753,15 @@ function toggleMatchingVoronoi(id) {
     btn.textContent = q.showVoronoi ? '🔲 Borders ON' : '🔲 Borders';
   }
   rebuildVoronoiLines();
+  if(typeof saveState==='function')saveState();
 }
 
 function setMatchingSubcat(id, subcat) {
   const q = questions.find(x => x.id === id);
-  q.subcat = subcat;
+  if (!q || q.locked || !getAllMatchingData()[subcat]) return;
+  q.subcat = subcat; invalidateQuestionAnswer(q);
   updateMatchingNearest(q);
+  if(typeof saveState==='function')saveState();
   if (!q.locked) { showMatchingLocMarkers(q); showAreaFeatures(q); }
 }
 
@@ -1666,18 +1796,14 @@ function toggleMatchingLock(id) {
     showAreaFeatures(q);
   }
   applyQuestionMoveLocks();
-
-  if (q.locked) q.lockedAt = Date.now(); else q.lockedAt = null;}
+  q.lockedAt=q.locked?Date.now():null;
+  if(typeof saveState==='function')saveState();
+}
 
 function copyMatchingCode(id) {
-  const q = questions.find(x => x.id === id);
-  if (!q.nearestId) { showToast('Place your pin first'); return; }
-  const code = `MAT-${encodeSubcat(q.subcat)}-${q.lat.toFixed(5)}-${q.lng.toFixed(5)}-${q.nearestId}`;
-  const btn = document.getElementById(`mcopy-btn-${id}`);
-  navigator.clipboard.writeText(code).then(() => {
-    btn.textContent='✅ Copied!';
-    setTimeout(() => { btn.textContent='📋 Copy Question Code'; }, 2200);
-  }).catch(() => showToast(code, 5000));
+  const q=questions.find(x=>x.id===id);
+  if (!q || !q.nearestId) { showToast('Choose a category with coverage at your pin'); return; }
+  copyQuestionText(questionCode(q),document.getElementById(`mcopy-btn-${id}`));
 }
 
 function encodeSubcat(s)  { return s.replace(/\s+/g,'_').toLowerCase(); }
@@ -1700,7 +1826,7 @@ function renderSeekerMatchingCard(q) {
   const HIDDEN_MATCH = new Set(['River','SL Transit Line']);
   const subcats = Object.keys(getAllMatchingData()).filter(s => !HIDDEN_MATCH.has(s));
   const subcatOptions = subcats.map(s =>
-    `<option value="${s}" ${s===q.subcat?'selected':''}>${s}</option>`
+    `<option value="${questionEscapeHtml(s)}" ${s===q.subcat?'selected':''}>${questionEscapeHtml(s)}</option>`
   ).join('');
   card.innerHTML = `
     <div class="q-card-header">
@@ -1722,7 +1848,7 @@ function renderSeekerMatchingCard(q) {
       <div id="match-dist-${q.id}" class="coord-disp"></div>
       <div id="match-note-${q.id}" style="font-size:9px;color:var(--muted);font-style:italic"></div>
       <div class="icon-btns">
-        <button class="icon-btn go-btn" onclick="map.setView([${q.lat},${q.lng}],14);if(sidebarOpen)toggleSidebar();" style="border-color:rgba(74,222,128,.3);color:#4ade80">📍 Go to Pin</button>
+        <button class="icon-btn go-btn" onclick="goToSeekerPin(${q.id});if(sidebarOpen)toggleSidebar();" style="border-color:rgba(74,222,128,.3);color:#4ade80">📍 Go to Pin</button>
         <button class="icon-btn" onclick="setMyLocation_matching(${q.id})">📱 My Loc</button>
         <button class="icon-btn" id="mlock-btn-${q.id}" onclick="toggleMatchingLock(${q.id})">🔒 Lock</button>
         <button class="icon-btn" id="mvoronoi-btn-${q.id}" onclick="toggleMatchingVoronoi(${q.id})">🔲 Borders</button>
@@ -1755,8 +1881,8 @@ function renderHiderMatchingCard(q) {
       <span class="q-num">#${q.id}</span>
     </div>
     <div class="q-card-body">
-      <div style="font-size:10px;color:var(--text2)">Category: <span style="color:#4ade80;font-weight:500">${q.subcat}</span></div>
-      <div style="font-size:10px;color:var(--text2)">Seeker's nearest: <span style="color:#4ade80;font-weight:500">${q.nearestName}</span></div>
+      <div style="font-size:10px;color:var(--text2)">Category: <span style="color:#4ade80;font-weight:500">${questionEscapeHtml(q.subcat)}</span></div>
+      <div style="font-size:10px;color:var(--text2)">Seeker's nearest: <span style="color:#4ade80;font-weight:500">${questionEscapeHtml(q.nearestName)}</span></div>
       <button class="icon-btn go-btn" style="margin-top:4px;border-color:rgba(74,222,128,.3);color:#4ade80" onclick="map.setView([${q.seekerLat},${q.seekerLng}],14)">📍 Seeker's Pin</button>
       <div id="hider-ans-${q.id}" class="answer-badge waiting">Place your hiding pin first…</div>
       <button class="remove-btn" onclick="removeQuestion(${q.id})">✕ Remove</button>
@@ -1788,6 +1914,7 @@ function checkHiderMatching(q) {
     }
   }
 
+  if (!best && !isOutsideAll) { q.answer='pending'; const el=document.getElementById(`hider-ans-${q.id}`); if(el){el.className='answer-badge waiting';el.textContent='No place found in this category. Choose another category.';} redrawQuestionOverlay(q); return; }
   const bestId = isOutsideAll ? 'none' : (best ? String(best.id) : null);
   const bestName = isOutsideAll ? 'Outside all areas' : (best ? best.name : '?');
 
@@ -1795,7 +1922,7 @@ function checkHiderMatching(q) {
   q.answer = match ? 'yes' : 'no';
   const el = document.getElementById(`hider-ans-${q.id}`);
   if (!el) return;
-  
+
   if (match) {
     el.className = 'answer-badge inside';
     el.textContent = `✅ Yes — both nearest to ${bestName}`;
@@ -1985,7 +2112,7 @@ function findContainingRectCell(lng, lat, locs) {
 function findMatchingArea(lng, lat, locs) {
   if (!locs.length) return null;
   const type0 = locs[0].type;
-  if (type0 === 'polygon') return findContainingArea(lng, lat, locs) || locs[0];
+  if (type0 === 'polygon') return findContainingArea(lng, lat, locs);
   if (type0 === 'polyline') return findNearestPolyline(lng, lat, locs);
   if (type0 === 'raster-voronoi') return findContainingRectCell(lng, lat, locs) || findNearestPolyline(lng, lat, getSLTransitLines());
   return null;
@@ -2023,7 +2150,7 @@ function showAreaFeatures(q) {
         fillOpacity: isNearest ? 0.12 : 0,
         opacity: isNearest ? 0.9 : 0.5,
         interactive: true
-      }).bindTooltip(loc.name, { permanent: false, direction: 'center', className: 'train-tip' })
+      }).bindTooltip(questionEscapeHtml(loc.name), { permanent: false, direction: 'center', className: 'train-tip' })
         .addTo(map);
       layers.push(poly);
     } else if (loc.type === 'polyline' || loc.type === 'raster-voronoi') {
@@ -2039,7 +2166,7 @@ function showAreaFeatures(q) {
           interactive: true
         }).addTo(map);
         if (!tooltipAdded) {
-          line.bindTooltip(loc.name, { permanent: false, direction: 'center', className: 'train-tip' });
+          line.bindTooltip(questionEscapeHtml(loc.name), { permanent: false, direction: 'center', className: 'train-tip' });
           tooltipAdded = true;
         }
         layers.push(line);
@@ -2096,7 +2223,7 @@ function showMeasuringLocMarkers(q) {
       fillColor: isNearest ? '#06b6d4' : '#67e8f9',
       fillOpacity: isNearest ? 0.95 : 0.55,
       color: '#fff', weight: isNearest ? 2 : 1, opacity: 0.9
-    }).bindTooltip(loc.name, { permanent: false, direction: 'top', className: 'train-tip' }).addTo(map);
+    }).bindTooltip(questionEscapeHtml(loc.name), { permanent: false, direction: 'top', className: 'train-tip' }).addTo(map);
   });
   _measLayers[q.id] = layers;
   if (!q._measMoveHandler) {
@@ -2144,8 +2271,10 @@ function placeSeekerMeasuringPin(q) {
     const el = document.getElementById(`meas-coord-${q.id}`);
     if (el) el.textContent = `${q.lat.toFixed(4)}, ${q.lng.toFixed(4)}`;
     updateMeasuringNearest(q);
+    if(typeof saveState==='function')saveState();
   });
   applyQuestionMoveLocks();
+  if(typeof saveState==='function')saveState();
 }
 
 function updateMeasuringNearest(q) {
@@ -2163,8 +2292,10 @@ function updateMeasuringNearest(q) {
 
 function setMeasuringSubcat(id, subcat) {
   const q = questions.find(x => x.id === id);
-  q.subcat = subcat;
+  if (!q || q.locked || !getMeasuringLocs(subcat).length) return;
+  q.subcat = subcat; invalidateQuestionAnswer(q);
   updateMeasuringNearest(q);
+  if(typeof saveState==='function')saveState();
 }
 
 function setMeasuringAnswer(id, answer) {
@@ -2197,17 +2328,13 @@ function toggleMeasuringLock(id) {
     showMeasuringLocMarkers(q);
   }
   applyQuestionMoveLocks();
+  if(typeof saveState==='function')saveState();
 }
 
 function copyMeasuringCode(id) {
-  const q = questions.find(x => x.id === id);
-  if (!q.nearestId) { showToast('Place your pin first'); return; }
-  const code = `MEA-${encodeSubcat(q.subcat)}-${q.lat.toFixed(5)}-${q.lng.toFixed(5)}-${q.nearestId}-${q.seekerDist}`;
-  const btn = document.getElementById(`meascopy-btn-${id}`);
-  navigator.clipboard.writeText(code).then(() => {
-    btn.textContent = '✅ Copied!';
-    setTimeout(() => { btn.textContent = '📋 Copy Question Code'; }, 2200);
-  }).catch(() => showToast(code, 5000));
+  const q=questions.find(x=>x.id===id);
+  if (!q || !q.nearestId) { showToast('Choose a category with locations at your pin'); return; }
+  copyQuestionText(questionCode(q),document.getElementById(`meascopy-btn-${id}`));
 }
 
 function renderSeekerMeasuringCard(q) {
@@ -2216,7 +2343,7 @@ function renderSeekerMeasuringCard(q) {
   const card = document.createElement('div');
   card.className = 'q-card measuring'; card.id = `q-card-${q.id}`;
   const subcats = typeof MEASURING_SUBCATS !== 'undefined' ? MEASURING_SUBCATS : ['Park'];
-  const opts = subcats.map(s => `<option value="${s}" ${s===q.subcat?'selected':''}>${s}</option>`).join('');
+  const opts = subcats.map(s => `<option value="${questionEscapeHtml(s)}" ${s===q.subcat?'selected':''}>${questionEscapeHtml(s)}</option>`).join('');
   card.innerHTML = `
     <div class="q-card-header">
       <span style="font-size:14px">📏</span>
@@ -2239,7 +2366,7 @@ function renderSeekerMeasuringCard(q) {
         <span id="meas-dist-${q.id}" style="font-size:11px;color:#06b6d4;font-weight:500">—</span>
       </div>
       <div class="icon-btns">
-        <button class="icon-btn go-btn" onclick="map.setView([${q.lat},${q.lng}],14);if(sidebarOpen)toggleSidebar();" style="border-color:rgba(6,182,212,.3);color:#06b6d4">📍 Go to Pin</button>
+        <button class="icon-btn go-btn" onclick="goToSeekerPin(${q.id});if(sidebarOpen)toggleSidebar();" style="border-color:rgba(6,182,212,.3);color:#06b6d4">📍 Go to Pin</button>
         <button class="icon-btn" onclick="setMyLocation_measuring(${q.id})">📱 My Loc</button>
         <button class="icon-btn" id="measlock-btn-${q.id}" onclick="toggleMeasuringLock(${q.id})">🔒 Lock</button>
       </div>
@@ -2271,8 +2398,8 @@ function renderHiderMeasuringCard(q) {
       <span class="q-num">#${q.id}</span>
     </div>
     <div class="q-card-body">
-      <div style="font-size:10px;color:var(--text2)">Category: <span style="color:#06b6d4;font-weight:500">${q.subcat}</span></div>
-      <div style="font-size:10px;color:var(--text2)">Seeker nearest: <span style="color:#06b6d4;font-weight:500">${q.nearestName}</span></div>
+      <div style="font-size:10px;color:var(--text2)">Category: <span style="color:#06b6d4;font-weight:500">${questionEscapeHtml(q.subcat)}</span></div>
+      <div style="font-size:10px;color:var(--text2)">Seeker nearest: <span style="color:#06b6d4;font-weight:500">${questionEscapeHtml(q.nearestName)}</span></div>
       <div style="font-size:10px;color:var(--text2)">Seeker distance: <span style="color:#06b6d4;font-weight:500">${distStr}</span></div>
       <button class="icon-btn go-btn" style="margin-top:4px;border-color:rgba(6,182,212,.3);color:#06b6d4" onclick="map.setView([${q.seekerLat},${q.seekerLng}],14)">📍 Seeker's Pin</button>
       <div id="hider-ans-${q.id}" class="answer-badge waiting">${getActiveHiderPin() ? '⏳ Calculating…' : 'Place your hiding pin first…'}</div>
@@ -2291,7 +2418,7 @@ function checkHiderMeasuring(q) {
     return;
   }
   const el = document.getElementById(`hider-ans-${q.id}`); if (!el) return;
-  const closer = dist < q.seekerDist;
+  const closer = dist <= q.seekerDist;
   q.answer = closer ? 'closer' : 'further';
   const hiderDistStr = dist >= 1000 ? `${(dist/1000).toFixed(2)} km` : `${dist} m`;
   const seekerDistStr = q.seekerDist >= 1000 ? `${(q.seekerDist/1000).toFixed(2)} km` : `${q.seekerDist} m`;
@@ -2312,27 +2439,12 @@ function checkAllHiderMeasuring() {
 
 // ── Decode ────────────────────────────────────────────────────────────────────
 function decodeMeasuring(rawOrig) {
-  const m = rawOrig.match(/^MEA-([^-]+)-([\-\d.]+)-([\-\d.]+)-([^-]+)-(\d+)$/i);
-  if (!m) return false;
-  const subcat = decodeSubcat(m[1].toLowerCase());
-  const seekerLat = parseFloat(m[2]), seekerLng = parseFloat(m[3]);
-  const nearestId = m[4].toLowerCase();
-  const seekerDist = parseInt(m[5]);
-  const locs = getMeasuringLocs(subcat);
-  const loc = locs.find(x => x.id === nearestId) || { name: nearestId };
-  qCounter++;
-  const q = {
-    id: qCounter, type: 'measuring', subcat,
-    seekerLat, seekerLng, nearestId, nearestName: loc.name,
-    seekerDist, answer: 'pending', locked: true, hiderMode: true
-  };
-  questions.push(q);
-  renderHiderMeasuringCard(q);
-  checkHiderMeasuring(q);
-  showMeasuringLocMarkers(q);
-  map.setView([seekerLat, seekerLng], 13);
-  document.getElementById('hider-code-field').value = '';
-  showToast('Measuring question added!');
+  const parsed = parseQuestionCode(rawOrig);
+  if (!parsed || parsed.type !== 'measuring') return false;
+  const field = document.getElementById('hider-code-field');
+  if (!field) return false;
+  field.value=rawOrig;
+  decodeAndAdd();
   return true;
 }
 
@@ -2385,11 +2497,14 @@ function placeEndgamePin(lat, lng) {
     draggable: true
   }).addTo(map);
 
+  endgamePin.on('dragstart', e => rememberPinStart({id:'endgame',type:'endgame'},'endgame',e.target.getLatLng()));
   endgamePin.on('dragend', e => {
     if (endgamePinLocked) return;
     const p = e.target.getLatLng();
+    recordPinMove({id:'endgame',type:'endgame'},'endgame',_lastPinStart,p);
     updateEndgameCoords(p.lat, p.lng);
     checkAllHiderRadars();
+    if(typeof saveState==='function')saveState();
   });
 
   updateEndgameCoords(lat, lng);
@@ -2444,165 +2559,48 @@ function toggleEndgameLock() {
 // The code format is the same as what seeker generates, so we parse it and
 // find the matching existing seeker question to apply the answer to.
 
+function sameQuestionGeometry(a, b) {
+  if (a.type !== b.type || a.hiderMode) return false;
+  const near = (x,y) => Number.isFinite(x) && Number.isFinite(y) && Math.abs(x-y) < 0.000015;
+  if (a.type === 'radar') return near(a.lat,b.lat) && near(a.lng,b.lng) && Math.abs(getRadiusMeters(a)-getRadiusMeters(b)) < 0.01;
+  if (a.type === 'thermo') return near(a.latA,b.latA) && near(a.lngA,b.lngA) && near(a.latB,b.latB) && near(a.lngB,b.lngB);
+  if (a.type === 'angle') return near(a.center.lat,b.center.lat) && near(a.center.lng,b.center.lng) && near(a.direction.lat,b.direction.lat) && near(a.direction.lng,b.direction.lng) && a.angle === b.angle && a.mode === b.mode && Number(a.excludeRadius) === Number(b.excludeRadius);
+  return a.subcat === b.subcat && String(a.nearestId).toLowerCase() === String(b.nearestId).toLowerCase() && near(a.lat,b.lat) && near(a.lng,b.lng) && (a.type !== 'measuring' || Math.abs(a.seekerDist-b.seekerDist) < 1);
+}
 function seekerDecodeAndAdd() {
   const field = document.getElementById('seeker-code-field');
-  if (!field) return;
-  const raw = field.value.trim();
-  if (!raw) return;
-
-  const upper = raw.toUpperCase().replace(/\s/g, '');
-
-  // ENDZONE — start endgame flow
-  if (upper.indexOf('ENDZONE-') === 0) {
-    if (_consumeEndgameCode(upper)) { field.value = ''; }
-    return;
-  }
-
-  // ── RADAR ─────────────────────────────────────────────────────────────────
-  const radarMatch = upper.match(/^RAD-([\-\d.]+)-([\-\d.]+)-(\d+\.?\d*)(KM|M)$/);
-  if (radarMatch) {
-    const lat = parseFloat(radarMatch[1]), lng = parseFloat(radarMatch[2]);
-    const rad = radarMatch[3], unit = radarMatch[4];
-    // Find matching radar question
-    const q = questions.find(x =>
-      x.type === 'radar' && !x.hiderMode &&
-      Math.abs(x.lat - lat) < 0.0001 && Math.abs(x.lng - lng) < 0.0001
-    );
-    if (!q) {
-      qCounter++;
-      const nq = { id:qCounter, type:'radar', lat, lng, radius:rad, unit, zone:'pending', locked:false };
-      questions.push(nq); renderSeekerRadarCard(nq); placeSeekerPin(nq);
-      requestAnimationFrame(() => { const el=document.getElementById(`rad-inp-${nq.id}`); if(el)el.value=rad; document.getElementById(`unit-m-${nq.id}`)?.classList.toggle('active', unit==='M'); document.getElementById(`unit-km-${nq.id}`)?.classList.toggle('active', unit==='KM'); redrawOutlineCircle(nq); });
-      map.setView([lat,lng],14); if(!sidebarOpen)toggleSidebar(); field.value=''; showToast('Radar question code added'); if(typeof saveState!=='undefined')saveState(); return;
-    }
-    // Determine answer: the seeker now knows where the hider answered from
-    // But a radar code alone doesn't carry the answer — it's the question code
-    // We need the hider to have answered it. The hider answer is embedded in
-    // the fact that they sent it, but the answer itself (inside/outside) needs
-    // to be inferred or is part of an extended code.
-    // For now just show the question on map and prompt the seeker to set zone.
-    map.setView([lat, lng], 14);
-    showToast(`Radar #${q.id} found — set Inside/Outside from the card`);
-    if (!sidebarOpen) toggleSidebar();
-    field.value = '';
-    return;
-  }
-
-  // ── THERMOMETER ───────────────────────────────────────────────────────────
-  const thermoMatch = upper.match(/^THM-([\-\d.]+)-([\-\d.]+)-([\-\d.]+)-([\-\d.]+)$/);
-  if (thermoMatch) {
-    const latA = parseFloat(thermoMatch[1]), lngA = parseFloat(thermoMatch[2]);
-    const latB = parseFloat(thermoMatch[3]), lngB = parseFloat(thermoMatch[4]);
-    const q = questions.find(x =>
-      x.type === 'thermo' && !x.hiderMode &&
-      Math.abs(x.latA - latA) < 0.0001 && Math.abs(x.lngA - lngA) < 0.0001
-    );
-    if (!q) {
-      qCounter++;
-      const nq = { id:qCounter, type:'thermo', latA,lngA,latB,lngB, closer:'pending', locked:false };
-      questions.push(nq); renderSeekerThermoCard(nq); placeThermoPin(nq,'A'); placeThermoPin(nq,'B'); updateThermoDistance(nq);
-      map.setView([(latA+latB)/2,(lngA+lngB)/2],13); if(!sidebarOpen)toggleSidebar(); field.value=''; showToast('Thermometer question code added'); if(typeof saveState!=='undefined')saveState(); return;
-    }
-    map.setView([(latA+latB)/2, (lngA+lngB)/2], 13);
-    showToast(`Thermometer #${q.id} found — set A/B from the card`);
-    if (!sidebarOpen) toggleSidebar();
-    field.value = '';
-    return;
-  }
-
-  // ── MATCHING ──────────────────────────────────────────────────────────────
-  // Format: MAT-{subcat}-{seekerLat}-{seekerLng}-{nearestId}
-  // The hider sends back the same code the seeker generated — it contains
-  // whether they matched (same nearestId) or not, but not explicitly yes/no.
-  // We decode it and match it to the existing seeker question,
-  // then auto-compute yes/no based on whether nearestIds match.
-  const matchMatch = raw.match(/^MAT-([^-]+)-([\-\d.]+)-([\-\d.]+)-([^-]+)$/i);
-  if (matchMatch) {
-    const subcat = decodeSubcat(matchMatch[1].toLowerCase());
-    const seekerLat = parseFloat(matchMatch[2]), seekerLng = parseFloat(matchMatch[3]);
-    const nearestId = matchMatch[4].toLowerCase();
-    const q = questions.find(x =>
-      x.type === 'matching' && !x.hiderMode &&
-      Math.abs(x.lat - seekerLat) < 0.0001 && Math.abs(x.lng - seekerLng) < 0.0001
-    );
-    if (!q) {
-      qCounter++;
-      const locs = getAllMatchingData()[subcat] || [];
-      const nearestStr = String(nearestId).toLowerCase();
-      const loc = nearestStr === 'none' ? { name: 'Outside all areas' } : (locs.find(x => String(x.id).toLowerCase() === nearestStr) || { name: nearestId });
-      const nq = { id:qCounter, type:'matching', lat:seekerLat, lng:seekerLng, subcat, nearestId, nearestName:loc.name, answer:'pending', locked:false };
-      questions.push(nq); renderSeekerMatchingCard(nq); placeSeekerMatchingPin(nq); showMatchingLocMarkers(nq); showAreaFeatures(nq);
-      map.setView([seekerLat,seekerLng],14); if(!sidebarOpen)toggleSidebar(); field.value=''; showToast('Matching question code added'); if(typeof saveState!=='undefined')saveState(); return;
-    }
-    const answer = (nearestId === (q.nearestId || '').toLowerCase()) ? 'yes' : 'no';
-    setMatchingAnswer(q.id, answer);
-    showToast(`Matching #${q.id}: ${answer === 'yes' ? '✅ Yes — same nearest' : '❌ No — different nearest'}`);
-    if (!sidebarOpen) toggleSidebar();
-    field.value = '';
-    if(typeof saveState!=='undefined') saveState();
-    return;
-  }
-
-  // ── MEASURING ─────────────────────────────────────────────────────────────
-  // Format: MEA-{subcat}-{seekerLat}-{seekerLng}-{nearestId}-{seekerDist}
-  // The hider's answer (closer/further) isn't in the code — this is the seeker's
-  // OWN code they generated. When the hider sends it back it means "I answered this".
-  // We need a different approach: the hider should send closer/further explicitly.
-  // Support: MEA-{subcat}-{seekerLat}-{seekerLng}-{nearestId}-{seekerDist}-CLOSER
-  //       or MEA-{subcat}-{seekerLat}-{seekerLng}-{nearestId}-{seekerDist}-FURTHER
-  const measMatch = raw.match(/^MEA-([^-]+)-([\-\d.]+)-([\-\d.]+)-([^-]+)-(\d+)(?:-(CLOSER|FURTHER))?$/i);
-  if (measMatch) {
-    const subcat = decodeSubcat(measMatch[1].toLowerCase());
-    const seekerLat = parseFloat(measMatch[2]), seekerLng = parseFloat(measMatch[3]);
-    const seekerDist = parseInt(measMatch[5]);
-    const answerHint = measMatch[6] ? measMatch[6].toLowerCase() : null;
-    const q = questions.find(x =>
-      x.type === 'measuring' && !x.hiderMode &&
-      Math.abs(x.lat - seekerLat) < 0.0001 && Math.abs(x.lng - seekerLng) < 0.0001
-    );
-    if (!q) {
-      qCounter++;
-      const locs = getMeasuringLocs(subcat);
-      const loc = locs.find(x => x.id === measMatch[4]) || { name: measMatch[4] };
-      const nq = { id:qCounter, type:'measuring', lat:seekerLat, lng:seekerLng, subcat, nearestId:measMatch[4], nearestName:loc.name, seekerDist, answer:answerHint || 'pending', locked:false };
-      questions.push(nq); renderSeekerMeasuringCard(nq); placeSeekerMeasuringPin(nq); showMeasuringLocMarkers(nq);
-      if (answerHint) requestAnimationFrame(() => setMeasuringAnswer(nq.id, answerHint));
-      map.setView([seekerLat,seekerLng],14); if(!sidebarOpen)toggleSidebar(); field.value=''; showToast('Measuring question code added'); if(typeof saveState!=='undefined')saveState(); return;
-    }
-    if (answerHint) {
-      setMeasuringAnswer(q.id, answerHint);
-      showToast(`Measuring #${q.id}: ${answerHint === 'closer' ? '🟢 Closer' : '🔴 Further'}`);
-    } else {
-      showToast(`Measuring #${q.id} found — set Closer/Further from the card`);
-    }
-    if (!sidebarOpen) toggleSidebar();
-    field.value = '';
-    if(typeof saveState!=='undefined') saveState();
-    return;
-  }
-
-  const angleMatch = raw.match(/^ANG-([\-\d.]+)-([\-\d.]+)-([\-\d.]+)-([\-\d.]+)-(\d+)-([A-Za-z]+)-(\d+)$/i);
-  if (angleMatch) {
-    const centerLat = parseFloat(angleMatch[1]), centerLng = parseFloat(angleMatch[2]);
-    const dirLat = parseFloat(angleMatch[3]), dirLng = parseFloat(angleMatch[4]);
-    const modeRaw = angleMatch[6].toLowerCase();
+  if (!field || !field.value.trim()) return;
+  if (/^ENDZONE-/i.test(field.value.trim())) { if (_consumeEndgameCode(field.value.trim())) field.value=''; return; }
+  const parsed = parseQuestionCode(field.value);
+  if (!parsed) { showToast('Invalid question or answer code. Check the coordinates, category and values.'); return; }
+  let q = questions.find(x => sameQuestionGeometry(x,parsed));
+  if (!q) {
     qCounter++;
-    const q = {
-      id: 'aq' + qCounter, type:'angle',
-      center:{ lat:centerLat, lng:centerLng }, direction:{ lat:dirLat, lng:dirLng },
-      angle:parseInt(angleMatch[5],10), mode:modeRaw === 'excluderadius' ? 'excludeRadius' : modeRaw,
-      excludeRadius:parseInt(angleMatch[7],10) || 0, zone:'pending', locked:false
-    };
-    questions.push(q); renderAngleCard(q); angleQuestionSetupMap(q);
-    showAnglePreview(q);
-    map.setView([centerLat, centerLng], 13); if(!sidebarOpen)toggleSidebar(); field.value='';
-    showToast('Angle question code added');
-    if(typeof saveState!=='undefined') saveState();
-    return;
+    q = Object.assign({},parsed,{id:parsed.type === 'angle' ? 'aq'+qCounter : qCounter,locked:false});
+    questions.push(q);
+    if (q.type === 'radar') { renderSeekerRadarCard(q); placeSeekerPin(q); redrawOutlineCircle(q); }
+    if (q.type === 'thermo') { renderSeekerThermoCard(q); placeThermoPin(q,'A'); placeThermoPin(q,'B'); updateThermoDistance(q); }
+    if (q.type === 'matching') { renderSeekerMatchingCard(q); placeSeekerMatchingPin(q); showMatchingLocMarkers(q); showAreaFeatures(q); }
+    if (q.type === 'measuring') { renderSeekerMeasuringCard(q); placeSeekerMeasuringPin(q); showMeasuringLocMarkers(q); }
+    if (q.type === 'angle') { renderAngleCard(q); angleQuestionSetupMap(q); }
   }
-
-  showToast('Could not match code to any question');
+  const answer = parsed.type === 'thermo' ? parsed.closer : (parsed.type === 'matching' || parsed.type === 'measuring' ? parsed.answer : parsed.zone);
+  if (answer !== 'pending') {
+    if (q.type === 'radar') setZone(q.id,answer);
+    if (q.type === 'thermo') setCloser(q.id,answer);
+    if (q.type === 'matching') setMatchingAnswer(q.id,answer);
+    if (q.type === 'measuring') setMeasuringAnswer(q.id,answer);
+    if (q.type === 'angle') setAngleZone(q.id,answer);
+    showToast('Answer applied: '+answer);
+  } else showToast('Question loaded. Record the hider’s answer in its card.');
+  redrawQuestionOverlay();
+  const pos = q.center || {lat:q.lat ?? q.latA,lng:q.lng ?? q.lngA};
+  map.setView([pos.lat,pos.lng],13);
+  if (!sidebarOpen) toggleSidebar();
+  field.value='';
+  if (typeof saveState === 'function') saveState();
 }
+
 // ...[existing code unchanged above this point]...
 
 // ── ANGLE QUESTION — NEW FEATURE ─────────────────────────────
@@ -2934,6 +2932,7 @@ function angleQuestionSetupMap(q) {
   q._mapMoveHandler = () => angleQuestionUpdateGeometry(q);
   if (map && map.on) map.on('moveend zoomend viewreset', q._mapMoveHandler);
   applyQuestionMoveLocks();
+  if(typeof saveState==='function')saveState();
 }
 
 function angleQuestionUpdateGeometry(q) {
@@ -2991,7 +2990,7 @@ function angleQuestionUpdateGeometry(q) {
 function renderAngleCard(q) {
   // Remove existing
   let el = document.getElementById('angle-card-'+q.id);
-  if (el) el.remove();
+  const existing = el;
   if(typeof _initQuestionCollapseDelegation==='function')_initQuestionCollapseDelegation();
   const ql = document.getElementById('question-list');
   if (!ql) return;
@@ -3012,7 +3011,7 @@ function renderAngleCard(q) {
     console.warn('Angle card render warning:', e);
   }
   // Card container
-  el = document.createElement('div');
+  el = existing || document.createElement('div');
   el.className = 'q-card angleq-card';
   el.id = 'angle-card-'+q.id;
   let modes = ANGLE_QUESTION_MODES.map(m =>
@@ -3021,7 +3020,7 @@ function renderAngleCard(q) {
   if (q.mode === 'excludeRadius') {
     exR = `<div style="margin-top:7px">
       <div class="q-label">Exclude radius (m)</div>
-      <input type="number" min="0" step="1" value="${q.excludeRadius||40}" style="width:110px;padding:7px 9px;border:1px solid rgba(154,77,255,0.35);border-radius:10px;background:#fff;color:#5d2387;font-weight:700;"
+      <input type="number" min="0" step="1" value="${q.excludeRadius ?? 40}" style="width:110px;padding:7px 9px;border:1px solid rgba(154,77,255,0.35);border-radius:10px;background:#fff;color:#5d2387;font-weight:700;"
          onchange="setAngleExcludeRadius('${q.id}',this.value)">
     </div>`;
   }
@@ -3050,7 +3049,7 @@ function renderAngleCard(q) {
         <button class="${lockClass}" id="aq-lock-btn-${q.id}" onclick="toggleAngleLock('${q.id}')">${lockText}</button>
       </div>
       <div style="margin-top:10px;">
-        <div class="q-label">Seeker is…</div>
+        <div class="q-label">Hider is…</div>
         <div class="zone-toggle">
           <button class="zone-btn${q.zone==='pending'?' active-pend':''}" id="aq-zone-pend-${q.id}" onclick="setAngleZone('${q.id}','pending')">⏳ TBD</button>
           <button class="zone-btn${q.zone==='inside'?' active-in':''}" id="aq-zone-in-${q.id}" onclick="setAngleZone('${q.id}','inside')">✅ Inside</button>
@@ -3061,14 +3060,17 @@ function renderAngleCard(q) {
       <button class="remove-btn" ${removeAttrs} onclick="removeAngleQuestion('${q.id}')">✕ Remove Question</button>
     </div>
   `;
-  ql.appendChild(el);
+  if (!existing) ql.appendChild(el);
 }
 
 // UI controls
 function setAngleQuestionAngle(id, a) {
-  const q = questions.find(x=>x.id===id);
+  const q = questions.find(x=>String(x.id)===String(id));
   if (!q) return;
-  q.angle = parseInt(a, 10) || q.angle;
+  if(q.locked)return;
+  const value=Number(a);
+  if(!Number.isInteger(value)||value<1||value>(q.mode==='triple'?90:180)){showToast('Angle must be 1–'+(q.mode==='triple'?90:180)+' degrees');renderAngleCard(q);return;}
+  q.angle=value; invalidateQuestionAnswer(q);
   angleQuestionUpdateGeometry(q);
   showAnglePreview(q);
   redrawQuestionOverlay();
@@ -3076,9 +3078,10 @@ function setAngleQuestionAngle(id, a) {
   if (typeof saveState !== 'undefined') saveState();
 }
 function setAngleQuestionMode(id, m) {
-  const q = questions.find(x=>x.id===id);
+  const q = questions.find(x=>String(x.id)===String(id));
   if (!q) return;
-  q.mode = m;
+  if(q.locked || !ANGLE_QUESTION_MODES.some(x=>x.key===m))return;
+  q.mode = m; if(m==='triple')q.angle=Math.min(q.angle,90); invalidateQuestionAnswer(q);
   if (m!=='excludeRadius') q.excludeRadius = 40;
   angleQuestionUpdateGeometry(q);
   showAnglePreview(q);
@@ -3087,7 +3090,7 @@ function setAngleQuestionMode(id, m) {
   if (typeof saveState !== 'undefined') saveState();
 }
 function setAngleZone(id, z) {
-  const q = questions.find(x=>x.id===id);
+  const q = questions.find(x=>String(x.id)===String(id));
   if (!q) return;
   q.zone = z;
   const btnPend = document.getElementById(`aq-zone-pend-${id}`);
@@ -3105,10 +3108,12 @@ _qRefreshSummary(q);_qAutoCollapse(q);}
 
 let _anglePreviewLayer = null;
 let _anglePreviewTimer = null;
+let _anglePreviewQuestionId = null;
 function showAnglePreview(q, ms = 60000) {
   if (!map || !q) return;
   if (!_anglePreviewLayer) _anglePreviewLayer = L.layerGroup().addTo(map);
   _anglePreviewLayer.clearLayers();
+  _anglePreviewQuestionId = q.id;
   const cones = getAngleCones(q);
   cones.forEach(co => {
     const center = latlngToXY(q.center, q.center);
@@ -3121,9 +3126,11 @@ function showAnglePreview(q, ms = 60000) {
   _anglePreviewTimer = setTimeout(() => _anglePreviewLayer?.clearLayers(), ms);
 }
 function setAngleExcludeRadius(id, v) {
-  const q = questions.find(x=>x.id===id);
+  const q = questions.find(x=>String(x.id)===String(id));
   if (!q) return;
-  q.excludeRadius = Math.max(0, parseInt(v, 10) || 0);
+  if(q.locked)return;
+  const value=Number(v);if(!Number.isFinite(value)||value<0){showToast('Enter a positive exclusion radius or zero');renderAngleCard(q);return;}
+  q.excludeRadius = Math.round(value); invalidateQuestionAnswer(q);
   angleQuestionUpdateGeometry(q);
   showAnglePreview(q);
   redrawQuestionOverlay();
@@ -3131,7 +3138,7 @@ function setAngleExcludeRadius(id, v) {
   if (typeof saveState !== 'undefined') saveState();
 }
 function toggleAngleLock(id) {
-  const q = questions.find(x=>x.id===id);
+  const q = questions.find(x=>String(x.id)===String(id));
   if (!q) return;
   q.locked = !q.locked;
   if (q.locked) q.lockedAt = Date.now(); else q.lockedAt = null;
@@ -3150,34 +3157,18 @@ function toggleAngleLock(id) {
   if (typeof applyHideLockedPins !== 'undefined') applyHideLockedPins();
 }
 function goToAnglePin(id, pin) {
-  const q = questions.find(x=>x.id===id);
+  const q = questions.find(x=>String(x.id)===String(id));
   if (!q) return;
   let loc = q.center;
   if (pin === 'direction') loc = q.direction;
   map.setView([loc.lat, loc.lng], 15);
 }
 function copyAngleCode(id) {
-  const q = questions.find(x=>x.id===id);
-  if (!q) return;
-  const code = `ANG-${q.center.lat.toFixed(5)}-${q.center.lng.toFixed(5)}-${q.direction.lat.toFixed(5)}-${q.direction.lng.toFixed(5)}-${q.angle}-${q.mode}-${q.excludeRadius}`;
-  navigator.clipboard.writeText(code).then(() => {
-    showToast('Angle code copied!');
-  }).catch(() => {
-    showToast(code, 5000);
-  });
+  const q=questions.find(x=>String(x.id)===String(id));
+  if(q)copyQuestionText(questionCode(q));
 }
-function removeAngleQuestion(id) {
-  const idx = questions.findIndex(x=>x.id===id);
-  if (idx >= 0) {
-    const q = questions[idx];
-    clearAngleQuestionLayers(q);
-    questions.splice(idx, 1);
-  }
-  const el = document.getElementById('angle-card-'+id);
-  if (el) el.remove();
-  clearQuestionOverlay();
-  if (typeof saveState !== 'undefined') saveState();
-}
+
+function removeAngleQuestion(id) { removeQuestion(id); }
 
 // Add menu button
 

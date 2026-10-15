@@ -1,0 +1,56 @@
+/* Question controls follow the same rhythm on phone and desktop. */
+.qe-card{overflow-anchor:none;min-width:0}
+.qe-card .q-card-header{padding:14px 16px!important;min-height:48px;gap:8px}
+.qe-card .q-title{font-size:14px!important;letter-spacing:0!important;font-family:inherit!important;font-weight:700}
+.qe-card .q-num{font-size:11px!important}
+.qe-summary{padding:0 16px 14px;display:flex;flex-direction:column;gap:9px;color:var(--text)}
+.qe-status-row{display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap}
+.qe-status{font-size:10px;line-height:1.4;font-weight:650;letter-spacing:.01em;border-radius:6px;padding:4px 7px;background:var(--surface2);color:var(--text2);border:1px solid var(--border)}
+.qe-status[data-state="inside"],.qe-status[data-state="yes"],.qe-status[data-state="closer"],.qe-status[data-state="A"],.qe-status[data-state="B"]{color:var(--text);border-color:#438573;background:rgba(61,169,132,.1)}
+.qe-status[data-state="outside"],.qe-status[data-state="no"],.qe-status[data-state="further"]{color:var(--text);border-color:#7a8fa7;background:rgba(92,119,159,.12)}
+.qe-lock-state{font-size:10px;color:var(--text2)}
+.qe-description{font-size:13px;font-weight:600;line-height:1.45;height:2.9em;overflow-wrap:anywhere;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow:hidden}
+.qe-next{font-size:11px;color:var(--text2);line-height:1.6}
+.qe-summary>.qe-next{height:4.8em;overflow:auto;scrollbar-width:thin}
+.qe-actions{display:flex;flex-wrap:wrap;align-items:center;gap:7px}
+.qe-btn{min-height:38px;flex:1 1 auto;padding:8px 10px;border-radius:8px;border:1px solid var(--border2);background:var(--surface2);color:var(--text);font:inherit;font-size:11px;font-weight:600;line-height:1.3;cursor:pointer;touch-action:manipulation;white-space:normal}
+.qe-btn:hover{border-color:var(--accent);background:var(--surface)}
+.qe-btn:focus-visible,.qe-preview summary:focus-visible,.qe-place-search:focus-visible{outline:2px solid var(--accent);outline-offset:3px}
+.qe-btn:disabled{opacity:.5;cursor:default}
+.qe-answer-copy{background:rgba(61,169,132,.12);border-color:#438573}
+.qe-preview{border-top:1px solid var(--border);margin-top:3px;padding-top:9px}
+.qe-preview summary{font-size:11px;color:var(--text2);font-weight:600;cursor:pointer;min-height:32px;line-height:32px;list-style-position:inside;touch-action:manipulation}
+.qe-preview[open] summary{color:var(--text);margin-bottom:8px}
+.qe-geometry{display:flex;gap:12px;align-items:center;margin:0 0 10px;min-height:74px}
+.qe-geometry-icon{width:76px;height:70px;flex-shrink:0;background:var(--surface2);border:1px solid var(--border);border-radius:9px;padding:3px}
+.qe-geometry-icon svg{width:100%;height:100%}
+.qe-geometry strong{font-size:11px;font-weight:650;line-height:1.5;display:block}
+.qe-geometry p{font-size:10px;color:var(--text2);line-height:1.55;margin-top:3px}
+.qe-card .q-card-body[hidden]{display:none!important}
+.qe-card .q-card-body{padding:14px 16px!important;border-top:1px solid var(--border);gap:12px!important}
+.qe-card .q-label{font-size:10px!important;letter-spacing:.03em!important;font-weight:600;color:var(--text2);margin-bottom:5px}
+.qe-card .coord-disp{font-size:10px!important;line-height:1.5;overflow-wrap:anywhere;font-variant-numeric:tabular-nums}
+.qe-card .icon-btns{display:flex;flex-wrap:wrap;gap:6px}
+.qe-card .icon-btn,.qe-card .zone-btn,.qe-card .closer-btn{min-height:38px;font-size:11px!important;letter-spacing:0!important;line-height:1.3;white-space:normal;flex:1 1 70px;touch-action:manipulation}
+.qe-card .zone-toggle,.qe-card .closer-toggle{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:5px}
+.qe-card .copy-btn{min-height:40px;font-size:11px!important;letter-spacing:0!important;line-height:1.4;white-space:normal;padding:9px}
+.qe-card .remove-btn{min-height:36px;font-size:10px!important;letter-spacing:0!important}
+.qe-card input,.qe-card select{min-height:40px;font-size:12px!important;max-width:100%;border-radius:8px!important;background:var(--surface2)!important;color:var(--text)!important}
+.qe-card .radius-group input{min-width:0;width:0;flex:1}
+.qe-card .unit-btn{min-width:38px;min-height:40px;font-size:11px}
+.qe-card .aq-mode{min-height:36px;margin-top:4px;font-size:10px;white-space:normal;background:var(--surface2)!important;color:var(--text)!important}
+.qe-search-label{display:flex;flex-direction:column;gap:7px;margin-top:14px;font-size:10px;color:var(--text2)}
+.qe-place-search{width:100%;padding:10px!important;border:1px solid var(--border2);background:var(--surface2);color:var(--text);font:inherit;font-size:12px;border-radius:8px}
+.qe-place-count{font-size:10px;line-height:1.5;color:var(--text2);margin:8px 0}
+.qe-places{display:flex;flex-direction:column;gap:6px;max-height:310px;overflow-y:auto;overscroll-behavior:contain;scrollbar-gutter:stable}
+.qe-place{display:flex;align-items:center;gap:8px;min-height:57px;padding:8px;border:1px solid var(--border);border-radius:8px;background:var(--surface2)}
+.qe-place.nearest{border-color:#438573}
+.qe-place-info{flex:1;min-width:0}
+.qe-place strong{display:block;font-size:11px;line-height:1.4;overflow-wrap:anywhere}
+.qe-place span{display:block;font-size:10px;line-height:1.5;color:var(--text2);margin-top:3px}
+.qe-place-action{flex:none;min-width:48px;min-height:36px;padding:6px;font-size:10px}
+.qe-empty{padding:20px;border:1px dashed var(--border2);border-radius:12px;background:var(--surface);color:var(--text)}
+.qe-empty strong{font-size:14px;font-weight:650}
+.qe-empty p{font-size:12px;line-height:1.7;color:var(--text2);margin-top:8px}
+@media(max-width:700px){.qe-card .icon-btn,.qe-card .zone-btn,.qe-card .closer-btn,.qe-btn{min-height:42px}.qe-card input,.qe-card select,.qe-place-search{font-size:16px!important}.qe-card .q-card-header{padding:13px 14px!important}.qe-summary,.qe-card .q-card-body{padding-left:14px!important;padding-right:14px!important}.qe-places{max-height:260px}}
+@media(prefers-reduced-motion:reduce){.qe-card,.qe-card *{transition:none!important;scroll-behavior:auto!important}}
