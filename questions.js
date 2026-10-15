@@ -476,6 +476,7 @@ function addHiderLocationCard() {
 }
 
 function onMapClick(e) {
+  if (typeof window !== 'undefined' && window.lampskeneMapTools?.consumesMapClick()) return;
   if (hiderPinLocked) return;
   placeHiderPin(e.latlng.lat, e.latlng.lng);
 }
@@ -925,6 +926,7 @@ function redrawOutlineCircle(q){
 
 let _overlaySvg = null;
 let _voronoiSvg = null;
+let _questionOverlayRenderer = null;
 let _rebuildPending = false;
 let _rebuildFrame = null;
 let _maskCounter = 0;
@@ -942,7 +944,10 @@ let _cityBoundaryLoadPromise = null;
 function setBlueOverlayOpacity(value) {
   const n = Math.max(0.08, Math.min(0.65, Number(value) || 0.30));
   _blueOverlayOpacity = n;
-  if (_overlaySvg) _overlaySvg.setAttribute('opacity', String(n));
+  if (_overlaySvg) {
+    _overlaySvg.style.removeProperty('opacity');
+    _overlaySvg.setAttribute('opacity', String(n));
+  }
 }
 
 function getBlueOverlayOpacity() {
@@ -1120,16 +1125,23 @@ function addYesPath(shapePts) {
 
 function addYesPathMulti(shapePtsArray) {
   if (!shapePtsArray || !shapePtsArray.length) return;
-  const worldD = overlayWorldD();
-  const holesD = shapePtsArray.map(shapePts => {
-    const ccw = polySignedArea(shapePts) > 0 ? [...shapePts].reverse() : shapePts;
-    return ptsToD(ccw, false);
-  }).join(' ');
+  // Masks preserve the union of valid shapes, including overlaps and duplicate
+  // polygons. Winding multiple holes into one path would fill their overlap.
+  const pad=overlayPad(),id=`valid-area-mask-${++_maskCounter}`;
+  let defs=_overlaySvg.querySelector('defs');
+  if(!defs){defs=document.createElementNS(NS,'defs');_overlaySvg.insertBefore(defs,_overlaySvg.firstChild);}
+  const mask=document.createElementNS(NS,'mask');
+  for(const [key,value] of Object.entries({id,maskUnits:'userSpaceOnUse',maskContentUnits:'userSpaceOnUse',x:-pad,y:-pad,width:pad*2,height:pad*2,'mask-type':'luminance'}))mask.setAttribute(key,String(value));
+  const background=document.createElementNS(NS,'rect');
+  for(const [key,value] of Object.entries({x:-pad,y:-pad,width:pad*2,height:pad*2,fill:'white'}))background.setAttribute(key,String(value));
+  mask.appendChild(background);
+  for(const points of shapePtsArray){if(!points||points.length<3)continue;const hole=document.createElementNS(NS,'path');hole.setAttribute('d',ptsToD(points,false));hole.setAttribute('fill','black');mask.appendChild(hole);}
+  defs.appendChild(mask);
   const path = document.createElementNS(NS, 'path');
-  path.setAttribute('d', worldD + ' ' + holesD);
+  path.setAttribute('d', overlayWorldD());
   path.setAttribute('fill', BLUE);
-  path.setAttribute('fill-rule', 'nonzero');
   path.setAttribute('stroke', 'none');
+  path.setAttribute('mask', `url(#${id})`);
   _overlaySvg.appendChild(path);
 }
 
@@ -1159,9 +1171,8 @@ function addNoPath(outerPts, innerPtsArray) {
 // inconsistent rendering across browsers — circles would randomly disappear
 // or paint the wrong color in the overlap regions. The fix renders each circle
 // as an independent <circle> element inside the mask, which composites
-// correctly regardless of overlap count, and additionally filters to circles
-// near the current viewport and caps the total count for performance.
-const MEASURING_CLOSER_MAX_CIRCLES = 240;
+// correctly regardless of overlap count. Only circles intersecting a padded
+// viewport need mask nodes; all of those circles are retained for correctness.
 function addMaskedWorldPath(holePtsArray) {
   if (!holePtsArray || !holePtsArray.length) return;
   const p = overlayPad();
@@ -1194,9 +1205,9 @@ function addMaskedWorldPath(holePtsArray) {
   // current map viewport (with padding). This keeps the mask light even when
   // the matching category contains thousands of locations.
   const vp = map.getBounds().pad(0.5);
-  let drawn = 0;
+  const vMin = map.latLngToLayerPoint(vp.getNorthWest());
+  const vMax = map.latLngToLayerPoint(vp.getSouthEast());
   for (const pts of holePtsArray) {
-    if (drawn >= MEASURING_CLOSER_MAX_CIRCLES) break;
     if (!pts || pts.length < 3) continue;
     // Quick bounding-box reject using the first point's lat/lng is not enough
     // because pts are already in pixel space. Compute pixel bbox and compare
@@ -1207,8 +1218,6 @@ function addMaskedWorldPath(holePtsArray) {
       if (x < minX) minX = x; if (x > maxX) maxX = x;
       if (y < minY) minY = y; if (y > maxY) maxY = y;
     }
-    const vMin = map.latLngToLayerPoint(vp.getNorthWest());
-    const vMax = map.latLngToLayerPoint(vp.getSouthEast());
     if (maxX < vMin.x || minX > vMax.x || maxY < vMin.y || minY > vMax.y) continue;
 
     // Render as a true <circle> element. Compute center + radius from the
@@ -1226,13 +1235,11 @@ function addMaskedWorldPath(holePtsArray) {
     c.setAttribute('fill', 'black');
     c.setAttribute('stroke', 'none');
     mask.appendChild(c);
-    drawn++;
   }
   defs.appendChild(mask);
 
-  // If nothing was drawn (all circles were off-screen), skip the masked path
-  // entirely so the overlay doesn't paint blue over the whole map.
-  if (drawn === 0) return;
+  // No visible valid circle means this viewport is excluded. Keep the world
+  // path even when every hole is outside the viewport; never invent safe areas.
 
   const path = document.createElementNS(NS, 'path');
   path.setAttribute('d', overlayWorldD());
@@ -1292,20 +1299,17 @@ const SVG_PAD = 600; // kept for worldD size reference
 
 function ensureOverlay(){
   if(_overlaySvg) return;
-  _overlaySvg = document.createElementNS(NS,'svg');
-  _overlaySvg.style.cssText='position:absolute;top:0;left:0;width:1px;height:1px;pointer-events:none;overflow:visible;';
+  // Leaflet's SVG renderer handles pan/zoom transforms on the GPU. Reproject
+  // question geometry once after the gesture, rather than on every zoom frame.
+  _questionOverlayRenderer = L.svg({padding:0.5}).addTo(map);
+  _overlaySvg = document.createElementNS(NS,'g');
+  _overlaySvg.id = 'question-exclusion-overlay';
+  _overlaySvg.style.pointerEvents='none';
   _overlaySvg.setAttribute('opacity', String(_blueOverlayOpacity));
-  map.getPanes().overlayPane.appendChild(_overlaySvg);
-  map.on('zoom viewreset zoomend', rebuildImmediately);
-  map.on('move moveend', scheduleRebuild);
+  _questionOverlayRenderer._rootGroup.appendChild(_overlaySvg);
+  map.on('moveend zoomend viewreset resize', scheduleRebuild);
 }
 function ensureMasterOverlay(){ ensureOverlay(); }
-function ensureVoronoiSvg(){
-  if(_voronoiSvg) return;
-  _voronoiSvg = document.createElementNS(NS,'svg');
-  _voronoiSvg.style.cssText='position:absolute;top:0;left:0;width:1px;height:1px;pointer-events:none;overflow:visible;';
-  map.getPanes().overlayPane.appendChild(_voronoiSvg);
-}
 
 // ── Schedule / trigger rebuild ────────────────────────────────
 function scheduleRebuild(){
@@ -1336,7 +1340,6 @@ function rebuildAll(){
   const pad = overlayPad();
 
   const allData = getAllMatchingData();
-  const closerCirclesPts = [];
 
   addCityBoundaryMaskPath();
 
@@ -1468,21 +1471,24 @@ function rebuildAll(){
 
     // ── Measuring ─────────────────────────────────────────────
     else if(q.type === 'measuring'){
-      if(q.answer === 'pending' || !q.seekerDist) continue;
+      if(q.answer === 'pending' || !Number.isFinite(q.seekerDist) || q.seekerDist < 0) continue;
       const locs = getMeasuringLocs(q.subcat);
       if(!locs.length) continue;
+      const closerCirclesPts = [];
       for(const loc of locs){
         const pts = circlePxPts(loc.lat, loc.lng, q.seekerDist);
         if(q.answer === 'closer') closerCirclesPts.push(pts);
         else                      addNoPath(pts);
       }
+      // Each answer is its own constraint. Combining circles from different
+      // questions would incorrectly accept the union instead of intersection.
+      if(q.answer === 'closer') addMaskedWorldPath(closerCirclesPts);
     }
   }
 
   // ── Measuring CLOSER ─────────────────────────────────────────
   // Blue outside the union of all matching-location circles. The holes are
   // masked, so duplicate/overlapping circles never toggle back to blue.
-  addMaskedWorldPath(closerCirclesPts);
 }
 
 function circleD(lat,lng,r){return ptsToD(circlePxPts(lat,lng,r),false);}
@@ -1943,9 +1949,10 @@ function checkAllHiderMatching() {
 
 function ensureVoronoiSvg() {
   if (_voronoiSvg) return;
-  _voronoiSvg = document.createElementNS('http://www.w3.org/2000/svg','svg');
-  _voronoiSvg.style.cssText = 'position:absolute;top:0;left:0;pointer-events:none;overflow:visible;';
-  map.getPanes().overlayPane.appendChild(_voronoiSvg);
+  ensureOverlay();
+  _voronoiSvg = document.createElementNS(NS,'g');
+  _voronoiSvg.style.pointerEvents = 'none';
+  _questionOverlayRenderer._rootGroup.appendChild(_voronoiSvg);
 }
 
 function rebuildVoronoiLines() {
@@ -2485,6 +2492,7 @@ function addEndgameCard() {
 }
 
 function onEndgameMapClick(e) {
+  if (typeof window !== 'undefined' && window.lampskeneMapTools?.consumesMapClick()) return;
   placeEndgamePin(e.latlng.lat, e.latlng.lng);
 }
 

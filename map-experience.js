@@ -4,6 +4,12 @@
   const PREF_KEY = 'lampskene_map_workspace_v1';
   const MAPS = [
     { key:'osm', name:'Street', detail:'OpenStreetMap · everyday navigation', look:'street', id:'btn-osm' },
+    { key:'voyager', name:'Clear streets', detail:'CARTO · streets and local names', look:'street' },
+    { key:'positron', name:'Minimal', detail:'CARTO · quiet light background', look:'canvas' },
+    { key:'darkmatter', name:'Night streets', detail:'CARTO · low-light navigation', look:'night' },
+    { key:'opentopo', name:'Topographic', detail:'OpenTopoMap · contours and paths', look:'landscape' },
+    { key:'orienteering', name:'Orienteering · OSM', detail:'Terrain and marked trails · not a competition map', look:'outdoors' },
+    { key:'ortho2006', name:'Stockholm orthophoto', detail:'City aerial survey · historical, 2006', look:'satellite' },
     { key:'tf-transport', name:'Transit', detail:'Rail, bus and station context', look:'transit', id:'btn-base' },
     { key:'tf-transport-dark', name:'Transit dark', detail:'High contrast for night play', look:'night' },
     { key:'tf-cycle', name:'Cycle', detail:'Cycle routes and elevation', look:'cycle', id:'btn-cycle' },
@@ -71,6 +77,7 @@
     const group = document.getElementById(target);
     if (group) {
       const details = group.closest('details'); if (details) details.open = true;
+      if (window.appShell?.openSettingsSection) { window.appShell.openSettingsSection(target); return; }
       group.scrollIntoView({ block:'start', behavior:'auto' });
     }
   }
@@ -81,6 +88,11 @@
       const host = oldPills.parentElement; host.id = 'map-style-settings';
       host.querySelector('.sp-label').textContent = 'Map style';
       const gallery = el('div', 'basemap-gallery');
+      const filterLabel = el('label','workspace-label','Map collection');
+      const filter = el('select'); filter.id='basemap-collection'; filterLabel.htmlFor=filter.id;
+      for(const [value,label] of [['popular','Quick picks'],['street','Street & night'],['terrain','Terrain & trails'],['aerial','Aerial imagery'],['all','All backgrounds']]) {
+        const option=el('option','',label); option.value=value; filter.append(option);
+      }
       for (const item of MAPS) {
         const btn = button('', () => setBase(item.key), 'basemap-option');
         btn.id = item.id || 'base-' + item.key; btn.dataset.base = item.key;
@@ -88,6 +100,16 @@
         btn.append(el('span', 'basemap-swatch ' + item.look), el('strong', '', item.name), el('small', '', item.detail));
         gallery.append(btn);
       }
+      const filterMaps=()=>{
+        const selected=filter.value;
+        gallery.querySelectorAll('[data-base]').forEach(node=>{
+          const key=node.dataset.base;
+          const category=['satellite','ortho2006'].includes(key)?'aerial':['opentopo','orienteering','tf-outdoors','tf-landscape','tf-cycle'].includes(key)?'terrain':'street';
+          node.hidden=selected!=='all' && (selected==='popular'?!['osm','voyager','orienteering','satellite','ortho2006','darkmatter'].includes(key):selected!==category);
+        });
+      };
+      filter.addEventListener('change',filterMaps); filterMaps();
+      oldPills.before(filterLabel,filter);
       oldPills.replaceWith(gallery);
       host.append(el('p', 'workspace-hint', 'Choose a background. Question answers and overlays stay in place.'));
     }
@@ -101,12 +123,12 @@
     if (nativeOpacity) {
       const row = nativeOpacity.closest('.sp-slider-row');
       const label = row?.querySelector('label'); if (label) { label.textContent = 'Question shading'; label.htmlFor = nativeOpacity.id; }
-      if (row) overlays.append(row); prefs.opacity = 100;
+      if (row) overlays.append(row);
     } else {
       const opacityLabel = el('label', 'workspace-label', 'Question shading'); opacityLabel.htmlFor = 'question-opacity';
-      const opacity = el('input'); opacity.type = 'range'; opacity.id = 'question-opacity'; opacity.min = '20'; opacity.max = '100';
-      opacity.value = String(Math.min(100, Math.max(20, prefs.opacity || 100)));
-      opacity.addEventListener('input', () => { prefs.opacity = +opacity.value; applyOpacity(); savePrefs(); });
+      const opacity = el('input'); opacity.type = 'range'; opacity.id = 'question-opacity'; opacity.min = '12'; opacity.max = '55';
+      opacity.value = '30';
+      opacity.addEventListener('input', () => { if(typeof setBlueOpacitySetting==='function')setBlueOpacitySetting(opacity.value); });
       overlays.append(opacityLabel, opacity);
     }
     const workspace = section('Seeker workspace', 'map-workspace-settings');
@@ -173,14 +195,29 @@
         const style = item.key.slice(3);
         if (layers[item.key]) layers[item.key].setUrl(`https://api.thunderforest.com/${style}/{z}/{x}/{y}.png?apikey=${encodeURIComponent(key)}`);
         else layers[item.key] = L.tileLayer(`https://api.thunderforest.com/${style}/{z}/{x}/{y}.png?apikey=${encodeURIComponent(key)}`, {
-          maxZoom:19, maxNativeZoom:19, detectRetina:true,
+          maxZoom:20, maxNativeZoom:19, detectRetina:false, updateWhenIdle:true, updateWhenZooming:false,
           attribution:'&copy; <a href="https://www.thunderforest.com/">Thunderforest</a>, &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap contributors</a>'
         });
       }
     }
     layers.satellite = L.tileLayer('https://services.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
-      maxZoom:19, maxNativeZoom:18,
+      maxZoom:20, maxNativeZoom:19, updateWhenIdle:true, updateWhenZooming:false,
       attribution:'Imagery &copy; <a href="https://www.esri.com/">Esri</a>, Maxar, Earthstar Geographics, and the GIS User Community'
+    });
+    for(const [key,style] of [['voyager','rastertiles/voyager'],['positron','light_all'],['darkmatter','dark_all']]) {
+      layers[key]=L.tileLayer('https://{s}.basemaps.cartocdn.com/'+style+'/{z}/{x}/{y}.png',{
+        maxZoom:20,maxNativeZoom:20,updateWhenIdle:true,updateWhenZooming:false,
+        attribution:'&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/attributions">CARTO</a>'
+      });
+    }
+    for(const key of ['opentopo','orienteering']) layers[key]=L.tileLayer('https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png',{
+      maxZoom:20,maxNativeZoom:17,updateWhenIdle:true,updateWhenZooming:false,
+      attribution:'Map &copy; <a href="https://opentopomap.org">OpenTopoMap</a> (CC-BY-SA) · &copy; OpenStreetMap, SRTM'
+    });
+    layers.ortho2006=L.tileLayer.wms('https://openmap.stockholm.se/bios/wms/app/baggis/web/WMS_STHLM_ORTOFOTO_2006',{
+      layers:'p_1002830',format:'image/png',version:'1.1.1',maxZoom:20,maxNativeZoom:19,
+      updateWhenIdle:true,updateWhenZooming:false,
+      attribution:'Historical orthophoto 2006 &copy; <a href="https://kartor.stockholm/kartor-geodata/">Stockholms stad</a>'
     });
     for (const item of MAPS) {
       tileHealth[item.key] = {ok:0,errors:0};
@@ -198,7 +235,7 @@
     const requested = prefs.base; activeLayerKey = 'osm'; setBase(requested);
     map.on('moveend', () => { clearTimeout(refreshTimer); refreshTimer = setTimeout(() => { refreshPlaces(); renderPlaces(); },180); });
     map.on('moveend', () => { if (typeof saveState === 'function') saveState(false); });
-    drawRings(); drawBookmarks(); refreshPlaces(); renderPlaces(); mountToolbar(); applyOpacity();
+    drawRings(); drawBookmarks(); refreshPlaces(); renderPlaces(); mountToolbar();
   }
   window.setBase = function (key) {
     if (!map || !layers[key]) return;
@@ -208,6 +245,7 @@
       activeLayerKey = key; layers[key].addTo(map);
     }
     prefs.base = key; savePrefs(); syncControls(); renderLegend();
+    document.dispatchEvent(new CustomEvent('jetlag:basemap',{detail:{key}}));
   };
   window.applyTFKey = function (value) {
     const key = String(value || '').trim();
@@ -298,12 +336,6 @@
     prefs.bookmarks.forEach(place => L.circleMarker([place.lat,place.lng],{radius:7,color:'#fff',weight:2,fillColor:'#dfaa40',fillOpacity:1})
       .bindTooltip(el('span','',place.name)).on('click',()=>previewPlace(place)).addTo(bookmarkLayer));
   }
-  function applyOpacity() {
-    const alpha = Math.min(100,Math.max(20,prefs.opacity || 100))/100;
-    ['question-overlay-svg','master-overlay-svg'].forEach(id=>{const node=document.getElementById(id);if(node)node.style.opacity=String(alpha);});
-    if (typeof _overlaySvg !== 'undefined' && _overlaySvg) _overlaySvg.style.opacity = String(alpha);
-    if (typeof _closerSvg !== 'undefined' && _closerSvg) _closerSvg.style.opacity = String(alpha);
-  }
   function fitQuestions() {
     if (!map) return;
     const points = [];
@@ -319,7 +351,7 @@
     const Control = L.Control.extend({options:{position:'topright'},onAdd:() => {
       const host = el('div','map-workspace-control');
       const controls = el('div','map-workspace-buttons');
-      controls.append(button('Layers',()=>openSettings('map-style-settings')),button('Places',()=>openSettings('map-workspace-settings')),button('Fit',fitQuestions));
+      controls.append(button('Layers',()=>openSettings('map-style-settings')),button('Tools',()=>openSettings('map-tools-settings')),button('3D',()=>window.lampskene3D?.open()));
       host.append(controls); const legend=el('div','map-workspace-legend');legend.id='map-workspace-legend';host.append(legend);
       L.DomEvent.disableClickPropagation(host); L.DomEvent.disableScrollPropagation(host); return host;
     }});
@@ -341,6 +373,6 @@
     window[name] = function (...args) { const result=original.apply(this,args); saveState(); return result; };
   }
   const rebuild = window.rebuildAll;
-  window.rebuildAll = function (...args) { const result=rebuild.apply(this,args); applyOpacity(); refreshPlaces(); renderPlaces(); return result; };
-  window.lampskeneMap = {addBookmark,previewPlace,fitQuestions,styles:MAPS.map(({key,name})=>({key,name}))};
+  window.rebuildAll = function (...args) { const result=rebuild.apply(this,args); clearTimeout(refreshTimer); refreshTimer=setTimeout(()=>{if(prefs.places)refreshPlaces();if(window.appShell?.activePanel==='settings')renderPlaces();},180); return result; };
+  window.lampskeneMap = {addBookmark,previewPlace,fitQuestions,openSettings,styles:MAPS.map(({key,name})=>({key,name}))};
 })();

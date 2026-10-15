@@ -199,3 +199,11 @@ test('hidden tabs stop network polling and resume through one fresh request', ()
   h.visibility(false); assert.equal(h.activeScripts().length,1);
   h.visibility(false); assert.equal(h.activeScripts().length,1);
 });
+test('3D viewport filtering uses its supplied bounds without changing shared transit preferences',()=>{
+  const h=harness();h.context.toggleLiveTrains();h.deliver([vehicle('city'),vehicle('north','4',{lat:59.8,lng:18.2})]);
+  h.context.setVehicleFilters({inView:true});
+  const north=h.context.lampskeneTracker.state({contains:([lat,lng])=>lat>59.7&&lng<18.3});
+  assert.deepEqual(Array.from(north.vehicles,v=>v.id),['north']);
+  assert.equal(h.context.lampskeneTracker.state().vehicles.length,2,'normal game map keeps its own bounds');
+  assert.equal(north.filters.inView,true);
+});

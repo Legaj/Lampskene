@@ -18,6 +18,7 @@ body.app-shell {
   --text2: #b7c7cd;
   --muted: #91a7b1;
   --shell-shadow: 0 14px 45px rgba(0, 0, 0, .22);
+  color-scheme: dark;
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   font-size: 14px;
   line-height: 1.45;
@@ -25,18 +26,37 @@ body.app-shell {
   overscroll-behavior: none;
 }
 body.app-shell.light {
+  color-scheme: light;
   --bg: #edf2f4; --surface: #fff; --surface2: #f1f5f6;
   --border: #d9e2e5; --border2: #bacbd2;
   --accent: #16664d; --accent2: #b85528;
   --text: #192f3a; --text2: #4c626d; --muted: #607580;
   --shell-shadow: 0 14px 45px rgba(24, 46, 59, .13);
 }
-body.app-shell.bambu {
+body.app-shell.kelp {
+  color-scheme: light;
   --bg: #eeede5; --surface: #fcfcf6; --surface2: #f0f1e8;
   --border: #d7ddce; --border2: #b8c4ad;
   --accent: #416b49; --accent2: #a2502c;
   --text: #253b2c; --text2: #536852; --muted: #63765d;
   --shell-shadow: 0 14px 45px rgba(40, 65, 41, .13);
+  --radar: #a85324; --radar-bg: rgba(168, 83, 36, .08); --radar-border: rgba(168, 83, 36, .3);
+}
+body.app-shell.bambu {
+  color-scheme: light;
+  --bg: #eaddc5; --surface: #fff8ec; --surface2: #f1e4ce;
+  --border: #d8c4a5; --border2: #b69b73;
+  --accent: #72552e; --accent2: #9c4b2e;
+  --text: #3e2c17; --text2: #755e3f; --muted: #81704f;
+  --radar: #a34a20; --radar-bg: rgba(163, 74, 32, .08); --radar-border: rgba(163, 74, 32, .3);
+  --shell-shadow: 0 12px 35px rgba(79, 53, 20, .14);
+}
+body.app-shell.bambu #header, body.app-shell.bambu #mobile-nav {
+  background-color: #f1dfbb;
+  background-image: repeating-linear-gradient(91deg, rgba(115, 77, 24, .065) 0, transparent 1px, transparent 8px), linear-gradient(102deg, #f0dfb9, #f9ecd5 45%, #ead3ab);
+}
+body.app-shell.bambu #mode-screen {
+  background-image: repeating-linear-gradient(91deg, rgba(115, 77, 24, .04) 0, transparent 1px, transparent 10px), radial-gradient(ellipse at 50% 35%, #fff6e4, #e5cfaa);
 }
 body.app-shell.statusbar-hidden { --shell-status-h: 0px; }
 body.app-shell.bottom-bar { --shell-nav-h: 64px; }
@@ -167,7 +187,7 @@ body.app-shell.shell-panel-open #timeline-panel { visibility: hidden; pointer-ev
 .app-shell .tracker-body { max-height: min(480px, 50dvh); }
 .app-shell #sidebar-footer { padding: 12px; background: var(--surface); max-height: 46%; overflow-y: auto; overscroll-behavior: contain; }
 .app-shell .add-q-btn { background: var(--accent); border: 1px solid var(--accent); color: var(--surface); border-radius: 10px; min-height: 44px; font-size: 13px; font-weight: 650; letter-spacing: 0; text-transform: none; }
-body.app-shell:not(.light):not(.bambu) .add-q-btn { color: #10251e; }
+body.app-shell:not(.light):not(.bambu):not(.kelp) .add-q-btn { color: #10251e; }
 .app-shell .type-option { min-height: 46px; font-size: 12px; text-transform: none; letter-spacing: 0; }
 .app-shell .decode-btn, .app-shell .code-input, .app-shell .sl-search, .app-shell .cp-search, .app-shell #cp-num-input { min-height: 44px; font-size: 13px; letter-spacing: 0; border-radius: 9px; }
 .app-shell .q-label { font-size: 11px; letter-spacing: .1px; text-transform: none; }
@@ -218,15 +238,15 @@ body.app-shell:not(.light):not(.bambu) .add-q-btn { color: #10251e; }
 .app-shell .sp-btn.sp-active { border-color: var(--accent); color: var(--accent); background: color-mix(in srgb, var(--accent) 8%, var(--surface)); }
 .app-shell .layer-btn.active { color: var(--surface); }
 .app-shell .sl-line-action.on, .app-shell .cp-action-btn.cp-in-deck, .app-shell .cp-lock-btn:not(.cp-unlocked) { color: var(--accent); border-color: var(--accent); }
-body.app-shell:is(.light, .bambu) .thermo-dist, body.app-shell:is(.light, .bambu) .q-card.thermo .q-title, body.app-shell:is(.light, .bambu) .closer-btn.active-a { color: #846511 !important; }
-body.app-shell:is(.light, .bambu) .q-card.matching .q-title, body.app-shell:is(.light, .bambu) .zone-btn.active-in, body.app-shell:is(.light, .bambu) .answer-badge.inside, body.app-shell:is(.light, .bambu) .copy-btn.copied, body.app-shell:is(.light, .bambu) .cp-badge-green { color: #276143 !important; }
-body.app-shell:is(.light, .bambu) .q-card.measuring .q-title { color: #17667c !important; }
-body.app-shell:is(.light, .bambu) .closer-btn.active-b, body.app-shell:is(.light, .bambu) .cp-badge-orange { color: #985013 !important; }
-body.app-shell:is(.light, .bambu) .closer-btn.active-pend, body.app-shell:is(.light, .bambu) .cp-badge-yellow { color: #786014 !important; }
-body.app-shell:is(.light, .bambu) .zone-btn.active-out, body.app-shell:is(.light, .bambu) .answer-badge.outside, body.app-shell:is(.light, .bambu) .cp-badge-blue { color: #32618a !important; }
-body.app-shell:is(.light, .bambu) .q-card.hide-loc .q-title, body.app-shell:is(.light, .bambu) .cp-badge-red { color: #b03359 !important; }
-body.app-shell:is(.light, .bambu) .unit-btn.active { color: #fff; }
-body.app-shell:not(.light):not(.bambu) .angleq-card .q-title, body.app-shell:not(.light):not(.bambu) .angleq-card .copy-btn { color: #c9a3ff !important; }
+body.app-shell:is(.light, .bambu, .kelp) .thermo-dist, body.app-shell:is(.light, .bambu, .kelp) .q-card.thermo .q-title, body.app-shell:is(.light, .bambu, .kelp) .closer-btn.active-a { color: #846511 !important; }
+body.app-shell:is(.light, .bambu, .kelp) .q-card.matching .q-title, body.app-shell:is(.light, .bambu, .kelp) .zone-btn.active-in, body.app-shell:is(.light, .bambu, .kelp) .answer-badge.inside, body.app-shell:is(.light, .bambu, .kelp) .copy-btn.copied, body.app-shell:is(.light, .bambu, .kelp) .cp-badge-green { color: #276143 !important; }
+body.app-shell:is(.light, .bambu, .kelp) .q-card.measuring .q-title { color: #17667c !important; }
+body.app-shell:is(.light, .bambu, .kelp) .closer-btn.active-b, body.app-shell:is(.light, .bambu, .kelp) .cp-badge-orange { color: #985013 !important; }
+body.app-shell:is(.light, .bambu, .kelp) .closer-btn.active-pend, body.app-shell:is(.light, .bambu, .kelp) .cp-badge-yellow { color: #786014 !important; }
+body.app-shell:is(.light, .bambu, .kelp) .zone-btn.active-out, body.app-shell:is(.light, .bambu, .kelp) .answer-badge.outside, body.app-shell:is(.light, .bambu, .kelp) .cp-badge-blue { color: #32618a !important; }
+body.app-shell:is(.light, .bambu, .kelp) .q-card.hide-loc .q-title, body.app-shell:is(.light, .bambu, .kelp) .cp-badge-red { color: #b03359 !important; }
+body.app-shell:is(.light, .bambu, .kelp) .unit-btn.active { color: #fff; }
+body.app-shell:not(.light):not(.bambu):not(.kelp) .angleq-card .q-title, body.app-shell:not(.light):not(.bambu):not(.kelp) .angleq-card .copy-btn { color: #c9a3ff !important; }
 .app-shell .sp-btn > span:last-child:not(:first-child) { font-size: 10px; font-weight: 750; flex-shrink: 0; letter-spacing: .2px; }
 .shell-setting-description { color: var(--muted); font-size: 11px; line-height: 1.5; margin-top: 6px; }
 .app-shell .sp-slider-row { min-height: 36px; gap: 12px; }
@@ -290,7 +310,7 @@ body.app-shell #curse-fab { display: none !important; }
 .shell-help-actions { display: flex; gap: 8px; margin-top: 20px; }
 .shell-primary, .shell-secondary { min-height: 44px; padding: 10px 16px; font-size: 13px; border-radius: 10px; font-weight: 650; cursor: pointer; }
 .shell-primary { background: var(--accent); color: var(--surface); border: 1px solid var(--accent); }
-body.app-shell:not(.light):not(.bambu) .shell-primary { color: #10251e; }
+body.app-shell:not(.light):not(.bambu):not(.kelp) .shell-primary { color: #10251e; }
 .shell-secondary { background: var(--surface2); border: 1px solid var(--border2); color: var(--text2); }
 .app-shell #mode-screen { padding: 32px 20px; gap: 22px; background: radial-gradient(ellipse at 50% 40%, var(--surface2), var(--bg) 68%); }
 .app-shell #mode-screen h1 { font: 800 clamp(40px, 7vw, 60px)/1 -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; letter-spacing: -2px; color: var(--text); }
@@ -358,4 +378,108 @@ body.app-shell:not(.light):not(.bambu) .shell-primary { color: #10251e; }
 }
 @media (prefers-reduced-motion: reduce) {
   .app-shell *, .app-shell *::before, .app-shell *::after { transition-duration: .001ms !important; animation-duration: .001ms !important; animation-iteration-count: 1 !important; }
+}
+
+/* A working question list gets the space; tools open only when requested. */
+.app-shell #sidebar-header { min-height: 54px; padding: 7px 12px; gap: 8px; }
+.app-shell #sidebar-header .shell-panel-heading { display: flex; align-items: center; gap: 9px; }
+.app-shell #sidebar-header .sh-title { flex: none; font-size: 17px; }
+.app-shell #sidebar-header #question-count { margin: 0; padding: 3px 6px; font-size: 10px; color: var(--muted); white-space: nowrap; }
+.shell-question-filter-button { width: 42px; height: 42px; flex: 0 0 42px; display: inline-flex; align-items: center; justify-content: center; border: 1px solid var(--border); background: var(--surface2); color: var(--text2); border-radius: 10px; cursor: pointer; }
+.shell-question-filter-button[aria-expanded="true"] { color: var(--accent); border-color: var(--accent); }
+#shell-question-filters { flex: 0 0 auto; max-height: 37%; overflow-y: auto; background: var(--surface); border-bottom: 1px solid var(--border); }
+#shell-question-filters:not([open]) { display: none; }
+.app-shell #shell-question-filters #question-tools { max-height: none; padding: 10px 12px; overflow: visible; }
+.app-shell #question-list { flex: 1 1 0; min-height: 0; overflow-anchor: none; }
+.app-shell #sidebar-footer { flex: 0 0 auto; max-height: none; overflow: visible; padding: 9px 12px; }
+.shell-question-toolbar { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 8px; }
+.shell-question-toolbar > button { margin: 0 !important; width: 100%; min-height: 44px; font-size: 13px; line-height: 1.25; }
+.shell-question-import-button { border: 1px solid var(--border2); border-radius: 10px; background: var(--surface2); color: var(--text); font-weight: 650; cursor: pointer; }
+.app-shell #sidebar #type-picker, .shell-question-action-sheet { position: absolute; z-index: 12; left: 12px; right: 12px; bottom: 72px; max-height: calc(100% - 136px); overflow-y: auto; overscroll-behavior: contain; margin: 0; background: var(--surface); color: var(--text); border: 1px solid var(--border2); border-radius: 13px; box-shadow: var(--shell-shadow); }
+.app-shell #sidebar #type-picker .type-option { padding: 13px 14px; min-height: 49px; }
+.shell-question-action-sheet { padding: 12px; }
+.shell-question-sheet-heading { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+.shell-question-sheet-heading strong { flex: 1; font-size: 14px; line-height: 1.4; }
+.shell-question-sheet-heading .shell-close-button { width: 36px; height: 36px; flex-basis: 36px; }
+.shell-question-action-sheet .code-input-wrap { margin-top: 0 !important; }
+.shell-question-action-sheet .q-label { margin-bottom: 7px; }
+.app-shell .shell-endgame-button { padding: 9px 11px; border: 1px solid var(--border2); font-weight: 600; }
+
+/* Settings is a short category menu followed by a focused page of controls. */
+.app-shell #settings-panel > .shell-panel-header { min-height: 58px; padding: 8px 12px; }
+.app-shell #settings-panel > .shell-panel-header .shell-panel-subtitle { display: none; }
+.shell-settings-categories { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+.shell-settings-category { display: flex; flex-direction: column; align-items: flex-start; gap: 12px; position: relative; min-height: 122px; padding: 16px 14px; border: 1px solid var(--border); border-radius: 12px; background: var(--surface); color: var(--text); text-align: left; cursor: pointer; }
+.shell-settings-category:hover { border-color: var(--accent); background: var(--surface2); }
+.shell-settings-category > .shell-icon { color: var(--accent); width: 22px; height: 22px; }
+.shell-settings-category > span:last-child { position: absolute; right: 12px; top: 13px; color: var(--muted); font-size: 23px; }
+.shell-settings-category strong { display: block; font-size: 13px; line-height: 1.35; font-weight: 700; }
+.shell-settings-category small { display: block; font-size: 11px; line-height: 1.45; color: var(--muted); margin-top: 4px; }
+.shell-settings-category-bar { display: flex; align-items: center; gap: 12px; flex: 0 0 auto; padding: 6px 12px; border-bottom: 1px solid var(--border); background: var(--surface); }
+.shell-settings-category-bar h3 { font-size: 14px; font-weight: 700; line-height: 1.35; }
+.shell-settings-back { display: inline-flex; align-items: center; min-height: 42px; padding: 6px 9px; border: 0; border-radius: 9px; background: var(--surface2); color: var(--accent); font-size: 13px; font-weight: 650; cursor: pointer; }
+.app-shell #shell-settings-body { padding: 12px; background: var(--surface2); }
+.app-shell .shell-settings-group { margin: 0; border: 0; border-radius: 12px; background: var(--surface); }
+.app-shell #settings-panel:not([data-settings-view="search"]) .shell-settings-group > summary { display: none; }
+.app-shell .shell-settings-section { padding: 16px 14px; scroll-margin-top: 12px; }
+.app-shell .shell-settings-section > .sp-label:first-child { font-size: 13px; color: var(--text); margin-bottom: 12px; font-weight: 700; }
+.app-shell .shell-settings-section .sp-btn { min-height: 46px; font-size: 13px; }
+.app-shell .shell-settings-section .layer-btn { min-height: 42px; font-size: 12px; }
+.app-shell #settings-panel[data-settings-view="search"] .shell-settings-group { margin-bottom: 12px; }
+.app-shell .shell-settings-footer { padding: 5px 12px; }
+.app-shell .shell-settings-footer .shell-help-link { min-height: 34px; font-size: 11px; }
+.shell-menu-guide { padding: 0 16px 12px; }
+.shell-guide-more { margin-top: 8px; border-top: 1px solid var(--border); padding-top: 8px; }
+.shell-guide-more summary { min-height: 42px; display: flex; align-items: center; cursor: pointer; color: var(--accent); font-size: 13px; font-weight: 650; }
+.shell-guide-more p { margin: 8px 0; }
+body.app-shell .leaflet-control-zoom a { background: var(--surface) !important; color: var(--text) !important; }
+.shell-aux-panel { position: fixed; z-index: 1100; top: calc(var(--shell-top) + 12px); right: 16px; bottom: calc(var(--shell-bottom) + 12px); width: min(390px, calc(100vw - 32px)); display: flex; flex-direction: column; overflow: hidden; background: var(--surface); border: 1px solid var(--border); border-radius: 16px; box-shadow: var(--shell-shadow); visibility: hidden; opacity: 0; pointer-events: none; }
+.shell-aux-panel.open { visibility: visible; opacity: 1; pointer-events: auto; }
+.shell-setting-disclosure{border:1px solid var(--border);border-radius:12px;margin-bottom:9px;overflow:hidden;background:var(--surface)}
+.shell-setting-disclosure>summary{display:flex;align-items:center;justify-content:space-between;padding:15px;min-height:54px;font-size:14px;font-weight:650;cursor:pointer;list-style:none;color:var(--text)}
+.shell-setting-disclosure>summary::after{content:'+';color:var(--accent);font-size:20px;font-weight:400}.shell-setting-disclosure[open]>summary::after{content:'−'}
+.shell-setting-disclosure>summary::-webkit-details-marker{display:none}.shell-setting-disclosure>summary:focus-visible{outline:3px solid var(--accent);outline-offset:-3px}
+.shell-setting-disclosure[hidden]{display:none}.shell-setting-disclosure[open]>summary{border-bottom:1px solid var(--border)}
+@media (max-width: 768px) {
+  body.app-shell, body.app-shell.bottom-bar { --header-h: 56px; --shell-nav-h: 60px; }
+  body.app-shell #header, body.app-shell.bottom-bar #header { gap: 8px; }
+  body.app-shell #header-left, body.app-shell.bottom-bar #header-left { gap: 7px; }
+  body.app-shell #header-right, body.app-shell.bottom-bar #header-right { gap: 0; }
+  .app-shell #header h1 { font-size: 17px; }
+  .app-shell #header h1::after { font-size: 8px; letter-spacing: 1.4px; }
+  .app-shell #mode-badge { max-width: 72px; font-size: 9px; padding: 4px 7px; }
+  .app-shell #shell-help-btn { display: none; }
+  .app-shell #curse-btn, .app-shell #shell-main-menu-btn { display: inline-flex; width: 44px; min-width: 44px; height: 44px; padding: 3px 0; flex-direction: column; gap: 2px; }
+  .app-shell #curse-btn .hdr-label, .app-shell #shell-main-menu-btn .hdr-label { display: block; font-size: 9px; line-height: 1; }
+  .app-shell #curse-btn .shell-icon, .app-shell #shell-main-menu-btn .shell-icon { width: 19px; height: 19px; }
+  .app-shell #undo-pin-btn { width: 40px; min-width: 40px; height: 44px; }
+  .app-shell #mobile-nav { gap: 8px; padding-top: 3px; padding-bottom: calc(3px + env(safe-area-inset-bottom, 0px)); }
+  .app-shell .mnav-btn { max-width: none; min-height: 50px; gap: 3px; }
+  .app-shell .mnav-label { font-size: 11px; }
+  .app-shell .mnav-icon { height: 20px; }
+  .app-shell #sidebar-header { min-height: 52px; padding: 5px 10px; }
+  .app-shell #sidebar-header .sh-title { font-size: 16px; }
+  .app-shell #sidebar-header #question-count { font-size: 9px; max-width: 92px; overflow: hidden; text-overflow: ellipsis; }
+  .app-shell #sidebar-close, .shell-question-filter-button { width: 42px; height: 42px; flex-basis: 42px; }
+  .app-shell #sidebar-footer { padding: 8px 10px; }
+  .app-shell #question-list { padding: 10px; }
+  .shell-question-toolbar > button { min-height: 46px; }
+  .app-shell #sidebar #type-picker, .shell-question-action-sheet { left: 10px; right: 10px; bottom: 70px; }
+  .shell-settings-category { min-height: 112px; padding: 13px 12px; gap: 9px; }
+  .app-shell .shell-settings-section { padding: 14px 12px; }
+  .app-shell .shell-settings-section .sp-btn, .app-shell .shell-settings-section input:not([type="range"]):not([type="checkbox"]), .app-shell .shell-settings-section select { min-height: 46px; }
+  .shell-help-card { max-height: calc(100dvh - 24px); padding: 18px; }
+  .shell-help-card h2 { font-size: 22px; }
+  .shell-help-steps { gap: 8px; margin: 14px 0; }
+  .shell-help-steps li { padding-top: 10px; padding-bottom: 10px; }
+  .shell-aux-panel { top: calc(var(--shell-top) + 8px); right: max(8px, env(safe-area-inset-right, 0px)); left: max(8px, env(safe-area-inset-left, 0px)); bottom: calc(var(--shell-bottom) + 8px); width: auto; border-radius: 15px; }
+}
+@media (max-height: 520px) and (max-width: 900px) {
+  .app-shell #sidebar-header { min-height: 48px; padding: 3px 10px; }
+  .app-shell #sidebar-footer { padding-top: 5px; padding-bottom: 5px; }
+  .shell-question-toolbar > button { min-height: 42px; }
+  #shell-question-filters { max-height: 52%; }
+  .shell-settings-categories { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .shell-settings-category { min-height: 90px; padding: 10px; gap: 6px; }
+  .shell-settings-category small { display: none; }
 }
