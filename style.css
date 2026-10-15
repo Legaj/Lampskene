@@ -1,18 +1,10 @@
-/* CSS is how you can add style to your website, such as colors, fonts, and positioning of your
-   HTML content. To learn how to do something, just try searching Google for questions like
-   "how to change link color." */
-
-body {
-  background-color: red;
-  color: black;
-  font-family: Verdana;
-}
-
-h1 {
-  color: orange;
-}
-
-img {
-  width: 200px;
-  height: 2500px;
-  }
+/* Shared baseline for standalone game pages. Application chrome lives in app-shell.css. */
+:root { color-scheme: light dark; }
+*, *::before, *::after { box-sizing: border-box; }
+body { margin: 0; background: var(--bg, #f4eddf); color: var(--text, #3e2c17); font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; line-height: 1.5; }
+button, input, select, textarea { font: inherit; }
+button { touch-action: manipulation; }
+img, svg, video { max-width: 100%; }
+img, video { height: auto; }
+button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible { outline: 3px solid var(--accent, #72552e); outline-offset: 3px; }
+[hidden] { display: none !important; }

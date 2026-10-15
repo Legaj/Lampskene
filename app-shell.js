@@ -7,7 +7,7 @@
   const buttonTargets = {
     'menu-btn': 'questions', 'mnav-questions-btn': 'questions', 'sl-btn': 'transit',
     'mnav-sl-btn': 'transit', 'curse-btn': 'curses', 'mnav-curses-btn': 'curses',
-    'settings-btn': 'settings', 'mnav-settings-btn': 'settings', 'mnav-map-btn': 'map'
+    'settings-btn': 'settings', 'mnav-settings-btn': 'settings'
   };
   const paths = {
     map: '<path d="m3 6 6-3 6 3 6-3v15l-6 3-6-3-6 3V6Z"/><path d="M9 3v15m6-12v15"/>',
@@ -29,6 +29,8 @@
   let queuedSync = false;
   let helpTrigger = null;
   let curseLoadPromise = null;
+  let settingsCategory = null;
+  let questionAction = null;
 
   function currentRole() { return typeof mode !== 'undefined' ? mode : null; }
   function gameStarted() { return currentRole() === 'hider' || currentRole() === 'seeker'; }
@@ -50,6 +52,7 @@
       panel.setAttribute('aria-hidden', String(!open));
     }
     if (typeof sidebarOpen !== 'undefined') sidebarOpen = activePanel === 'questions';
+    if (activePanel !== 'questions') closeQuestionActions();
     if (typeof _cpOpen !== 'undefined') _cpOpen = activePanel === 'curses';
     document.body.classList.toggle('shell-panel-open', Boolean(activePanel));
     document.body.classList.toggle('sidebar-open', activePanel === 'questions');
@@ -89,6 +92,7 @@
   async function open(target, options = {}) {
     if (!gameStarted()) return false;
     const version = ++requestVersion;
+    if (target === 'settings' && activePanel !== 'settings' && !options.preserveCategory && byId('shell-settings-home')) selectSettingsCategory(null, { focus: false });
     if (options.trigger) lastTrigger = options.trigger;
     else if (!activePanel && document.activeElement instanceof HTMLElement) lastTrigger = document.activeElement;
     applyPanelState(target, options.restoreFocus);
@@ -147,6 +151,7 @@
     const panel = document.createElement('aside'); panel.id = 'shell-main-menu-panel';
     panel.innerHTML = `<div class="shell-panel-header"><div class="shell-panel-heading"><div class="shell-panel-title">Account & rounds</div><div class="shell-panel-subtitle">Track players and resume your game</div></div><button type="button" class="shell-close-button" data-shell-close aria-label="Close menu">${icon('close')}</button></div><div id="shell-menu-body" class="shell-panel-scroll"></div>`;
     document.body.append(panel); panels.menu = panel.id;
+    const guide = document.createElement('div'); guide.className = 'shell-menu-guide'; guide.innerHTML = '<button type="button" class="shell-help-link" data-shell-help>Game guide & map help</button>'; byId('shell-menu-body').append(guide);
     const button = document.createElement('button'); button.type = 'button'; button.id = 'shell-main-menu-btn'; button.className = 'hdr-btn';
     byId('header-right')?.prepend(button); buttonTargets[button.id] = 'menu';
     const trackerMenu = window.openTrackerMenu;
@@ -204,11 +209,10 @@
     document.body.append(nav);
     nav.setAttribute('aria-label', 'Game navigation');
     nav.setAttribute('role', 'navigation');
-    const mapButton = document.createElement('button');
-    mapButton.type = 'button'; mapButton.id = 'mnav-map-btn'; mapButton.className = 'mnav-btn';
-    mapButton.innerHTML = `<span class="mnav-icon">${icon('map')}</span><span class="mnav-label">Map</span>`;
-    nav.prepend(mapButton);
-    ['mnav-map-btn', 'mnav-questions-btn', 'mnav-sl-btn', 'mnav-curses-btn', 'mnav-settings-btn'].forEach(id => nav.append(byId(id)));
+    byId('mnav-map-btn')?.remove();
+    byId('mnav-curses-btn')?.remove();
+    delete buttonTargets['mnav-curses-btn'];
+    ['mnav-questions-btn', 'mnav-sl-btn', 'mnav-settings-btn'].forEach(id => { const button = byId(id); if (button) nav.append(button); });
     const labels = { questions: 'Questions', transit: 'Transit', curses: 'Curses', settings: 'Settings', map: 'Map', menu: 'Menu' };
     for (const [id, target] of Object.entries(buttonTargets)) {
       const button = byId(id);
@@ -230,6 +234,7 @@
     help.title = 'How to play'; help.setAttribute('aria-label', 'How to play');
     help.innerHTML = `${icon('help')}<span class="hdr-label">Guide</span>`;
     byId('header-right')?.append(help);
+    byId('curse-btn')?.setAttribute('aria-label', 'Open curses');
     const questionBadge = document.createElement('span');
     questionBadge.id = 'shell-question-badge'; questionBadge.className = 'shell-nav-badge'; questionBadge.hidden = true; questionBadge.setAttribute('aria-hidden', 'true');
     byId('mnav-questions-btn')?.append(questionBadge);
@@ -293,13 +298,124 @@
     };
   }
 
+  function closeQuestionActions() {
+    questionAction = null;
+    if (document.activeElement?.closest?.('.shell-question-action-sheet')) document.activeElement.blur();
+    if (typeof typePickerOpen !== 'undefined') typePickerOpen = false;
+    const picker = byId('type-picker'); if (picker) picker.style.display = 'none';
+    document.querySelectorAll('.shell-question-action-sheet').forEach(sheet => { sheet.hidden = true; });
+    document.querySelectorAll('[data-question-import]').forEach(button => button.setAttribute('aria-expanded', 'false'));
+  }
+
+  function showQuestionImport(role, trigger) {
+    const sheet = byId(`shell-${role}-import`);
+    if (!sheet) return;
+    const wasOpen = !sheet.hidden;
+    closeQuestionActions();
+    if (wasOpen) return;
+    if (role === 'seeker' && typeof _seekerQuestionCodeMenu !== 'undefined' && !_seekerQuestionCodeMenu && typeof toggleSeekerQuestionCodeMenu === 'function') toggleSeekerQuestionCodeMenu();
+    questionAction = role + '-import'; sheet.hidden = false;
+    trigger?.setAttribute('aria-expanded', 'true');
+    byId(role + '-code-field')?.focus({ preventScroll: true });
+  }
+
+  function setupQuestionWorkspace() {
+    const panel = byId('sidebar');
+    const heading = byId('sidebar-header');
+    if (!panel || !heading) return;
+    heading.querySelector('.shell-panel-subtitle')?.remove();
+    const tools = byId('question-tools');
+    if (tools) {
+      const drawer = document.createElement('details'); drawer.id = 'shell-question-filters';
+      const summary = document.createElement('summary'); summary.className = 'shell-sr-only'; summary.textContent = 'Search and filter questions'; summary.tabIndex = -1; drawer.append(summary, tools); heading.after(drawer);
+      const filters = document.createElement('button'); filters.type = 'button'; filters.className = 'shell-question-filter-button';
+      filters.innerHTML = icon('settings'); filters.setAttribute('aria-label', 'Search and filter questions'); filters.setAttribute('aria-controls', drawer.id); filters.setAttribute('aria-expanded', 'false');
+      heading.querySelector('[data-shell-close]')?.before(filters);
+      filters.addEventListener('click', () => { drawer.open = !drawer.open; if (drawer.open) byId('question-search')?.focus({ preventScroll: true }); });
+      drawer.addEventListener('toggle', () => filters.setAttribute('aria-expanded', String(drawer.open)));
+      const count = byId('question-count'); if (count) { count.classList.add('shell-question-count'); heading.querySelector('.shell-panel-heading')?.append(count); }
+      byId('question-search')?.setAttribute('aria-label', 'Search your questions');
+    }
+    const seeker = byId('seeker-footer');
+    if (seeker) {
+      const add = seeker.querySelector('.add-q-btn');
+      if (add) {
+        add.textContent = 'Add question'; add.addEventListener('click', () => {
+          if (byId('shell-seeker-import')) byId('shell-seeker-import').hidden = true;
+          if (byId('shell-hider-import')) byId('shell-hider-import').hidden = true;
+          document.querySelectorAll('[data-question-import]').forEach(button => button.setAttribute('aria-expanded', 'false'));
+          questionAction = typeof typePickerOpen !== 'undefined' && typePickerOpen ? 'add' : null;
+        });
+      }
+      const picker = byId('type-picker'); if (picker) { picker.classList.add('shell-question-type-sheet'); panel.append(picker); }
+      const originalImport = byId('seeker-code-input-wrap');
+      if (originalImport) {
+        const sheet = makeQuestionImport('seeker', 'Import a question or answer', originalImport); panel.append(sheet);
+        const button = document.createElement('button'); button.type = 'button'; button.className = 'shell-question-import-button'; button.textContent = 'Import code'; button.dataset.questionImport = 'seeker';
+        button.setAttribute('aria-controls', sheet.id); button.setAttribute('aria-expanded', 'false'); button.addEventListener('click', () => showQuestionImport('seeker', button)); seeker.append(button);
+      }
+    }
+    const hider = byId('hider-footer');
+    if (hider) {
+      const originalImport = hider.querySelector('.code-input-wrap');
+      if (originalImport) {
+        const sheet = makeQuestionImport('hider', 'Import the seeker’s question', originalImport); panel.append(sheet);
+        const button = document.createElement('button'); button.type = 'button'; button.className = 'add-q-btn'; button.textContent = 'Import question'; button.dataset.questionImport = 'hider';
+        button.setAttribute('aria-controls', sheet.id); button.setAttribute('aria-expanded', 'false'); button.addEventListener('click', () => showQuestionImport('hider', button)); hider.prepend(button);
+      }
+      const endgame = hider.querySelector('[onclick*="addEndgameCard"]');
+      if (endgame) { endgame.textContent = 'Endgame'; endgame.classList.add('shell-endgame-button'); endgame.style.margin = '0'; hider.append(endgame); }
+      hider.querySelectorAll(':scope > .code-input-wrap').forEach(wrap => { if (!wrap.children.length) wrap.remove(); });
+    }
+    const togglePicker = window.toggleTypePicker;
+    if (typeof togglePicker === 'function') window.toggleTypePicker = function (...args) {
+      const willOpen = typeof typePickerOpen !== 'undefined' ? !typePickerOpen : true;
+      closeQuestionActions();
+      if (!willOpen) return;
+      const result = togglePicker.apply(this, args); questionAction = 'add'; return result;
+    };
+    for (const footer of [seeker, hider]) if (footer) {
+      const toolbar = document.createElement('div'); toolbar.className = 'shell-question-toolbar';
+      footer.querySelectorAll(':scope > button').forEach(button => toolbar.append(button)); footer.append(toolbar);
+    }
+    for (const [name, role] of [['seekerDecodeAndAdd', 'seeker'], ['decodeAndAdd', 'hider']]) {
+      const decode = window[name]; if (typeof decode !== 'function') continue;
+      window[name] = function (...args) {
+        const field = byId(role + '-code-field'); const before = field?.value;
+        const result = decode.apply(this, args);
+        if (before && field && !field.value) closeQuestionActions();
+        return result;
+      };
+    }
+    const quickAdd = window.quickAddOrCode;
+    if (typeof quickAdd === 'function') window.quickAddOrCode = function (...args) {
+      if (currentRole() === 'hider') {
+        open('questions', { focus: false });
+        showQuestionImport('hider', document.querySelector('[data-question-import="hider"]'));
+        return;
+      }
+      return quickAdd.apply(this, args);
+    };
+  }
+
+  function makeQuestionImport(role, title, content) {
+    const sheet = document.createElement('section'); sheet.id = `shell-${role}-import`; sheet.className = 'shell-question-action-sheet'; sheet.hidden = true;
+    const head = document.createElement('div'); head.className = 'shell-question-sheet-heading';
+    const label = document.createElement('strong'); label.textContent = title;
+    const close = document.createElement('button'); close.type = 'button'; close.className = 'shell-close-button'; close.innerHTML = icon('close'); close.setAttribute('aria-label', 'Close code entry'); close.addEventListener('click', closeQuestionActions);
+    head.append(label, close); sheet.append(head, content);
+    return sheet;
+  }
+
   const settingGroups = [
-    { title: 'Map & overlays', labels: ['Map Layer', 'Map style', 'SL Data', 'Map overlays', 'Map providers'] },
-    { title: 'Live transit', labels: ['Live Trains', 'Live Transit'] },
-    { title: 'Game & seeker tools', labels: ['Game', 'Seeker workspace', 'Distance planning', 'Saved places', 'Curses'] },
-    { title: 'Appearance & layout', labels: ['Layout', 'Display', 'Appearance', 'Performance', 'Comfort', 'Advanced controls'] },
-    { title: 'Map API key', labels: ['Thunderforest Key'] },
-    { title: 'Account & player tracking', labels: ['Account', 'Location Sharing', 'Trackers', 'Round'] }
+    { key: 'map', title: 'Map & layers', icon: 'map', hint: 'Backgrounds, overlays and game area', labels: ['Map Layer', 'Map style', 'Map overlays', 'Map providers', 'Thunderforest Key', 'Game Area'] },
+    { key: 'advanced-map', title: 'Advanced maps', icon: 'map', hint: '3D, local details and custom sources', labels: ['Map tools', 'Map combinations', 'Local details', '3D explorer', 'Custom map sources'] },
+    { key: 'places', title: 'Places & planning', icon: 'questions', hint: 'Find places and keep a shortlist', labels: ['Seeker workspace', 'Distance planning', 'Saved places', 'Place layers', 'Places'] },
+    { key: 'transit', title: 'Transit', icon: 'transit', hint: 'Live vehicles, routes and stops', labels: ['Live Trains', 'Live Transit', 'SL Data'] },
+    { key: 'game', title: 'Game & questions', icon: 'curses', hint: 'Clues, pins and game rules', labels: ['Game', 'Curses', 'Questions', 'Round'] },
+    { key: 'appearance', title: 'Appearance', icon: 'settings', hint: 'Theme, layout and comfort', labels: ['Layout', 'Display', 'Appearance', 'Performance', 'Comfort', 'Advanced controls'] },
+    { key: 'account', title: 'Account & GPS', icon: 'menu', hint: 'Player trackers and location', labels: ['Account', 'Location Sharing', 'Trackers', 'GPS'] },
+    { key: 'other', title: 'More tools', icon: 'settings', hint: 'Additional game options', labels: [] }
   ];
 
   function refreshSettings() {
@@ -309,14 +425,55 @@
     const ungrouped = Array.from(panel.children).filter(child => child !== body && child.querySelector?.(':scope > .sp-label'));
     for (const section of ungrouped) {
       const label = section.querySelector('.sp-label')?.textContent.trim();
-      if (['Live Trains', 'Live Transit', 'SL Data', 'Thunderforest Key', 'Layout'].includes(label)) section.classList.remove('advanced-only');
-      const index = settingGroups.findIndex(group => group.labels.includes(label));
-      const group = index >= 0 ? body.querySelector(`[data-shell-group="${index}"]`) : body.querySelector('[data-shell-group="other"]');
+      if (label === 'Location Sharing' && !section.id) section.id = 'position-settings-host';
+      section.classList.remove('advanced-only');
+      const definition = settingGroups.find(group => group.key === section.dataset.settingsCategory) || settingGroups.find(group => group.labels.includes(label)) || settingGroups[settingGroups.length - 1];
+      const group = body.querySelector(`[data-shell-group="${definition.key}"]`);
       section.classList.add('shell-settings-section');
-      group?.append(section);
+      if (definition.key === 'advanced-map') {
+        const disclosure = document.createElement('details'); disclosure.className = 'shell-setting-disclosure';
+        const summary = document.createElement('summary'); summary.textContent = label;
+        section.querySelector('.sp-label')?.remove();
+        disclosure.append(summary, section); group?.append(disclosure);
+        disclosure.addEventListener('toggle', () => { if (disclosure.open && !byId('shell-settings-search')?.value.trim()) group.querySelectorAll('.shell-setting-disclosure').forEach(other => { if (other !== disclosure && other.open) other.open = false; }); });
+      } else group?.append(section);
     }
-    body.querySelectorAll('.shell-settings-group').forEach(group => group.hidden = !group.querySelector('.shell-settings-section'));
     filterSettings();
+  }
+
+  function selectSettingsCategory(key, options = {}) {
+    settingsCategory = settingGroups.some(group => group.key === key) ? key : null;
+    const search = byId('shell-settings-search'); if (search) search.value = '';
+    const searchWrap = byId('shell-settings-search-wrap'); if (searchWrap) searchWrap.hidden = true;
+    byId('shell-settings-search-toggle')?.setAttribute('aria-expanded', 'false');
+    filterSettings(); byId('shell-settings-body').scrollTop = 0;
+    if (options.focus !== false) {
+      if (settingsCategory) byId('shell-settings-category-title')?.focus({ preventScroll: true });
+      else byId('shell-settings-home')?.querySelector('button:not([hidden])')?.focus({ preventScroll: true });
+    }
+  }
+
+  function openSettingsSection(id, options = {}) {
+    refreshSettings();
+    const section = typeof id === 'string' ? byId(id) : id;
+    const group = section?.closest('.shell-settings-group');
+    open('settings', { focus: false, ...options });
+    if (!group) { selectSettingsCategory(null, { focus: false }); return false; }
+    selectSettingsCategory(group.dataset.shellGroup, { focus: false });
+    const disclosure = section.closest('.shell-setting-disclosure'); if (disclosure) disclosure.open = true;
+    section.scrollIntoView({ block: 'start', behavior: 'auto' });
+    return true;
+  }
+
+  function registerPanel(name, panelOrId, options = {}) {
+    const panel = typeof panelOrId === 'string' ? byId(panelOrId) : panelOrId;
+    if (!name || !panel?.id) return false;
+    panels[name] = panel.id;
+    if (options.geometry !== false) panel.classList.add('shell-aux-panel');
+    panel.setAttribute('role', 'region'); panel.setAttribute('aria-label', options.label || name);
+    panel.inert = activePanel !== name; panel.setAttribute('aria-hidden', String(panel.inert));
+    observer.observe(panel, { attributes: true, attributeFilter: ['class'] });
+    return true;
   }
 
   function filterSettings() {
@@ -324,19 +481,29 @@
     const body = byId('shell-settings-body');
     if (!body) return;
     let matches = 0;
+    byId('shell-settings-home').hidden = Boolean(term || settingsCategory);
+    byId('shell-settings-category-bar').hidden = !term && !settingsCategory;
+    byId('settings-panel').dataset.settingsView = term ? 'search' : settingsCategory || 'home';
+    byId('shell-settings-category-title').textContent = term ? 'Search settings' : settingGroups.find(group => group.key === settingsCategory)?.title || 'Settings';
     body.querySelectorAll('.shell-settings-group').forEach(group => {
       let visible = 0;
       const title = group.querySelector('summary')?.textContent.toLocaleLowerCase() || '';
       group.querySelectorAll('.shell-settings-section').forEach(section => {
-        const matched = !term || (title + ' ' + section.textContent.toLocaleLowerCase()).includes(term);
+        const sectionTitle = section.closest('.shell-setting-disclosure')?.querySelector('summary')?.textContent.toLocaleLowerCase() || '';
+        const matched = !term || (title + ' ' + sectionTitle + ' ' + section.textContent.toLocaleLowerCase()).includes(term);
+        const disclosure = section.closest('.shell-setting-disclosure');
+        if (disclosure) { disclosure.hidden = !matched; if (term && matched) disclosure.open = true; }
         section.hidden = !matched;
         if (matched) visible++;
       });
-      group.hidden = !visible;
-      if (term && visible) group.open = true;
+      const hasSections = Boolean(group.querySelector('.shell-settings-section'));
+      const categoryButton = byId('shell-settings-home').querySelector(`[data-settings-category="${group.dataset.shellGroup}"]`);
+      if (categoryButton) categoryButton.hidden = !hasSections;
+      group.hidden = !visible || (!term && settingsCategory !== group.dataset.shellGroup);
+      if (!group.hidden) group.open = true;
       matches += visible;
     });
-    byId('shell-settings-empty').hidden = Boolean(matches);
+    byId('shell-settings-empty').hidden = !term || Boolean(matches);
   }
 
   function setupSettings() {
@@ -348,28 +515,47 @@
       const label = document.createElement('div'); label.className = 'sp-label'; label.textContent = 'Advanced controls';
       section.append(label, legacyHead); panel.append(section);
     }
-    const search = document.createElement('div'); search.className = 'shell-settings-search';
-    search.innerHTML = '<input id="shell-settings-search" type="search" placeholder="Find a setting or map layer…" aria-label="Search settings" autocomplete="off">';
+    const search = document.createElement('div'); search.className = 'shell-settings-search'; search.id = 'shell-settings-search-wrap'; search.hidden = true;
+    search.innerHTML = '<input id="shell-settings-search" type="search" placeholder="Search all settings…" aria-label="Search all settings" autocomplete="off">';
     const body = document.createElement('div'); body.id = 'shell-settings-body';
-    settingGroups.forEach((group, index) => {
-      const details = document.createElement('details'); details.className = 'shell-settings-group'; details.dataset.shellGroup = index;
-      details.open = index < 3; details.innerHTML = `<summary>${safeText(group.title)}</summary>`; body.append(details);
+    const home = document.createElement('div'); home.id = 'shell-settings-home'; home.className = 'shell-settings-categories';
+    settingGroups.forEach(group => {
+      const category = document.createElement('button'); category.type = 'button'; category.className = 'shell-settings-category'; category.dataset.settingsCategory = group.key;
+      category.innerHTML = `${icon(group.icon)}<span><strong>${safeText(group.title)}</strong><small>${safeText(group.hint)}</small></span><span aria-hidden="true">›</span>`;
+      category.addEventListener('click', () => selectSettingsCategory(group.key)); home.append(category);
     });
-    const other = document.createElement('details'); other.className = 'shell-settings-group'; other.dataset.shellGroup = 'other'; other.open = true; other.innerHTML = '<summary>More settings</summary>'; body.append(other);
+    body.append(home);
+    settingGroups.forEach(group => {
+      const details = document.createElement('details'); details.className = 'shell-settings-group'; details.dataset.shellGroup = group.key;
+      details.open = true; details.innerHTML = `<summary>${safeText(group.title)}</summary>`; body.append(details);
+    });
+    const categoryBar = document.createElement('div'); categoryBar.id = 'shell-settings-category-bar'; categoryBar.className = 'shell-settings-category-bar'; categoryBar.hidden = true;
+    categoryBar.innerHTML = '<button type="button" class="shell-settings-back" aria-label="Back to settings categories">‹ Back</button><h3 id="shell-settings-category-title" tabindex="-1">Settings</h3>';
+    categoryBar.querySelector('button').addEventListener('click', () => selectSettingsCategory(null));
     const empty = document.createElement('div'); empty.id = 'shell-settings-empty'; empty.className = 'shell-settings-empty'; empty.hidden = true;
     empty.textContent = 'No matching settings. Try “map”, “lines” or “theme”.'; body.append(empty);
     const footer = document.createElement('div'); footer.className = 'shell-settings-footer';
     footer.innerHTML = '<button type="button" class="shell-help-link" data-shell-help>How to use the game →</button>';
-    panel.append(search, body, footer);
+    panel.append(search, categoryBar, body, footer);
     // Put search immediately below the fixed heading, before the scrolling groups.
     panel.querySelector('.shell-panel-header').after(search);
+    search.after(categoryBar);
+    const searchToggle = document.createElement('button'); searchToggle.type = 'button'; searchToggle.id = 'shell-settings-search-toggle'; searchToggle.className = 'shell-close-button';
+    searchToggle.innerHTML = '<svg class="shell-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5"/><path d="m16 16 5 5"/></svg>';
+    searchToggle.setAttribute('aria-label', 'Search all settings'); searchToggle.setAttribute('aria-controls', search.id); searchToggle.setAttribute('aria-expanded', 'false');
+    panel.querySelector('.shell-panel-header [data-shell-close]').before(searchToggle);
+    searchToggle.addEventListener('click', () => {
+      search.hidden = !search.hidden; searchToggle.setAttribute('aria-expanded', String(!search.hidden));
+      if (!search.hidden) byId('shell-settings-search').focus({ preventScroll: true });
+      else { byId('shell-settings-search').value = ''; filterSettings(); }
+    });
     refreshSettings();
     byId('shell-settings-search').addEventListener('input', filterSettings);
     const descriptions = {
       'trains-sp-btn': 'Show available live vehicle positions. Updates depend on the transit feed.',
       'sl-live-btn': 'Limit live vehicles to the lines you selected in Transit.',
       'move-lock-setting-btn': 'Lock question pins after a 60-second move window.',
-      'seeker-code-menu-btn': 'Show the code box so seekers can import questions and answers.',
+      'seeker-code-menu-btn': 'Allow importing question and answer codes from the Import code button.',
       'bottom-bar-btn': 'Phones always show the navigation dock. This preference also shows it on larger screens.',
       'city-boundary-btn': 'Shade areas outside Stockholm to keep the search focused.',
       'hide-locked-btn': 'Reduce map clutter while keeping locked clues in your Questions list.'
@@ -411,7 +597,7 @@
 
   function setupHelp() {
     const dialog = document.createElement('div'); dialog.id = 'shell-help'; dialog.hidden = true;
-    dialog.innerHTML = '<section class="shell-help-card" role="dialog" aria-modal="true" aria-labelledby="shell-help-title" tabindex="-1"><div class="shell-panel-header"><div class="shell-panel-heading"><div class="shell-help-eyebrow">Stockholm field guide</div><h2 id="shell-help-title">Make every clue count.</h2></div><button type="button" class="shell-close-button" data-shell-help-close aria-label="Close guide"></button></div><p id="shell-help-intro"></p><ol class="shell-help-steps" id="shell-help-steps"></ol><p>Use Transit to inspect routes and stops. Settings contains map styles, overlays and display options. Live positions and forecasts depend on available data; compare them with official journey information when travelling.</p><div class="shell-help-actions"><button type="button" class="shell-primary" data-shell-guide-start>Open Questions</button><button type="button" class="shell-secondary" data-shell-help-close>Got it</button></div></section>';
+    dialog.innerHTML = '<section class="shell-help-card" role="dialog" aria-modal="true" aria-labelledby="shell-help-title" tabindex="-1"><div class="shell-panel-header"><div class="shell-panel-heading"><div class="shell-help-eyebrow">Stockholm field guide</div><h2 id="shell-help-title">Your next move.</h2></div><button type="button" class="shell-close-button" data-shell-help-close aria-label="Close guide"></button></div><p id="shell-help-intro"></p><ol class="shell-help-steps" id="shell-help-steps"></ol><details class="shell-guide-more"><summary>Map, transit & player trackers</summary><p>Blue shading rules an area out. Clear areas remain possible based on the answers you recorded. Use View map on a question to inspect its actual pins and coverage.</p><p>Transit shows public vehicles from the available feed. Menu → Trackers shows the player devices shared with your account. Their age and accuracy matter: a reported position is not a guaranteed current location.</p><p>Settings → Map & layers changes backgrounds and overlays. Places & planning helps you compare places and keep a shortlist. Account & GPS contains your own location controls.</p></details><div class="shell-help-actions"><button type="button" class="shell-primary" data-shell-guide-start>Open Questions</button><button type="button" class="shell-secondary" data-shell-help-close>Close guide</button></div></section>';
     dialog.querySelector('.shell-close-button').innerHTML = icon('close');
     document.body.append(dialog);
     const coach = document.createElement('aside'); coach.id = 'shell-map-coach'; coach.className = 'shell-map-coach'; coach.hidden = true;
@@ -425,13 +611,13 @@
     const seeker = role === 'seeker';
     byId('shell-help-intro').textContent = seeker ? 'Build a clear picture of where the hider could be, one answer at a time.' : 'Keep your location and answers consistent, and make your curse deck easy to manage.';
     const steps = seeker ? [
-      ['Create a question', 'Open Questions and choose Radar, Thermometer, Matching, Measuring or Angle. Each preview explains what the clue can reveal.'],
+      ['Add a question', 'Open Questions → Add question. Choose a clue, then open its details to set it up. Search and filters are tucked into the small filter button at the top.'],
       ['Set the question on the map', 'Use the question’s pin controls, drag unlocked markers to the right location and review the preview before sending a code.'],
-      ['Record the answer', 'Choose the hider’s answer or paste their answer code. Keep answered clues visible to compare the remaining search zones.']
+      ['Record the answer', 'Use Import code for the hider’s answer, or choose the answer in the question card. Tap the selected bottom tab or the close button to return to the map.']
     ] : [
       ['Set your hiding location', 'Open Questions and use the hiding-location card to place your pin. Lock it once you are happy with the position.'],
-      ['Import a question', 'Paste the seeker’s question code into Questions. Check its preview and your hiding position before copying the answer.'],
-      ['Manage your curse deck', 'Open Curses to browse effects and add cards. Unlock your deck to make changes; review any requirements before playing a curse.']
+      ['Import a question', 'Open Questions → Import question and paste the seeker’s code. Check the preview and your hiding pin before copying the answer.'],
+      ['Use your curse deck', 'The Curses button is in the top bar. Browse effects, unlock your deck to edit it, and check requirements before playing a card.']
     ];
     byId('shell-help-steps').innerHTML = steps.map(([title, text]) => `<li><strong>${safeText(title)}</strong><p>${safeText(text)}</p></li>`).join('');
     byId('shell-help').querySelector('[data-shell-guide-start]').textContent = gameStarted() ? 'Open Questions' : 'Return to menu';
@@ -462,7 +648,7 @@
     const account = document.querySelector('.account-panel');
     if (account && byId('shell-menu-body')) {
       const destination = started ? byId('shell-menu-body') : byId('mode-screen');
-      if (account.parentElement !== destination) destination.append(account);
+      if (account.parentElement !== destination) { if (started) destination.prepend(account); else destination.append(account); }
     }
     const quickActions = byId('quick-actions');
     if (quickActions) quickActions.hidden = !started;
@@ -478,7 +664,7 @@
         document.dispatchEvent(new CustomEvent('jetlag:rolechange', { detail: { role } }));
       }
     }
-    coach.hidden = !started || readPreference(`jetlag_coach_${role}_v1`) === '1';
+    coach.hidden = true;
     const count = typeof questions !== 'undefined' ? questions.filter(q => !['hide-loc', 'hider-location', 'endgame'].includes(q.type)).length : byId('question-list').querySelectorAll('.q-card').length;
     const badge = byId('shell-question-badge'); badge.hidden = !count; badge.textContent = count > 99 ? '99+' : count;
     for (const button of document.querySelectorAll('.sp-btn')) {
@@ -489,6 +675,7 @@
     const toggle = byId('type-picker');
     const addButton = byId('seeker-footer')?.querySelector('.add-q-btn');
     if (toggle && addButton) { addButton.setAttribute('aria-controls', 'type-picker'); addButton.setAttribute('aria-expanded', String(toggle.style.display !== 'none')); }
+    if (questionAction === 'add' && toggle?.style.display === 'none') questionAction = null;
     const actualOpen = Object.entries(panels).filter(([, id]) => byId(id).classList.contains('open')).map(([name]) => name);
     if (activePanel && !actualOpen.includes(activePanel)) applyPanelState(null);
   }
@@ -496,8 +683,8 @@
   function scheduleSync() { if (!queuedSync) { queuedSync = true; queueMicrotask(syncUI); } }
 
   document.body.classList.add('app-shell');
-  setupMainMenu(); setupNavigation(); setupPanelHeaders(); setupScrollablePanels(); setupSettings(); setupWelcome(); setupHelp();
-  window.appShell = { open, close, closeAll: close, closePanels: () => close({ restoreFocus: false }), toggle, refreshSettings, showHelp, get activePanel() { return activePanel; } };
+  setupMainMenu(); setupNavigation(); setupPanelHeaders(); setupScrollablePanels(); setupQuestionWorkspace(); setupSettings(); setupWelcome(); setupHelp();
+  window.appShell = { open, close, closeAll: close, closePanels: () => close({ restoreFocus: false }), toggle, refreshSettings, openSettingsSection, selectSettingsCategory, registerPanel, showHelp, get activePanel() { return activePanel; } };
   // Keep the preview extensions' original shell name compatible.
   window.lampskeneShell = window.appShell;
 
@@ -519,10 +706,13 @@
     else if (target.hasAttribute('data-shell-retry')) open(target.dataset.shellRetry, { focus: false });
   }, true);
 
-  document.addEventListener('keydown', event => {
+  window.addEventListener('keydown', event => {
     const help = byId('shell-help');
     if (event.key === 'Escape') {
+      if (!help.hidden || questionAction || byId('shell-question-filters')?.open || activePanel) event.stopImmediatePropagation();
       if (!help.hidden) { event.preventDefault(); closeHelp(); }
+      else if (questionAction) { event.preventDefault(); closeQuestionActions(); }
+      else if (byId('shell-question-filters')?.open) { event.preventDefault(); byId('shell-question-filters').open = false; }
       else if (activePanel) { event.preventDefault(); close(); }
     }
     if (event.key === 'Tab' && !help.hidden) {
@@ -531,7 +721,7 @@
       if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last?.focus(); }
       else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first?.focus(); }
     }
-  });
+  }, true);
   byId('shell-help').addEventListener('click', event => { if (event.target === byId('shell-help')) closeHelp(); });
   const observer = new MutationObserver(scheduleSync);
   observer.observe(byId('mode-badge'), { childList: true });

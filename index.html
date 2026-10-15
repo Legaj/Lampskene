@@ -916,11 +916,15 @@
     }
     @media (min-width:769px) { #curse-fab { display:none!important; } }
   </style>
-  <link rel="stylesheet" href="map-experience.css?v=1" />
-  <link rel="stylesheet" href="question-experience.css?v=1" />
+  <link rel="stylesheet" href="map-experience.css?v=3" />
+  <link rel="stylesheet" href="advanced-map.css?v=3" />
+  <link rel="stylesheet" href="map-3d.css?v=3" />
+  <link rel="stylesheet" href="question-experience.css?v=3" />
   <link rel="stylesheet" href="tracker-experience.css?v=1" />
   <link rel="stylesheet" href="departure-board.css?v=1" />
-  <link rel="stylesheet" href="app-shell.css?v=1" />
+  <link rel="stylesheet" href="app-shell.css?v=3" />
+  <link rel="stylesheet" href="position-experience.css?v=3" />
+  <link rel="stylesheet" href="field-lab.css?v=3" />
 </head>
 <body class="bambu">
 
@@ -1442,17 +1446,20 @@ let trackerTimelineLastPush = 0;
 
 // ── MAP INIT ───────────────────────────────────────────────────
 function initMap() {
-  map = L.map('map', { center: [59.3293, 18.0686], zoom: 12, zoomControl: true });
+  map = L.map('map', { center: [59.3293, 18.0686], zoom: 12, zoomControl: true,
+    preferCanvas:true, zoomAnimation:true, markerZoomAnimation:true,
+    wheelPxPerZoomLevel:90, zoomSnap:0.5 });
   map.on('zoomend', () => {
     if (_slSelectedStations.size > 0) refreshSlStationMarkers();
   });
-  const tileOpts = { detectRetina:true, maxZoom:19, maxNativeZoom:19 };
+  const tileOpts = { detectRetina:false, maxZoom:20, maxNativeZoom:19,
+    updateWhenIdle:true, updateWhenZooming:false, keepBuffer:2 };
   layers = {
     'tf-transport': L.tileLayer(`https://tile.thunderforest.com/transport/{z}/{x}/{y}.png?apikey=${TF_KEY}`,
       Object.assign({}, tileOpts, { attribution:'&copy; <a href="https://www.thunderforest.com/">Thunderforest</a>, &copy; OpenStreetMap' })),
     'tf-cycle':     L.tileLayer(`https://tile.thunderforest.com/cycle/{z}/{x}/{y}.png?apikey=${TF_KEY}`,
       Object.assign({}, tileOpts, { attribution:'&copy; Thunderforest, &copy; OpenStreetMap' })),
-    'osm':          L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
+    'osm':          L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',
       Object.assign({}, tileOpts, { attribution:'&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>' })),
   };
   layers[activeLayerKey].addTo(map);
@@ -2468,14 +2475,14 @@ document.addEventListener('keydown', e => {
 });
 
 // ── THEME ──────────────────────────────────────────────────────
-const THEMES = ['dark','light','bambu'];
-const THEME_LABELS = { dark:'🌙 Dark', light:'☀️ Light', bambu:'🎋 Bambu' };
+const THEMES = ['bambu','kelp','dark','light'];
+const THEME_LABELS = { dark:'🌙 Dark', light:'☀️ Light', bambu:'🎋 Bamboo', kelp:'🌿 Kelp' };
 let currentTheme = 'bambu';
 document.body.classList.add('bambu');
 
 function applyTheme(theme, save=true) {
   currentTheme = THEMES.includes(theme) ? theme : 'bambu';
-  document.body.classList.remove('light','bambu');
+  document.body.classList.remove('light','bambu','kelp');
   if (currentTheme !== 'dark') document.body.classList.add(currentTheme);
   const s = document.getElementById('theme-sp-status');
   if (s) s.textContent = THEME_LABELS[currentTheme];
@@ -3803,8 +3810,8 @@ function resetAllData() {
 <script src="measuring-data.js"></script>
 <script src="matching-area-data.js"></script>
 <script src="sl-line-voronoi-data.js?v=1"></script>
-<script src="questions.js?v=62"></script>
-<script src="vehicles.js?v=3"></script>
+<script src="questions.js?v=63"></script>
+<script src="vehicles.js?v=4"></script>
 <script src="curses.js?v=5"></script>
 
 <!-- Firebase module bootstrap -->
@@ -4905,10 +4912,15 @@ function timelineFitPath() {
   }
 }
 </script>
-<script src="map-experience.js?v=1"></script>
-<script src="question-experience.js?v=1"></script>
+<script src="map-utils.js?v=3"></script>
+<script src="map-experience.js?v=3"></script>
+<script src="advanced-map.js?v=3"></script>
+<script src="map-3d.js?v=3"></script>
+<script src="question-experience.js?v=3"></script>
 <script src="tracker-experience.js?v=1"></script>
 <script src="departure-board.js?v=1"></script>
-<script src="app-shell.js?v=1"></script>
+<script src="app-shell.js?v=3"></script>
+<script src="position-experience.js?v=3"></script>
+<script src="field-lab.js?v=3"></script>
 </body>
 </html>

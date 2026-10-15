@@ -212,16 +212,17 @@ function freshVehicleList() {
   if (!_lastVehicles || Date.now() - _vehicleReceivedAt > VEHICLE_STALE_MS) return [];
   return _lastVehicles.filter(v => v.timestamp === null || Date.now() - v.timestamp <= VEHICLE_STALE_MS);
 }
-function matchesVehicleFilters(v) {
+function matchesVehicleFilters(v, boundsOverride) {
   const info = resolveVehicle(v), q = _vehicleFilters.query.trim().toLowerCase();
   if (_vehicleFilters.type !== 'all' && info.type !== _vehicleFilters.type) return false;
   if (q && ![info.line,v.id,v.label || '',vehicleTransportLabel(info.type)].join(' ').toLowerCase().includes(q)) return false;
-  if (_vehicleFilters.inView && map && !map.getBounds().contains([v.lat,v.lng])) return false;
+  const bounds = boundsOverride || (map && map.getBounds());
+  if (_vehicleFilters.inView && bounds && !bounds.contains([v.lat,v.lng])) return false;
   return true;
 }
-function displayedVehicleList() {
+function displayedVehicleList(boundsOverride) {
   const wanted = typeof routesForSlMap === 'function' ? new Set(routesForSlMap().map(r => String(r.ref))) : new Set();
-  return freshVehicleList().filter(v => matchesVehicleFilters(v) && (trainsEnabled || (typeof _slLineLive !== 'undefined' && _slLineLive && wanted.has(resolveVehicle(v).line))));
+  return freshVehicleList().filter(v => matchesVehicleFilters(v,boundsOverride) && (trainsEnabled || (typeof _slLineLive !== 'undefined' && _slLineLive && wanted.has(resolveVehicle(v).line))));
 }
 function vehicleTooltip(v) {
   const info = resolveVehicle(v), dir = bearingToCompass(v.bearing);
@@ -419,8 +420,8 @@ function setVehicleFilters(changes) {
   try { localStorage.setItem('lampskene_tracker_filters_v1',JSON.stringify(_vehicleFilters)); } catch (_) {}
   refreshVehiclePresentation();
 }
-function vehicleTrackerState() {
-  const now = Date.now(), vehicles = displayedVehicleList();
+function vehicleTrackerState(boundsOverride) {
+  const now = Date.now(), vehicles = displayedVehicleList(boundsOverride);
   return { enabled:activeVehicleConsumers(), allEnabled:trainsEnabled, linesEnabled:_slLineLive, paused:_vehiclePaused, loading:Boolean(_vehicleRequest), error:_vehicleError, receivedAt:_vehicleReceivedAt, age:_vehicleReceivedAt ? Math.max(0,now - _vehicleReceivedAt) : null, filters:Object.assign({},_vehicleFilters), selectedId:_vehicleSelectedId, followId:_vehicleFollowId, projectionOn:_vehicleProjectionOn, vehicles, total:freshVehicleList().length, selected:vehicles.find(v => v.id === _vehicleSelectedId) || null };
 }
 function emitVehicleUpdate() {
