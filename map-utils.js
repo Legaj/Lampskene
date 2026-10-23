@@ -2,6 +2,18 @@
 (function(root) {
   'use strict';
   const validPoint=p=>Boolean(p && Number.isFinite(p.lat) && Number.isFinite(p.lng) && Math.abs(p.lat)<=85.051129 && Math.abs(p.lng)<=180);
+  // Basemaps are mutually exclusive. Leave independent reference, question and
+  // player layers alone, including when recovering from a previous interrupted switch.
+  function replaceBaseLayer(map,layers,key) {
+    const next=layers?.[key];
+    if(!map||!next)return false;
+    for(const layer of new Set(Object.values(layers))) {
+      if(layer!==next&&map.hasLayer(layer))map.removeLayer(layer);
+    }
+    next.setZIndex?.(0);
+    if(!map.hasLayer(next))next.addTo(map);
+    return true;
+  }
   const distance=(a,b)=>{
     const r=Math.PI/180, dLat=(b.lat-a.lat)*r, dLng=(b.lng-a.lng)*r;
     const h=Math.sin(dLat/2)**2+Math.cos(a.lat*r)*Math.cos(b.lat*r)*Math.sin(dLng/2)**2;
@@ -75,7 +87,7 @@
     }
     return {type:'FeatureCollection',features,truncated:data.elements.length>=1000,updated:data.osm3s?.timestamp_osm_base||null};
   }
-  const api={validPoint,distance,bearing,destination,vehicleFootprint,DETAILS,overpassQuery,normalizeDetails};
+  const api={validPoint,replaceBaseLayer,distance,bearing,destination,vehicleFootprint,DETAILS,overpassQuery,normalizeDetails};
   if(typeof module==='object'&&module.exports)module.exports=api;
   root.lampskeneGeo=api;
 })(typeof window==='object'?window:globalThis);

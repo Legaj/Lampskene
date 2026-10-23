@@ -458,18 +458,18 @@ function addHiderLocationCard() {
   card.innerHTML = `
     <div class="q-card-header">
       <svg width="14" height="16" viewBox="0 0 34 40" style="flex-shrink:0"><path d="M17 38C17 38 2 22 2 13A15 15 0 0 1 32 13C32 22 17 38 17 38Z" fill="#e8557a" stroke="rgba(0,0,0,.25)" stroke-width="1.5"/><circle cx="17" cy="13" r="5.5" fill="rgba(255,255,255,.3)"/></svg>
-      <span class="q-title">Hiding Spot</span><span class="q-num">#0</span>
+      <span class="q-title">Hiding pin</span>
     </div>
     <div class="q-card-body">
-      <div class="q-label">Tap the map to place your pin</div>
+      <div class="q-label">Private location</div>
       <div id="hider-pin-coords" class="coord-disp"></div>
       <div class="icon-btns">
-        <button class="icon-btn go-btn disabled" id="hider-goto-btn" onclick="goToHiderPin()">📍 Go to Pin</button>
-        <button class="icon-btn disabled" id="hider-lock-btn" onclick="toggleHiderLock()">🔒 Lock</button>
+        <button class="icon-btn go-btn" id="hider-goto-btn" onclick="goToHiderPin()">Place pin</button>
+        <button class="icon-btn disabled" id="hider-lock-btn" onclick="toggleHiderLock()">Lock</button>
       </div>
       <div class="icon-btns" style="margin-top:4px">
-        <button class="icon-btn disabled" id="hider-copy-endzone-btn" onclick="copyEndgameZoneCode()" style="border-color:rgba(85,221,170,.4);color:#55ddaa;background:rgba(85,221,170,.08)">📋 Copy Endgame Code</button>
-        <button class="icon-btn disabled" id="hider-start-endgame-btn" onclick="startEndgameNow()" style="border-color:rgba(85,221,170,.4);color:#55ddaa;background:rgba(85,221,170,.08)">🏁 Start Endgame</button>
+        <button class="icon-btn disabled" id="hider-copy-endzone-btn" onclick="copyEndgameZoneCode()">Copy zone</button>
+        <button class="icon-btn disabled" id="hider-start-endgame-btn" onclick="startEndgameNow()">Start endgame</button>
       </div>
     </div>`;
   ql.appendChild(card);
@@ -629,7 +629,7 @@ function renderSeekerThermoCard(q) {
   const ql = document.getElementById('question-list');
   const card = document.createElement('div');
   card.className = 'q-card thermo'; card.id = `q-card-${q.id}`;
-  const borderOn = q.thermoBorder || false;
+  const borderOn = thermoBorderVisible(q);
   card.innerHTML = `
     <div class="q-card-header"><span style="font-size:14px">🌡️</span><span class="q-title">Thermometer</span><span class="q-num">#${q.id}</span></div>
     <div class="q-card-body">
@@ -663,7 +663,7 @@ function renderSeekerThermoCard(q) {
 function placeThermoPin(q, pin) {
   const lat=pin==='A'?q.latA:q.latB, lng=pin==='A'?q.lngA:q.lngB, color=pin==='A'?'#f5d020':'#f59520', key=pin==='A'?'markerA':'markerB';
   if(q[key]) map.removeLayer(q[key]);
-  q[key]=L.marker([lat,lng],{icon:tearDropIcon(color,30),draggable:!q.locked}).addTo(map);
+  q[key]=L.marker([lat,lng],{icon:tearDropIcon(color,30,pin),draggable:!q.locked}).addTo(map);
   q[key].on('dragstart', e => rememberPinStart(q, pin === 'A' ? 'thermoA' : 'thermoB', e.target.getLatLng()));
   q[key].on('dragend',e=>{const p=e.target.getLatLng();recordPinMove(q, pin === 'A' ? 'thermoA' : 'thermoB', q._pinStart, p);if(pin==='A'){q.latA=p.lat;q.lngA=p.lng;}else{q.latB=p.lat;q.lngB=p.lng;}updateThermoDistance(q);const el=document.getElementById(`coord-${pin.toLowerCase()}-${q.id}`);if(el)el.textContent=`${p.lat.toFixed(4)}, ${p.lng.toFixed(4)}`;redrawQuestionOverlay(q);redrawThermoBorders();if(typeof saveState!=='undefined')saveState();});
   applyQuestionMoveLocks();
@@ -681,7 +681,8 @@ function toggleThermoLock(id){
   if(typeof saveState==='function')saveState();
 }
 function setCloser(id,closer){const q=questions.find(x=>x.id===id);q.closer=closer;_qRefreshSummary(q);document.getElementById(`cpend-${id}`).className='closer-btn'+(closer==='pending'?' active-pend':'');document.getElementById(`ca-${id}`).className='closer-btn'+(closer==='A'?' active-a':'');document.getElementById(`cb-${id}`).className='closer-btn'+(closer==='B'?' active-b':'');redrawQuestionOverlay(q);if(typeof saveState==='function')saveState();}
-function toggleThermoBorder(id){const q=questions.find(x=>x.id===id);if(!q)return;q.thermoBorder=!q.thermoBorder;const btn=document.getElementById(`tborder-btn-${id}`);if(btn){btn.style.borderColor=q.thermoBorder?'#f5d020':'';btn.style.color=q.thermoBorder?'#f5d020':'';btn.style.background=q.thermoBorder?'rgba(245,208,32,.12)':'';}redrawThermoBorders();if(typeof saveState!=='undefined')saveState();}
+function thermoBorderVisible(q){return typeof q.thermoBorder === 'boolean' ? q.thermoBorder : _thermoBordersOn;}
+function toggleThermoBorder(id){const q=questions.find(x=>x.id===id);if(!q)return;q.thermoBorder=!thermoBorderVisible(q);const btn=document.getElementById(`tborder-btn-${id}`);if(btn){btn.style.borderColor=q.thermoBorder?'#f5d020':'';btn.style.color=q.thermoBorder?'#f5d020':'';btn.style.background=q.thermoBorder?'rgba(245,208,32,.12)':'';}redrawThermoBorders();if(typeof saveState!=='undefined')saveState();}
 function copyThermoCode(id){const q=questions.find(x=>x.id===id);if(q)copyQuestionText(questionCode(q),document.getElementById(`tcopy-btn-${id}`));}
 
 function setZone(id,zone){
@@ -703,6 +704,7 @@ let _lastPinStart = null;
 let _moveLockEnabled = false;
 let _thermoBordersOn = false;
 let _thermoBorderLayer = null;
+let _thermoBorderRenderer = null;
 let _thermoBorderMapHooked = false;
 
 function rememberPinStart(q, pin, latlng) {
@@ -819,15 +821,19 @@ function toggleThermoBorders() { setThermoBordersEnabled(!_thermoBordersOn); }
 function redrawThermoBorders() {
   if (_thermoBorderLayer) _thermoBorderLayer.clearLayers();
   if (!map) return;
+  if (!_thermoBorderMapHooked) { map.on('moveend zoomend', redrawThermoBorders); _thermoBorderMapHooked = true; }
   if (!_thermoBorderLayer) _thermoBorderLayer = L.layerGroup().addTo(map);
+  if (!_thermoBorderRenderer) _thermoBorderRenderer = L.svg({padding:.5});
   for (const q of questions.filter(x => x.type === 'thermo')) {
-    if (!q.thermoBorder) continue;
+    if (!thermoBorderVisible(q) || ![q.latA,q.lngA,q.latB,q.lngB].every(Number.isFinite)) continue;
     const pA = map.latLngToLayerPoint(L.latLng(q.latA,q.lngA)), pB = map.latLngToLayerPoint(L.latLng(q.latB,q.lngB));
-    const mx = (pA.x+pB.x)/2, my = (pA.y+pB.y)/2, dx = pB.x-pA.x, dy = pB.y-pA.y, len = Math.hypot(dx,dy) || 1;
+    const mx = (pA.x+pB.x)/2, my = (pA.y+pB.y)/2, dx = pB.x-pA.x, dy = pB.y-pA.y, len = Math.hypot(dx,dy);
+    if (!Number.isFinite(len) || len < .001) continue;
     const bx = -dy/len, by = dx/len, p = overlayPad();
     const p1 = map.layerPointToLatLng(L.point(mx + bx*p, my + by*p));
     const p2 = map.layerPointToLatLng(L.point(mx - bx*p, my - by*p));
-    L.polyline([p1,p2], { color:'#1a1a1a', weight:2.5, opacity:.9, dashArray:'8 8', interactive:false }).addTo(_thermoBorderLayer);
+    L.polyline([p1,p2], { renderer:_thermoBorderRenderer, className:'thermo-boundary-halo', color:'#fff', weight:5, opacity:.85, interactive:false }).addTo(_thermoBorderLayer);
+    L.polyline([p1,p2], { renderer:_thermoBorderRenderer, className:'thermo-boundary-line', color:'#687469', weight:2, opacity:1, dashArray:'5 6', lineCap:'round', interactive:false }).addTo(_thermoBorderLayer);
   }
 }
 
@@ -2472,16 +2478,16 @@ function addEndgameCard() {
   card.innerHTML = `
     <div class="q-card-header" style="background:rgba(232,85,122,.12)">
       <svg width="14" height="16" viewBox="0 0 34 40" style="flex-shrink:0"><path d="M17 38C17 38 2 22 2 13A15 15 0 0 1 32 13C32 22 17 38 17 38Z" fill="#e8557a" stroke="rgba(0,0,0,.25)" stroke-width="1.5"/><circle cx="17" cy="13" r="5.5" fill="rgba(255,255,255,.3)"/></svg>
-      <span class="q-title" style="color:#e8557a">🏁 Endgame Spot</span>
+      <span class="q-title">Endgame pin</span>
     </div>
     <div class="q-card-body">
-      <div class="q-label">Tap the map to place your endgame pin</div>
-      <div id="endgame-pin-coords" class="coord-disp">Not placed yet</div>
+      <div class="q-label">Endgame location</div>
+      <div id="endgame-pin-coords" class="coord-disp">No pin</div>
       <div class="icon-btns">
-        <button class="icon-btn go-btn" id="endgame-goto-btn" onclick="goToEndgamePin()" style="border-color:rgba(232,85,122,.4);color:#e8557a" disabled>📍 Go to Pin</button>
-        <button class="icon-btn" id="endgame-lock-btn" onclick="toggleEndgameLock()" disabled>🔒 Lock</button>
+        <button class="icon-btn go-btn" id="endgame-goto-btn" onclick="goToEndgamePin()">Place pin</button>
+        <button class="icon-btn" id="endgame-lock-btn" onclick="toggleEndgameLock()" disabled>Lock</button>
       </div>
-      <div id="endgame-status" class="answer-badge waiting" style="margin-top:4px">Place your endgame pin on the map…</div>
+      <div id="endgame-status" class="answer-badge waiting" style="margin-top:4px">Not placed</div>
     </div>`;
   ql.appendChild(card);
 
@@ -2918,7 +2924,7 @@ function angleQuestionSetupMap(q) {
       if (typeof saveState !== 'undefined') saveState();
     }
   });
-  q._centerMarker.bindTooltip('Center Pin', { direction: 'top', offset: [0, -15], className: 'aq-label' }).openTooltip();
+  q._centerMarker.bindTooltip('Center', { direction: 'top', offset: [0, -15], className: 'qe-pin-label' });
 
   // Direction pin (drag)
   q._dirMarker = L.marker([q.direction.lat, q.direction.lng], {
@@ -2934,7 +2940,7 @@ function angleQuestionSetupMap(q) {
       if (typeof saveState !== 'undefined') saveState();
     }
   });
-  q._dirMarker.bindTooltip('Direction Pin', { direction: 'top', offset: [0, -15], className: 'aq-label' }).openTooltip();
+  q._dirMarker.bindTooltip('Direction', { direction: 'top', offset: [0, -15], className: 'qe-pin-label' });
 
   angleQuestionUpdateGeometry(q);
   q._mapMoveHandler = () => angleQuestionUpdateGeometry(q);
@@ -2983,12 +2989,12 @@ function angleQuestionUpdateGeometry(q) {
   }
   const dist = map.distance([q.center.lat, q.center.lng], [q.direction.lat, q.direction.lng]);
   q._line = L.polyline([[lineStart.lat, lineStart.lng], [q.direction.lat, q.direction.lng]], {
-    color: '#7f1e94', dashArray: '6,8', weight: 5, opacity: 0.65
+    color: '#9274ac', dashArray: '4 6', weight: 2, opacity: 0.85
   }).addTo(groups.geometry);
   q._distTip = L.circleMarker([(lineStart.lat + q.direction.lat)/2, (lineStart.lng + q.direction.lng)/2], {
     radius: 1, fillOpacity: 0, opacity: 0
   }).bindTooltip((dist<1000?dist.toFixed(0)+' m':(dist/1000).toFixed(2)+' km'), {
-    className:'aq-label-d', direction:'top', offset:[0,-6], permanent:true
+    className:'qe-pin-label', direction:'top', offset:[0,-6], permanent:false
   }).addTo(groups.geometry);
   if (q.zone === 'inside' || q.zone === 'outside') {
     redrawQuestionOverlay();

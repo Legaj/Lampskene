@@ -42,6 +42,36 @@ body.app-shell.kelp {
   --shell-shadow: 0 14px 45px rgba(40, 65, 41, .13);
   --radar: #a85324; --radar-bg: rgba(168, 83, 36, .08); --radar-border: rgba(168, 83, 36, .3);
 }
+body.app-shell.sepia {
+  color-scheme: light;
+  --bg: #e8dfcf; --surface: #fbf5e9; --surface2: #f0e7d6;
+  --border: #d9cbb4; --border2: #b8a17f;
+  --accent: #79552e; --accent2: #9b462d;
+  --text: #382c20; --text2: #695742; --muted: #7b684f;
+  --radar: #9b462d; --radar-bg: #9b462d0d; --radar-border: #9b462d40;
+  --shell-shadow: 0 10px 32px #49341e20;
+}
+body.app-shell.ocean {
+  color-scheme: dark;
+  --bg: #0c1c2a; --surface: #122a3b; --surface2: #1b374b;
+  --border: #304c61; --border2: #496b81;
+  --accent: #81d7e8; --accent2: #ffc18d;
+  --text: #edf7fb; --text2: #b9cfdd; --muted: #96b3c5;
+}
+body.app-shell.dusk {
+  color-scheme: dark;
+  --bg: #211d2c; --surface: #2b2539; --surface2: #383148;
+  --border: #4e435f; --border2: #716281;
+  --accent: #d1b8fa; --accent2: #f4b5a6;
+  --text: #f6f0fc; --text2: #cfc0df; --muted: #b5a3c8;
+}
+body.app-shell.graphite {
+  color-scheme: dark;
+  --bg: #191a1b; --surface: #242628; --surface2: #303336;
+  --border: #43484c; --border2: #646d74;
+  --accent: #d4e1cb; --accent2: #e6bb92;
+  --text: #f2f3f3; --text2: #c7cdcf; --muted: #a5b0b5;
+}
 body.app-shell.bambu {
   color-scheme: light;
   --bg: #eaddc5; --surface: #fff8ec; --surface2: #f1e4ce;
@@ -187,7 +217,7 @@ body.app-shell.shell-panel-open #timeline-panel { visibility: hidden; pointer-ev
 .app-shell .tracker-body { max-height: min(480px, 50dvh); }
 .app-shell #sidebar-footer { padding: 12px; background: var(--surface); max-height: 46%; overflow-y: auto; overscroll-behavior: contain; }
 .app-shell .add-q-btn { background: var(--accent); border: 1px solid var(--accent); color: var(--surface); border-radius: 10px; min-height: 44px; font-size: 13px; font-weight: 650; letter-spacing: 0; text-transform: none; }
-body.app-shell:not(.light):not(.bambu):not(.kelp) .add-q-btn { color: #10251e; }
+body.app-shell:not(.light):not(.bambu):not(.kelp):not(.sepia) .add-q-btn { color: #10251e; }
 .app-shell .type-option { min-height: 46px; font-size: 12px; text-transform: none; letter-spacing: 0; }
 .app-shell .decode-btn, .app-shell .code-input, .app-shell .sl-search, .app-shell .cp-search, .app-shell #cp-num-input { min-height: 44px; font-size: 13px; letter-spacing: 0; border-radius: 9px; }
 .app-shell .q-label { font-size: 11px; letter-spacing: .1px; text-transform: none; }
@@ -238,15 +268,15 @@ body.app-shell:not(.light):not(.bambu):not(.kelp) .add-q-btn { color: #10251e; }
 .app-shell .sp-btn.sp-active { border-color: var(--accent); color: var(--accent); background: color-mix(in srgb, var(--accent) 8%, var(--surface)); }
 .app-shell .layer-btn.active { color: var(--surface); }
 .app-shell .sl-line-action.on, .app-shell .cp-action-btn.cp-in-deck, .app-shell .cp-lock-btn:not(.cp-unlocked) { color: var(--accent); border-color: var(--accent); }
-body.app-shell:is(.light, .bambu, .kelp) .thermo-dist, body.app-shell:is(.light, .bambu, .kelp) .q-card.thermo .q-title, body.app-shell:is(.light, .bambu, .kelp) .closer-btn.active-a { color: #846511 !important; }
-body.app-shell:is(.light, .bambu, .kelp) .q-card.matching .q-title, body.app-shell:is(.light, .bambu, .kelp) .zone-btn.active-in, body.app-shell:is(.light, .bambu, .kelp) .answer-badge.inside, body.app-shell:is(.light, .bambu, .kelp) .copy-btn.copied, body.app-shell:is(.light, .bambu, .kelp) .cp-badge-green { color: #276143 !important; }
-body.app-shell:is(.light, .bambu, .kelp) .q-card.measuring .q-title { color: #17667c !important; }
-body.app-shell:is(.light, .bambu, .kelp) .closer-btn.active-b, body.app-shell:is(.light, .bambu, .kelp) .cp-badge-orange { color: #985013 !important; }
-body.app-shell:is(.light, .bambu, .kelp) .closer-btn.active-pend, body.app-shell:is(.light, .bambu, .kelp) .cp-badge-yellow { color: #786014 !important; }
-body.app-shell:is(.light, .bambu, .kelp) .zone-btn.active-out, body.app-shell:is(.light, .bambu, .kelp) .answer-badge.outside, body.app-shell:is(.light, .bambu, .kelp) .cp-badge-blue { color: #32618a !important; }
-body.app-shell:is(.light, .bambu, .kelp) .q-card.hide-loc .q-title, body.app-shell:is(.light, .bambu, .kelp) .cp-badge-red { color: #b03359 !important; }
-body.app-shell:is(.light, .bambu, .kelp) .unit-btn.active { color: #fff; }
-body.app-shell:not(.light):not(.bambu):not(.kelp) .angleq-card .q-title, body.app-shell:not(.light):not(.bambu):not(.kelp) .angleq-card .copy-btn { color: #c9a3ff !important; }
+body.app-shell:is(.light, .bambu, .kelp, .sepia) .thermo-dist, body.app-shell:is(.light, .bambu, .kelp, .sepia) .q-card.thermo .q-title, body.app-shell:is(.light, .bambu, .kelp, .sepia) .closer-btn.active-a { color: #846511 !important; }
+body.app-shell:is(.light, .bambu, .kelp, .sepia) .q-card.matching .q-title, body.app-shell:is(.light, .bambu, .kelp, .sepia) .zone-btn.active-in, body.app-shell:is(.light, .bambu, .kelp, .sepia) .answer-badge.inside, body.app-shell:is(.light, .bambu, .kelp, .sepia) .copy-btn.copied, body.app-shell:is(.light, .bambu, .kelp, .sepia) .cp-badge-green { color: #276143 !important; }
+body.app-shell:is(.light, .bambu, .kelp, .sepia) .q-card.measuring .q-title { color: #17667c !important; }
+body.app-shell:is(.light, .bambu, .kelp, .sepia) .closer-btn.active-b, body.app-shell:is(.light, .bambu, .kelp, .sepia) .cp-badge-orange { color: #985013 !important; }
+body.app-shell:is(.light, .bambu, .kelp, .sepia) .closer-btn.active-pend, body.app-shell:is(.light, .bambu, .kelp, .sepia) .cp-badge-yellow { color: #786014 !important; }
+body.app-shell:is(.light, .bambu, .kelp, .sepia) .zone-btn.active-out, body.app-shell:is(.light, .bambu, .kelp, .sepia) .answer-badge.outside, body.app-shell:is(.light, .bambu, .kelp, .sepia) .cp-badge-blue { color: #32618a !important; }
+body.app-shell:is(.light, .bambu, .kelp, .sepia) .q-card.hide-loc .q-title, body.app-shell:is(.light, .bambu, .kelp, .sepia) .cp-badge-red { color: #b03359 !important; }
+body.app-shell:is(.light, .bambu, .kelp, .sepia) .unit-btn.active { color: #fff; }
+body.app-shell:not(.light):not(.bambu):not(.kelp):not(.sepia) .angleq-card .q-title, body.app-shell:not(.light):not(.bambu):not(.kelp):not(.sepia) .angleq-card .copy-btn { color: #c9a3ff !important; }
 .app-shell .sp-btn > span:last-child:not(:first-child) { font-size: 10px; font-weight: 750; flex-shrink: 0; letter-spacing: .2px; }
 .shell-setting-description { color: var(--muted); font-size: 11px; line-height: 1.5; margin-top: 6px; }
 .app-shell .sp-slider-row { min-height: 36px; gap: 12px; }
@@ -310,7 +340,7 @@ body.app-shell #curse-fab { display: none !important; }
 .shell-help-actions { display: flex; gap: 8px; margin-top: 20px; }
 .shell-primary, .shell-secondary { min-height: 44px; padding: 10px 16px; font-size: 13px; border-radius: 10px; font-weight: 650; cursor: pointer; }
 .shell-primary { background: var(--accent); color: var(--surface); border: 1px solid var(--accent); }
-body.app-shell:not(.light):not(.bambu):not(.kelp) .shell-primary { color: #10251e; }
+body.app-shell:not(.light):not(.bambu):not(.kelp):not(.sepia) .shell-primary { color: #10251e; }
 .shell-secondary { background: var(--surface2); border: 1px solid var(--border2); color: var(--text2); }
 .app-shell #mode-screen { padding: 32px 20px; gap: 22px; background: radial-gradient(ellipse at 50% 40%, var(--surface2), var(--bg) 68%); }
 .app-shell #mode-screen h1 { font: 800 clamp(40px, 7vw, 60px)/1 -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; letter-spacing: -2px; color: var(--text); }
@@ -482,4 +512,66 @@ body.app-shell .leaflet-control-zoom a { background: var(--surface) !important; 
   .shell-settings-categories { grid-template-columns: repeat(3, minmax(0, 1fr)); }
   .shell-settings-category { min-height: 90px; padding: 10px; gap: 6px; }
   .shell-settings-category small { display: none; }
+}
+
+/* A single navigation rail and compact, predictable workspaces. */
+.app-shell .shell-panel-subtitle { display: none; }
+.app-shell #sidebar-header, .app-shell .sl-header, .app-shell .cp-header, .app-shell .shell-panel-header { min-height: 54px; padding: 6px 12px; }
+.app-shell .sh-title, .app-shell .sl-header-title, .app-shell .cp-header-title, .app-shell .shell-panel-title { font-size: 17px; }
+.app-shell #shell-settings-body { padding: 8px; }
+.app-shell .shell-settings-categories { display: flex; flex-direction: column; gap: 4px; }
+.app-shell .shell-settings-category { display: flex; flex-direction: row; align-items: center; min-height: 56px; padding: 10px 12px; gap: 12px; border: 1px solid transparent; border-radius: 9px; }
+.app-shell .shell-settings-category > span:last-child { position: static; margin-left: auto; font-size: 23px; line-height: 1; }
+.app-shell .shell-settings-category strong { font-size: 14px; font-weight: 600; }
+.app-shell .shell-settings-category > .shell-icon { width: 20px; height: 20px; }
+.app-shell .shell-settings-section { padding: 12px; }
+.app-shell .shell-settings-section > .sp-label:first-child { margin-bottom: 9px; font-size: 12px; }
+.app-shell .shell-settings-section .sp-btn { min-height: 44px; padding: 8px 10px; font-size: 12px; }
+.app-shell .shell-settings-section .layer-btn { min-height: 44px; }
+.app-shell .settings-title, .app-shell .settings-sub, .app-shell .comfort-hint { display: none; }
+.app-shell .shell-setting-disclosure > summary { min-height: 48px; padding: 10px 12px; font-size: 13px; }
+.app-shell .sp-slider-row { flex-wrap: nowrap; min-height: 44px; }
+.app-shell .sp-slider-row label { min-width: 0; flex: 0 1 100px; overflow-wrap: anywhere; }
+.app-shell .sp-slider-row input { flex: 1; min-width: 30px; }
+.app-shell .sp-slider-row .sp-val { min-width: 38px; text-align: right; }
+.app-shell .shell-settings-section .workspace-hint:not([id]) { display: none; }
+.app-shell .basemap-option { min-height: 52px; grid-template-columns: 26px minmax(0,1fr); padding: 8px; gap: 7px; }
+.app-shell .basemap-option small { display: none; }
+.app-shell .basemap-swatch { grid-row: auto; width: 26px; height: 30px; }
+.app-shell #question-tools .q-filter-row.type-row { display: grid; }
+.app-shell #sidebar #type-picker { padding: 6px; }
+.app-shell #sidebar #type-picker[style*="block"] { display: grid !important; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 4px; }
+.app-shell #sidebar #type-picker .type-option { border: 0; border-radius: 8px; padding: 10px; min-height: 44px; font-size: 13px; gap: 8px; }
+.app-shell #sidebar #type-picker .type-option:hover { background: var(--surface2); }
+.app-shell .shell-question-toolbar > button { min-height: 44px; font-size: 13px; }
+.shell-theme-picker { display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: 6px; }
+.shell-theme-picker button { display: flex; align-items: center; gap: 8px; min-height: 44px; padding: 8px 10px; border: 1px solid var(--border); border-radius: 9px; background: var(--surface); color: var(--text); cursor: pointer; font-size: 12px; }
+.shell-theme-picker button[aria-pressed="true"] { border-color: var(--accent); background: var(--surface2); }
+.shell-theme-check { margin-left: auto; color: var(--accent); visibility: hidden; }
+[aria-pressed="true"] > .shell-theme-check { visibility: visible; }
+.shell-theme-dot { flex: 0 0 18px; height: 18px; border: 1px solid #8885; border-radius: 50%; background: linear-gradient(135deg, var(--theme-paper) 50%, var(--theme-ink) 50%); }
+[data-theme-choice="bambu"] { --theme-paper: #fff8ec; --theme-ink: #72552e; }
+[data-theme-choice="kelp"] { --theme-paper: #fcfcf6; --theme-ink: #416b49; }
+[data-theme-choice="dark"] { --theme-paper: #14212b; --theme-ink: #80e0bd; }
+[data-theme-choice="light"] { --theme-paper: #fff; --theme-ink: #16664d; }
+[data-theme-choice="sepia"] { --theme-paper: #fbf5e9; --theme-ink: #79552e; }
+[data-theme-choice="ocean"] { --theme-paper: #122a3b; --theme-ink: #81d7e8; }
+[data-theme-choice="dusk"] { --theme-paper: #2b2539; --theme-ink: #d1b8fa; }
+[data-theme-choice="graphite"] { --theme-paper: #242628; --theme-ink: #d4e1cb; }
+.app-shell .cp-item-header { min-height: 48px; padding: 8px 10px; }
+.app-shell .cp-tabs { flex: 0 0 auto; }
+.app-shell .cp-tab, .app-shell .cp-opt-btn, .app-shell .cp-lock-btn { min-height: 44px; }
+.app-shell .cp-empty-sub { display: none; }
+.app-shell .cp-list { padding: 8px; gap: 6px; }
+@media(max-width:768px) {
+  body.app-shell, body.app-shell.bottom-bar { --header-h: 52px; --shell-nav-h: 58px; }
+  body.app-shell #mobile-nav { gap: 2px; padding-left: max(4px, env(safe-area-inset-left,0px)); padding-right: max(4px, env(safe-area-inset-right,0px)); }
+  .app-shell .mnav-btn { min-width: 0; min-height: 50px; gap: 3px; border-radius: 8px; }
+  .app-shell .mnav-label { font-size: 10px; font-weight: 600; }
+  .app-shell #curse-btn { display: none; }
+  .app-shell #header h1::after { display: none; }
+  .app-shell #mode-badge { max-width: 126px; }
+  .app-shell #sidebar, .app-shell #settings-panel, .app-shell #sl-panel, .app-shell #curse-panel { max-width: none; }
+  .app-shell .shell-question-toolbar > button { min-height: 44px; }
+  .app-shell .shell-nav-badge { right: calc(50% - 24px); top: 0; }
 }

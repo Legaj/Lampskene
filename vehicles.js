@@ -252,7 +252,7 @@ function renderVehicleLayer(target, vehicles, priority) {
 }
 function renderTrainMarkers(vehicles) {
   if (vehicles !== _lastVehicles) _lastVehicles = normalizeVehicleFeed(vehicles,Date.now());
-  renderVehicleLayer(trainMarkers,trainsEnabled ? freshVehicleList().filter(matchesVehicleFilters) : [],10);
+  renderVehicleLayer(trainMarkers,trainsEnabled ? freshVehicleList().filter(v => matchesVehicleFilters(v)) : [],10);
 }
 function clearAllTrainMarkers() {
   for (const id of Object.keys(trainMarkers)) if (map) map.removeLayer(trainMarkers[id]);

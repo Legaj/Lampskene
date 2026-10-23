@@ -16,3 +16,9 @@ body.shell-panel-open .field-measure-bar{visibility:hidden;pointer-events:none}
 .basemap-option[hidden]{display:none!important}.basemap-option small{font-size:11px}.basemap-gallery{gap:9px}.workspace-section>select{margin-bottom:7px}
 @media(max-width:700px){.workspace-section input:not([type=range]),.workspace-section select{font-size:16px!important;min-height:48px}.workspace-btn{min-height:46px}.map-workspace-legend{max-width:180px}.field-source-form{gap:9px}.field-measure-bar{gap:8px;padding:12px}}
 @media(prefers-reduced-motion:reduce){.map-workspace-control{transition:none}}
+.field-action-grid .workspace-btn{min-height:44px;padding:9px 11px;font-size:12px}
+.field-detail-toggle{min-height:44px;padding:8px;gap:7px}
+.field-detail-mark{width:25px;height:25px;border-radius:7px}
+.field-source-card{padding:10px;gap:8px}
+.field-measure-bar{padding:10px 12px;gap:7px}
+@media(max-width:700px){.workspace-section input:not([type=range]),.workspace-section select{min-height:44px}.workspace-btn{min-height:44px}.field-detail-grid{gap:6px}.field-detail-toggle{font-size:12px}}

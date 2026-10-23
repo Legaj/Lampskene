@@ -23,3 +23,15 @@
 .workspace-popup{font:13px/1.5 system-ui,sans-serif;display:flex;flex-direction:column;gap:8px;color:var(--text);min-width:220px}.workspace-popup h3{font-size:17px;line-height:1.3;margin:0}.workspace-popup p{margin:0!important}.workspace-kicker{font-size:10px;color:var(--accent);text-transform:uppercase;letter-spacing:1px}.workspace-coords{font:11px ui-monospace,monospace;color:var(--text2)}
 body.timeline-active #map .leaflet-overlay-pane,body.timeline-active #map .leaflet-marker-pane,body.timeline-active #map .leaflet-shadow-pane,body.timeline-active #map .leaflet-tooltip-pane,body.timeline-active #map .leaflet-game-area-mask-pane{visibility:hidden}
 @media(max-width:768px){.map-workspace-buttons .workspace-btn{min-height:44px;padding:8px 12px}.map-workspace-legend{max-width:210px;font-size:10px}.workspace-section{scroll-margin-top:130px}.map-workspace-control{transition:opacity .15s}body.shell-panel-open .map-workspace-control{visibility:hidden;pointer-events:none}.basemap-option{min-height:72px}.workspace-place-main small{font-size:12px}}
+
+/* Small visual pins retain a generous, transparent touch target. */
+.game-map-pin{display:flex!important;align-items:flex-end;justify-content:center;background:none!important;border:0!important;touch-action:manipulation}
+.game-map-pin svg{flex:none;overflow:visible;filter:drop-shadow(0 1px 2px #132b344d);pointer-events:none}
+.game-map-pin:focus-visible{outline:3px solid var(--accent);outline-offset:2px;border-radius:12px}
+.thermo-boundary-halo{stroke:var(--surface,#fff);stroke-opacity:.92}
+.thermo-boundary-line{stroke:var(--text2,#59675c);stroke-width:2;stroke-dasharray:5 6;stroke-linecap:round}
+.basemap-option{min-height:52px;padding:8px;grid-template-columns:26px minmax(0,1fr);gap:8px}
+.basemap-option .basemap-swatch{grid-row:auto;width:26px;height:32px}
+.basemap-option strong{font-size:12px}
+.map-workspace-buttons .workspace-btn{touch-action:manipulation}
+@media(max-width:768px){.basemap-gallery{gap:6px}.basemap-option{min-height:52px}.map-workspace-legend{max-width:min(230px,calc(100vw - 82px));font-size:10px;padding:4px 7px}}

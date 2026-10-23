@@ -151,7 +151,6 @@
     const panel = document.createElement('aside'); panel.id = 'shell-main-menu-panel';
     panel.innerHTML = `<div class="shell-panel-header"><div class="shell-panel-heading"><div class="shell-panel-title">Account & rounds</div><div class="shell-panel-subtitle">Track players and resume your game</div></div><button type="button" class="shell-close-button" data-shell-close aria-label="Close menu">${icon('close')}</button></div><div id="shell-menu-body" class="shell-panel-scroll"></div>`;
     document.body.append(panel); panels.menu = panel.id;
-    const guide = document.createElement('div'); guide.className = 'shell-menu-guide'; guide.innerHTML = '<button type="button" class="shell-help-link" data-shell-help>Game guide & map help</button>'; byId('shell-menu-body').append(guide);
     const button = document.createElement('button'); button.type = 'button'; button.id = 'shell-main-menu-btn'; button.className = 'hdr-btn';
     byId('header-right')?.prepend(button); buttonTargets[button.id] = 'menu';
     const trackerMenu = window.openTrackerMenu;
@@ -209,11 +208,12 @@
     document.body.append(nav);
     nav.setAttribute('aria-label', 'Game navigation');
     nav.setAttribute('role', 'navigation');
-    byId('mnav-map-btn')?.remove();
-    byId('mnav-curses-btn')?.remove();
-    delete buttonTargets['mnav-curses-btn'];
-    ['mnav-questions-btn', 'mnav-sl-btn', 'mnav-settings-btn'].forEach(id => { const button = byId(id); if (button) nav.append(button); });
-    const labels = { questions: 'Questions', transit: 'Transit', curses: 'Curses', settings: 'Settings', map: 'Map', menu: 'Menu' };
+    if (!byId('mnav-map-btn')) {
+      const mapButton = document.createElement('button'); mapButton.id = 'mnav-map-btn'; mapButton.className = 'mnav-btn'; nav.prepend(mapButton);
+    }
+    buttonTargets['mnav-map-btn'] = 'map';
+    ['mnav-map-btn', 'mnav-questions-btn', 'mnav-sl-btn', 'mnav-curses-btn', 'mnav-settings-btn'].forEach(id => { const button = byId(id); if (button) nav.append(button); });
+    const labels = { questions: 'Questions', transit: 'SL', curses: 'Curses', settings: 'Settings', map: 'Map', menu: 'Menu' };
     for (const [id, target] of Object.entries(buttonTargets)) {
       const button = byId(id);
       if (!button) continue;
@@ -229,11 +229,6 @@
     if (headerLeft) headerLeft.append(byId('menu-btn'));
     const undo = byId('undo-pin-btn');
     if (undo) { undo.innerHTML = icon('undo'); undo.setAttribute('aria-label', 'Undo the last pin move'); }
-    const help = document.createElement('button');
-    help.id = 'shell-help-btn'; help.type = 'button'; help.className = 'hdr-btn'; help.dataset.shellHelp = '';
-    help.title = 'How to play'; help.setAttribute('aria-label', 'How to play');
-    help.innerHTML = `${icon('help')}<span class="hdr-label">Guide</span>`;
-    byId('header-right')?.append(help);
     byId('curse-btn')?.setAttribute('aria-label', 'Open curses');
     const questionBadge = document.createElement('span');
     questionBadge.id = 'shell-question-badge'; questionBadge.className = 'shell-nav-badge'; questionBadge.hidden = true; questionBadge.setAttribute('aria-hidden', 'true');
@@ -257,7 +252,7 @@
           const wrap = document.createElement('div'); wrap.className = 'shell-panel-heading';
           title.before(wrap); wrap.append(title);
           const sub = document.createElement('div'); sub.className = 'shell-panel-subtitle'; sub.textContent = descriptions[name]; wrap.append(sub);
-          if (name === 'transit') title.textContent = 'Transit explorer';
+          if (name === 'transit') title.textContent = 'SL';
           if (name === 'curses') title.textContent = 'Curses';
         }
       }
@@ -340,7 +335,7 @@
     if (seeker) {
       const add = seeker.querySelector('.add-q-btn');
       if (add) {
-        add.textContent = 'Add question'; add.addEventListener('click', () => {
+        add.textContent = '+ Question'; add.addEventListener('click', () => {
           if (byId('shell-seeker-import')) byId('shell-seeker-import').hidden = true;
           if (byId('shell-hider-import')) byId('shell-hider-import').hidden = true;
           document.querySelectorAll('[data-question-import]').forEach(button => button.setAttribute('aria-expanded', 'false'));
@@ -350,8 +345,8 @@
       const picker = byId('type-picker'); if (picker) { picker.classList.add('shell-question-type-sheet'); panel.append(picker); }
       const originalImport = byId('seeker-code-input-wrap');
       if (originalImport) {
-        const sheet = makeQuestionImport('seeker', 'Import a question or answer', originalImport); panel.append(sheet);
-        const button = document.createElement('button'); button.type = 'button'; button.className = 'shell-question-import-button'; button.textContent = 'Import code'; button.dataset.questionImport = 'seeker';
+        const sheet = makeQuestionImport('seeker', 'Import code', originalImport); panel.append(sheet);
+        const button = document.createElement('button'); button.type = 'button'; button.className = 'shell-question-import-button'; button.textContent = 'Paste code'; button.dataset.questionImport = 'seeker';
         button.setAttribute('aria-controls', sheet.id); button.setAttribute('aria-expanded', 'false'); button.addEventListener('click', () => showQuestionImport('seeker', button)); seeker.append(button);
       }
     }
@@ -359,7 +354,7 @@
     if (hider) {
       const originalImport = hider.querySelector('.code-input-wrap');
       if (originalImport) {
-        const sheet = makeQuestionImport('hider', 'Import the seeker’s question', originalImport); panel.append(sheet);
+        const sheet = makeQuestionImport('hider', 'Import code', originalImport); panel.append(sheet);
         const button = document.createElement('button'); button.type = 'button'; button.className = 'add-q-btn'; button.textContent = 'Import question'; button.dataset.questionImport = 'hider';
         button.setAttribute('aria-controls', sheet.id); button.setAttribute('aria-expanded', 'false'); button.addEventListener('click', () => showQuestionImport('hider', button)); hider.prepend(button);
       }
@@ -408,15 +403,30 @@
   }
 
   const settingGroups = [
-    { key: 'map', title: 'Map & layers', icon: 'map', hint: 'Backgrounds, overlays and game area', labels: ['Map Layer', 'Map style', 'Map overlays', 'Map providers', 'Thunderforest Key', 'Game Area'] },
-    { key: 'advanced-map', title: 'Advanced maps', icon: 'map', hint: '3D, local details and custom sources', labels: ['Map tools', 'Map combinations', 'Local details', '3D explorer', 'Custom map sources'] },
-    { key: 'places', title: 'Places & planning', icon: 'questions', hint: 'Find places and keep a shortlist', labels: ['Seeker workspace', 'Distance planning', 'Saved places', 'Place layers', 'Places'] },
+    { key: 'map', title: 'Map & layers', icon: 'map', labels: ['Map Layer', 'Map style', 'Map overlays', 'Map providers', 'Thunderforest Key'] },
+    { key: 'game', title: 'Game & questions', icon: 'questions', labels: ['Game', 'Game Area', 'Curses', 'Questions', 'Round'] },
+    { key: 'appearance', title: 'Appearance', icon: 'settings', labels: ['Layout', 'Display', 'Appearance', 'Performance', 'Comfort'] },
+    { key: 'account', title: 'Account & GPS', icon: 'menu', labels: ['Account', 'Location Sharing', 'Trackers', 'GPS'] },
+    { key: 'places', title: 'Places & planning', icon: 'questions', labels: ['Seeker workspace', 'Distance planning', 'Saved places', 'Place layers', 'Places'] },
+    { key: 'advanced-map', title: 'Map tools', icon: 'map', labels: ['Map tools', 'Map combinations', 'Local details', '3D explorer', 'Custom map sources'] },
     { key: 'transit', title: 'Transit', icon: 'transit', hint: 'Live vehicles, routes and stops', labels: ['Live Trains', 'Live Transit', 'SL Data'] },
-    { key: 'game', title: 'Game & questions', icon: 'curses', hint: 'Clues, pins and game rules', labels: ['Game', 'Curses', 'Questions', 'Round'] },
-    { key: 'appearance', title: 'Appearance', icon: 'settings', hint: 'Theme, layout and comfort', labels: ['Layout', 'Display', 'Appearance', 'Performance', 'Comfort', 'Advanced controls'] },
-    { key: 'account', title: 'Account & GPS', icon: 'menu', hint: 'Player trackers and location', labels: ['Account', 'Location Sharing', 'Trackers', 'GPS'] },
     { key: 'other', title: 'More tools', icon: 'settings', hint: 'Additional game options', labels: [] }
   ];
+
+  function setupAppearance() {
+    const legacy = byId('theme-sp-btn');
+    if (!legacy || typeof THEMES === 'undefined') return;
+    legacy.hidden = true;
+    const picker = document.createElement('div'); picker.className = 'shell-theme-picker'; picker.setAttribute('role', 'group'); picker.setAttribute('aria-label', 'Interface theme');
+    for (const theme of THEMES) {
+      const button = document.createElement('button'); button.type = 'button'; button.dataset.themeChoice = theme;
+      button.innerHTML = `<span class="shell-theme-dot" aria-hidden="true"></span><span>${safeText(THEME_LABELS[theme])}</span><span class="shell-theme-check" aria-hidden="true">✓</span>`;
+      button.addEventListener('click', () => applyTheme(theme)); picker.append(button);
+    }
+    legacy.after(picker);
+    const sync = () => picker.querySelectorAll('[data-theme-choice]').forEach(button => button.setAttribute('aria-pressed', String(button.dataset.themeChoice === currentTheme)));
+    document.addEventListener('jetlag:themechange', sync); sync();
+  }
 
   function refreshSettings() {
     const panel = byId('settings-panel');
@@ -510,10 +520,18 @@
     const panel = byId('settings-panel');
     if (!panel) return;
     const legacyHead = panel.querySelector(':scope > .settings-head');
-    if (legacyHead) {
-      const section = document.createElement('div');
-      const label = document.createElement('div'); label.className = 'sp-label'; label.textContent = 'Advanced controls';
-      section.append(label, legacyHead); panel.append(section);
+    // Settings categories expose their own controls; no global visibility switch.
+    if (legacyHead) legacyHead.hidden = true;
+    const themeSection = byId('theme-sp-btn')?.parentElement;
+    if (themeSection) panel.prepend(themeSection);
+    panel.querySelectorAll('.advanced-only').forEach(node => node.classList.remove('advanced-only'));
+    setupAppearance();
+    const areaLabel = byId('area-mode-normal')?.closest('.sp-pills')?.previousElementSibling;
+    if (areaLabel?.classList.contains('sp-label')) {
+      const section = document.createElement('div'); section.dataset.settingsCategory = 'game';
+      const areaButtons = areaLabel.nextElementSibling; section.append(areaLabel, areaButtons);
+      if (byId('area-opacity-row')) section.append(byId('area-opacity-row'));
+      panel.append(section);
     }
     const search = document.createElement('div'); search.className = 'shell-settings-search'; search.id = 'shell-settings-search-wrap'; search.hidden = true;
     search.innerHTML = '<input id="shell-settings-search" type="search" placeholder="Search all settings…" aria-label="Search all settings" autocomplete="off">';
@@ -521,7 +539,7 @@
     const home = document.createElement('div'); home.id = 'shell-settings-home'; home.className = 'shell-settings-categories';
     settingGroups.forEach(group => {
       const category = document.createElement('button'); category.type = 'button'; category.className = 'shell-settings-category'; category.dataset.settingsCategory = group.key;
-      category.innerHTML = `${icon(group.icon)}<span><strong>${safeText(group.title)}</strong><small>${safeText(group.hint)}</small></span><span aria-hidden="true">›</span>`;
+      category.innerHTML = `${icon(group.icon)}<span><strong>${safeText(group.title)}</strong></span><span aria-hidden="true">›</span>`;
       category.addEventListener('click', () => selectSettingsCategory(group.key)); home.append(category);
     });
     body.append(home);
@@ -534,9 +552,7 @@
     categoryBar.querySelector('button').addEventListener('click', () => selectSettingsCategory(null));
     const empty = document.createElement('div'); empty.id = 'shell-settings-empty'; empty.className = 'shell-settings-empty'; empty.hidden = true;
     empty.textContent = 'No matching settings. Try “map”, “lines” or “theme”.'; body.append(empty);
-    const footer = document.createElement('div'); footer.className = 'shell-settings-footer';
-    footer.innerHTML = '<button type="button" class="shell-help-link" data-shell-help>How to use the game →</button>';
-    panel.append(search, categoryBar, body, footer);
+    panel.append(search, categoryBar, body);
     // Put search immediately below the fixed heading, before the scrolling groups.
     panel.querySelector('.shell-panel-header').after(search);
     search.after(categoryBar);
@@ -563,13 +579,16 @@
     for (const [id, text] of Object.entries(descriptions)) {
       const button = byId(id);
       if (!button) continue;
-      const desc = document.createElement('p'); desc.className = 'shell-setting-description'; desc.id = `${id}-description`; desc.textContent = text;
-      button.after(desc); button.setAttribute('aria-describedby', desc.id);
+      button.title = text;
     }
     const layoutTitle = byId('bottom-bar-btn')?.querySelector('span');
     if (layoutTitle) layoutTitle.textContent = 'Navigation dock on desktop';
     const label = byId('marker-size-slider')?.parentElement?.querySelector('label');
     if (label) label.setAttribute('for', 'marker-size-slider');
+    for (const [id, text] of [['panel-width-slider','Question panel'],['zone-radius-slider','Hiding radius'],['tracker-pull-seconds-new','Tracker refresh']]) {
+      const label = byId(id)?.closest('.sp-slider-row')?.querySelector('label');
+      if (label) { label.textContent = text; label.htmlFor = id; }
+    }
     new MutationObserver(() => {
       if (Array.from(panel.children).some(child => child !== body && child.querySelector(':scope > .sp-label'))) refreshSettings();
     }).observe(panel, { childList: true });

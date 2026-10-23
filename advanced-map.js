@@ -20,17 +20,16 @@
 
   function mount() {
     const tools=section('Map tools','map-tools-settings');
-    tools.append(hint('Fast actions for the map in front of you.'));
     const actions=node('div','field-action-grid');
-    actions.append(btn('Fit question pins',()=>window.lampskeneMap.fitQuestions()),btn('Measure distance',startMeasure),btn('Save map center',()=>{
+    actions.append(btn('Fit pins',()=>window.lampskeneMap.fitQuestions()),btn('Measure',startMeasure),btn('Save center',()=>{
       if(!map)return;const c=map.getCenter();window.lampskeneMap.addBookmark({lat:c.lat,lng:c.lng,name:'Map center '+new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'})});
-    }),btn('Copy map coordinates',()=>copyCenter()),btn('Open 3D explorer',()=>window.lampskene3D?.open()),btn('Find my position',()=>window.lampskenePosition?.locate()));
+    }),btn('Coordinates',()=>copyCenter()),btn('3D map',()=>window.lampskene3D?.open()),btn('My position',()=>window.lampskenePosition?.locate()));
     tools.append(actions);
     const overlays=node('div','field-toggle-list');
     for(const [key,label] of [['labels','Street labels over imagery'],['trails','Marked walking trails']]){
       const control=btn(label,()=>{prefs[key]=!prefs[key];syncOverlays();persist();});control.dataset.fieldOverlay=key;overlays.append(control);
     }
-    tools.append(overlays,hint('Measurements follow straight lines. Walking routes can be longer. Marked trails come from Waymarked Trails.'));
+    tools.append(overlays);
     mountDetails();mountCombinations();mountCustomSources();
     const bar=node('div','field-measure-bar');bar.id='field-measure-bar';bar.hidden=true;
     const readout=node('div');readout.append(node('strong','','Measure distance'),node('span','','Tap map points to trace your route'));readout.lastChild.id='field-measure-readout';
@@ -124,6 +123,7 @@
   function syncOverlays(){
     if(!map)return;
     for(const [key,layer] of [['labels',labelsLayer],['trails',trailsLayer]]){if(!layer)continue;prefs[key]?layer.addTo(map):map.removeLayer(layer);document.querySelectorAll('[data-field-overlay="'+key+'"]').forEach(b=>b.setAttribute('aria-pressed',String(!!prefs[key])));}
+    document.dispatchEvent(new CustomEvent('jetlag:referencechange'));
   }
   function mountCombinations(){
     const host=section('Map combinations','map-combo-settings');host.append(hint('One tap changes the background and reference layers. Question answers stay in place.'));
@@ -153,23 +153,26 @@
   function syncSources(){
     if(!map)return;for(const [id,l] of sourceLayers)if(!prefs.sources.some(s=>s.id===id)){map.removeLayer(l);sourceLayers.delete(id);}
     for(const s of prefs.sources){
-      let layer=sourceLayers.get(s.id);if(!layer){const options={maxZoom:20,maxNativeZoom:19,opacity:Number.isFinite(s.opacity)?s.opacity:.65,updateWhenIdle:true,updateWhenZooming:false,attribution:escapeAttribution(s.attribution)};layer=s.type==='wms'?L.tileLayer.wms(s.url,{...options,layers:s.layers,format:'image/png',transparent:true,version:'1.1.1'}):L.tileLayer(s.url,options);let errors=0,loaded=0;layer.on('tileload',()=>loaded++);layer.on('tileerror',()=>{if(++errors>=5&&!loaded&&s.enabled){s.enabled=false;map.removeLayer(layer);persist();renderSources();showToast(s.name+' unavailable. Check URL, layer name and provider access.',5000);}});sourceLayers.set(s.id,layer);}
+      let layer=sourceLayers.get(s.id);if(!layer){const options={pane:'map-custom-sources',maxZoom:20,maxNativeZoom:19,opacity:Number.isFinite(s.opacity)?s.opacity:.65,updateWhenIdle:true,updateWhenZooming:false,attribution:escapeAttribution(s.attribution)};layer=s.type==='wms'?L.tileLayer.wms(s.url,{...options,layers:s.layers,format:'image/png',transparent:true,version:'1.1.1'}):L.tileLayer(s.url,options);let errors=0,loaded=0;layer.on('tileload',()=>loaded++);layer.on('tileerror',()=>{if(++errors>=5&&!loaded&&s.enabled){s.enabled=false;map.removeLayer(layer);persist();renderSources();showToast(s.name+' unavailable. Check URL, layer name and provider access.',5000);}});sourceLayers.set(s.id,layer);}
       s.enabled?layer.addTo(map):map.removeLayer(layer);layer.setOpacity(Number.isFinite(s.opacity)?s.opacity:.65);
     }
+    document.dispatchEvent(new CustomEvent('jetlag:referencechange'));
   }
   function renderSources(){const list=by('field-source-list');if(!list)return;list.replaceChildren(...prefs.sources.map((s,index)=>{const row=node('div','field-source-card');const toggle=btn(s.name,()=>{s.enabled=!s.enabled;persist();syncSources();renderSources();});toggle.setAttribute('aria-pressed',String(!!s.enabled));const range=node('input');range.type='range';range.min='10';range.max='100';range.value=String(Math.round((s.opacity||.65)*100));range.setAttribute('aria-label',s.name+' opacity');range.addEventListener('input',()=>{s.opacity=+range.value/100;sourceLayers.get(s.id)?.setOpacity(s.opacity);persist();});const remove=btn('Remove',()=>{prefs.sources.splice(index,1);persist();syncSources();renderSources();});row.append(toggle,range,remove);return row;}));}
   function init(){
+    for(const [name,zIndex] of [['map-custom-sources',250],['map-reference',300]]) {
+      const pane=map.getPane(name)||map.createPane(name);pane.style.zIndex=zIndex;pane.style.pointerEvents='none';
+    }
     detailLayer=L.layerGroup().addTo(map);measureLayer=L.layerGroup().addTo(map);
-    labelsLayer=L.tileLayer('https://services.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}',{maxZoom:20,maxNativeZoom:18,pane:'overlayPane',opacity:.9,updateWhenZooming:false,attribution:'Reference labels &copy; Esri'});
-    trailsLayer=L.tileLayer('https://tile.waymarkedtrails.org/hiking/{z}/{x}/{y}.png',{maxZoom:20,maxNativeZoom:18,pane:'overlayPane',updateWhenZooming:false,attribution:'Trails &copy; <a href="https://hiking.waymarkedtrails.org/">Waymarked Trails</a>, OpenStreetMap'});
+    labelsLayer=L.tileLayer('https://services.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}',{maxZoom:20,maxNativeZoom:18,pane:'map-reference',opacity:.9,updateWhenZooming:false,attribution:'Reference labels &copy; Esri'});
+    trailsLayer=L.tileLayer('https://tile.waymarkedtrails.org/hiking/{z}/{x}/{y}.png',{maxZoom:20,maxNativeZoom:18,pane:'map-reference',updateWhenZooming:false,attribution:'Trails &copy; <a href="https://hiking.waymarkedtrails.org/">Waymarked Trails</a>, OpenStreetMap'});
     syncOverlays();syncSources();
     map.on('click',e=>{if(measureMode){points.push({lat:e.latlng.lat,lng:e.latlng.lng});renderMeasure();}});
     map.on('moveend',()=>{if(loadedBounds){detailStatus='Map moved · '+detailData.features.length+' loaded features. Load this area to refresh.';updateDetailStatus();}});
     map.on('zoomstart',()=>document.body.classList.add('field-map-moving'));map.on('zoomend',()=>document.body.classList.remove('field-map-moving'));
   }
-  document.addEventListener('jetlag:basemap',event=>{if(event.detail.key==='orienteering'){prefs.trails=true;persist();syncOverlays();}});
   document.addEventListener('jetlag:panelchange',e=>{if(e.detail.panel!=='map'&&measureMode)finishMeasure();});
   document.addEventListener('keydown',e=>{if(e.key==='Escape'&&measureMode)finishMeasure();});
   mount();const original=window.initMap;window.initMap=function(){original.apply(this,arguments);init();};
-  window.lampskeneMapTools={consumesMapClick:()=>measureMode,startMeasure,stopMeasure,loadDetails,details:()=>({type:'FeatureCollection',features:detailData.features.filter(f=>prefs.details.includes(f.properties.key))}),open:()=>window.appShell?.openSettingsSection('map-tools-settings')};
+  window.lampskeneMapTools={consumesMapClick:()=>measureMode,startMeasure,stopMeasure,loadDetails,details:()=>({type:'FeatureCollection',features:detailData.features.filter(f=>prefs.details.includes(f.properties.key))}),overlays:()=>[prefs.labels?'Labels':null,prefs.trails?'Trails':null,...prefs.sources.filter(s=>s.enabled).map(s=>s.name)].filter(Boolean),open:()=>window.appShell?.openSettingsSection('map-tools-settings')};
 })();

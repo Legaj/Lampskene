@@ -97,7 +97,8 @@
         const btn = button('', () => setBase(item.key), 'basemap-option');
         btn.id = item.id || 'base-' + item.key; btn.dataset.base = item.key;
         btn.setAttribute('aria-pressed', String(item.key === prefs.base));
-        btn.append(el('span', 'basemap-swatch ' + item.look), el('strong', '', item.name), el('small', '', item.detail));
+        btn.title = item.detail;
+        btn.append(el('span', 'basemap-swatch ' + item.look), el('strong', '', item.name));
         gallery.append(btn);
       }
       const filterMaps=()=>{
@@ -111,10 +112,8 @@
       filter.addEventListener('change',filterMaps); filterMaps();
       oldPills.before(filterLabel,filter);
       oldPills.replaceWith(gallery);
-      host.append(el('p', 'workspace-hint', 'Choose a background. Question answers and overlays stay in place.'));
     }
     const overlays = section('Map overlays', 'map-overlay-settings');
-    overlays.append(el('p', 'workspace-hint', 'Blue areas are excluded by your answers. Unshaded areas remain possible.'));
     // Keep the original controls and their IDs; simply move them into the relevant group.
     for (const id of ['transit-layer-btn','city-boundary-btn']) {
       const control = document.getElementById(id); if (control) overlays.append(control);
@@ -132,7 +131,6 @@
       overlays.append(opacityLabel, opacity);
     }
     const workspace = section('Seeker workspace', 'map-workspace-settings');
-    workspace.append(el('p', 'workspace-hint', 'Explore the bundled places, compare them with your answers, and keep a shortlist.'));
     const categoryLabel = el('label', 'workspace-label', 'Place category'); categoryLabel.htmlFor = 'workspace-category';
     const category = el('select'); category.id = 'workspace-category';
     for (const name of categoryList) { const opt = el('option','',name); opt.value = name; category.append(opt); }
@@ -151,7 +149,7 @@
     const placeStatus = el('p','workspace-hint'); placeStatus.id = 'workspace-place-status'; workspace.append(placeStatus);
     const results = el('div','workspace-results'); results.id = 'workspace-results'; workspace.append(results);
     const planning = section('Distance planning', 'map-planning-settings');
-    planning.append(el('p','workspace-hint','Walking rings show straight-line reach at 80 m/min. Paths, water, crossings and delays can make trips longer.'));
+    planning.append(el('p','workspace-hint','Straight-line walking estimate · 80 m/min'));
     const row = el('div','workspace-actions');
     const rings = button('Walking rings', () => {
       prefs.rings = !prefs.rings; if (!prefs.anchor && map) prefs.anchor = map.getCenter(); savePrefs(); drawRings(); syncControls();
@@ -165,7 +163,6 @@
     minutes.value = String(prefs.minutes);
     minutes.addEventListener('change', () => { prefs.minutes = +minutes.value; savePrefs(); drawRings(); }); planning.append(minutes);
     const bookmarks = section('Saved places', 'map-bookmark-settings');
-    bookmarks.append(el('p','workspace-hint','A local shortlist on this device. Save a place from its preview, or save the map center.'));
     const name = el('input'); name.id = 'bookmark-name'; name.placeholder = 'Place name or a short note'; name.maxLength = 80; name.setAttribute('aria-label','Saved place name');
     bookmarks.append(name, button('Save map center', () => {
       if (!map) return; const p = map.getCenter(); addBookmark({name:name.value.trim() || 'Map center',lat:p.lat,lng:p.lng}); name.value = '';
@@ -241,9 +238,9 @@
     if (!map || !layers[key]) return;
     if (key !== activeLayerKey) {
       tileHealth[key] = {ok:0,errors:0};
-      if (layers[activeLayerKey]) map.removeLayer(layers[activeLayerKey]);
-      activeLayerKey = key; layers[key].addTo(map);
     }
+    activeLayerKey = key;
+    window.lampskeneGeo.replaceBaseLayer(map,layers,key);
     prefs.base = key; savePrefs(); syncControls(); renderLegend();
     document.dispatchEvent(new CustomEvent('jetlag:basemap',{detail:{key}}));
   };
@@ -362,6 +359,7 @@
     const pieces = [MAPS.find(m=>m.key===activeLayerKey)?.name || 'Street'];
     if (prefs.places) pieces.push(prefs.category);
     if (prefs.rings) pieces.push(`${prefs.minutes} min rings`);
+    pieces.push(...(window.lampskeneMapTools?.overlays?.() || []));
     legend.textContent = pieces.join(' · ');
   }
   mountSettings();
@@ -375,4 +373,5 @@
   const rebuild = window.rebuildAll;
   window.rebuildAll = function (...args) { const result=rebuild.apply(this,args); clearTimeout(refreshTimer); refreshTimer=setTimeout(()=>{if(prefs.places)refreshPlaces();if(window.appShell?.activePanel==='settings')renderPlaces();},180); return result; };
   window.lampskeneMap = {addBookmark,previewPlace,fitQuestions,openSettings,styles:MAPS.map(({key,name})=>({key,name}))};
+  document.addEventListener('jetlag:referencechange',renderLegend);
 })();

@@ -22,15 +22,15 @@
   }
   function mount(){
     const host=node('section','map3d-explorer');host.id='map3d-explorer';host.hidden=true;host.setAttribute('aria-label','3D map explorer');
-    host.innerHTML='<div id="map3d-canvas"></div><header class="map3d-header"><div><strong>3D explorer</strong><small>Terrain, buildings & live transit</small></div><button type="button" id="map3d-back">Back to game</button></header><div id="map3d-loading" class="map3d-loading" role="status"><strong>Opening 3D map…</strong><p>Only loads when you open this view.</p></div><div class="map3d-toolbar"><button type="button" id="map3d-use-view">Use this view in 2D</button><button type="button" id="map3d-north">North ↑</button><button type="button" id="map3d-tilt">Tilt 55°</button></div><details class="map3d-options"><summary>Layers & display</summary><div id="map3d-toggles"></div><p>Public question pins are shown. Return to 2D for exact answer zones and pin editing. Buildings and heights depend on OpenStreetMap coverage. Vehicle shapes are simplified, not exact fleet models.</p></details><div class="map3d-status" id="map3d-status" role="status">Explore with one finger; use two fingers to rotate and tilt.</div>';
+    host.innerHTML='<div id="map3d-canvas"></div><header class="map3d-header"><div><strong>3D map</strong></div><button type="button" id="map3d-back">Back to game</button></header><div id="map3d-loading" class="map3d-loading" role="status"><strong>Opening 3D map…</strong></div><div class="map3d-toolbar"><button type="button" id="map3d-use-view">Use view in 2D</button><button type="button" id="map3d-north">North ↑</button><button type="button" id="map3d-tilt">Flat</button></div><details class="map3d-options"><summary>Layers</summary><div id="map3d-toggles"></div><p>Edit pins and answer zones in 2D. Terrain and buildings depend on map coverage.</p></details><div class="map3d-status" id="map3d-status" role="status">Two fingers to rotate or tilt</div>';
     document.body.append(host);
     by('map3d-back').addEventListener('click',()=>close());by('map3d-use-view').addEventListener('click',()=>close(true));
-    by('map3d-north').addEventListener('click',()=>gl?.easeTo({bearing:0,duration:350}));by('map3d-tilt').addEventListener('click',()=>{if(!gl)return;const pitch=gl.getPitch()>20?0:55;gl.easeTo({pitch,duration:350});by('map3d-tilt').textContent=pitch?'Tilt 55°':'Flat view';});
-    for(const [key,label] of [['terrain','3D terrain'],['buildings','3D buildings'],['vehicles','Live vehicle models'],['details','Loaded street details']]){
+    by('map3d-north').addEventListener('click',()=>gl?.easeTo({bearing:0,duration:350}));by('map3d-tilt').addEventListener('click',()=>{if(!gl)return;const pitch=gl.getPitch()>20?0:55;gl.easeTo({pitch,duration:350});by('map3d-tilt').textContent=pitch?'Flat':'Tilt';});
+    for(const [key,label] of [['terrain','Terrain'],['buildings','Buildings'],['vehicles','Vehicles'],['details','Local details']]){
       const b=node('button','',label);b.type='button';b.dataset.map3dToggle=key;b.setAttribute('aria-pressed',String(settings[key]));b.addEventListener('click',()=>{settings[key]=!settings[key];syncLayers();});by('map3d-toggles').append(b);
     }
     const transit=node('button','','Enable live transit feed');transit.type='button';transit.id='map3d-enable-transit';transit.addEventListener('click',()=>{if(!window.lampskeneTracker?.state().enabled)window.lampskeneTracker?.toggleAll();});by('map3d-toggles').append(transit);
-    const panel=node('div','workspace-section');panel.id='map-3d-settings';panel.innerHTML='<div class="sp-label">3D explorer</div><p class="workspace-hint">Explore actual terrain, mapped building heights, public question pins and simplified live vehicle models. Loads on demand; close it to free your phone’s graphics resources.</p>';
+    const panel=node('div','workspace-section');panel.id='map-3d-settings';panel.innerHTML='<div class="sp-label">3D map</div>';
     const openButton=node('button','workspace-btn','Open 3D map');openButton.type='button';openButton.addEventListener('click',open);panel.append(openButton);by('settings-panel').append(panel);
   }
   function status(text){by('map3d-status').textContent=text;}
@@ -38,7 +38,7 @@
     if(typeof map==='undefined'||!map)return;
     if(isOpen)return;
     lastFocus=document.activeElement;window.appShell?.close({restoreFocus:false});window.lampskeneQuestions?.closeInspector();window.lampskeneMapTools?.stopMeasure();window.lampskenePosition?.setFollow(false);window.lampskeneTracker?.stopFollowing();
-    isOpen=true;const version=++epoch;by('map3d-explorer').hidden=false;document.body.classList.add('map3d-active');by('map3d-loading').hidden=false;by('map3d-loading').innerHTML='<strong>Opening 3D map…</strong><p>Preparing map and terrain.</p>';by('map3d-back').focus({preventScroll:true});
+    isOpen=true;const version=++epoch;by('map3d-explorer').hidden=false;document.body.classList.add('map3d-active');by('map3d-loading').hidden=false;by('map3d-loading').removeAttribute('data-state');by('map3d-loading').innerHTML='<strong>Opening 3D map…</strong>';by('map3d-tilt').textContent='Flat';by('map3d-back').focus({preventScroll:true});
     try{
       const lib=await loadLibrary();if(version!==epoch||!isOpen)return;
       const probe=document.createElement('canvas'),context=probe.getContext('webgl2');
@@ -57,8 +57,10 @@
   function close(useView=false){
     if(!isOpen)return;epoch++;isOpen=false;clearInterval(refreshInterval);refreshInterval=null;clearTimeout(loadTimer);loadTimer=null;
     const camera=gl&&useView?{center:gl.getCenter(),zoom:gl.getZoom()+1}:null;
-    gl?.remove();gl=null;lastVehicleSignature='';sourceSignatures.clear();by('map3d-explorer').hidden=true;document.body.classList.remove('map3d-active');
+    gl?.stop();gl?.remove();gl=null;lastVehicleSignature='';sourceSignatures.clear();vehicleLookup.clear();questionLookup.clear();by('map3d-explorer').hidden=true;document.body.classList.remove('map3d-active');
     if(camera&&map)map.setView([camera.center.lat,camera.center.lng],camera.zoom,{animate:false});
+    const closeVersion=epoch;
+    requestAnimationFrame(()=>{if(isOpen||epoch!==closeVersion||!map)return;map.invalidateSize({pan:false});if(typeof scheduleRebuild==='function')scheduleRebuild();});
     if(lastFocus?.isConnected&&lastFocus.getClientRects().length)lastFocus.focus({preventScroll:true});
   }
   function addSources(){
