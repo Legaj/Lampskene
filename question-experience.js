@@ -15,6 +15,16 @@
   const categoryLocations = q => q.type === 'matching' ? getAllMatchingData()[q.subcat] || [] : q.type === 'measuring' ? getMeasuringLocs(q.subcat) : [];
   const setText = (node, value) => { if (node && node.textContent !== value) node.textContent=value; };
   const typeLabel = q => ({radar:'Radar',thermo:'Thermometer',matching:'Matching',measuring:'Measuring',angle:'Angle'}[q.type] || 'Question');
+  const shortType = q => ({radar:'Radar',thermo:'Thermo',matching:'Match',measuring:'Measure',angle:'Angle'}[q.type] || 'Question');
+  const icons = {
+    radar:'<circle cx="12" cy="12" r="8"/><path d="M12 4v8l6-4"/><circle cx="12" cy="12" r="2"/>',
+    thermo:'<path d="M8 5v10a4 4 0 1 0 8 0V5a4 4 0 0 0-8 0Z"/><path d="M12 8v10"/>',
+    matching:'<path d="m9 15 6-6m-5-2 2-2a5 5 0 0 1 7 7l-2 2m-3 3-2 2a5 5 0 0 1-7-7l2-2"/>',
+    measuring:'<path d="m4 15 11-11 5 5L9 20H4v-5Z"/><path d="m10 9 2 2m2-6 2 2m-10 6 2 2"/>',
+    angle:'<path d="M4 18 20 5M4 18h16M11 18a7 7 0 0 0-2-5"/>',
+    map:'<path d="m3 6 6-3 6 3 6-3v15l-6 3-6-3-6 3V6Zm6-3v15m6-12v15"/>',
+  };
+  const iconMarkup = name => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${icons[name] || icons.radar}</svg>`;
   const readyToAsk = q => q.type==='radar' ? !!getRadiusMeters(q) : ['matching','measuring'].includes(q.type) ? !!q.nearestId : true;
   const pinOptions = q => q.type==='thermo' ? [['thermoA','Pin A'],['thermoB','Pin B']] : q.type==='angle' ? [['angleCenter','Center'],['angleDirection','Direction']] : [[q.type,'Question pin']];
   const pinPoint = (q,pin) => pin==='thermoB' ? {lat:q.latB,lng:q.lngB} : pin==='thermoA' ? {lat:q.latA,lng:q.lngA} : pin==='angleDirection' ? q.direction : pointFor(q);
@@ -33,66 +43,41 @@
 
   function overview(q) {
     const answer=answerFor(q) || 'pending';
-    const status={pending:'Awaiting answer',inside:'Inside',outside:'Outside',yes:'Same place',no:'Different place',closer:'Closer',further:'Further',A:'Closer to A',B:'Closer to B'}[answer] || 'Awaiting answer';
+    const status={pending:'Pending',inside:'Inside',outside:'Outside',yes:'Same',no:'Different',closer:'Closer',further:'Further',A:'Pin A',B:'Pin B'}[answer] || 'Pending';
     let description='', instruction='';
     if(q.type==='radar') {
-      description=getRadiusMeters(q) ? `${distanceLabel(getRadiusMeters(q))} radius` : 'Set a radius to begin';
-      instruction=!getRadiusMeters(q) ? 'Choose a radius in Pins & settings.' : 'Copy the question, then record Inside or Outside.';
+      description=getRadiusMeters(q) ? `${distanceLabel(getRadiusMeters(q))} radius` : 'Set radius';
+      instruction=!getRadiusMeters(q) ? 'Set radius' : '';
     }
     if(q.type==='thermo') {
-      description=`${distanceLabel(map.distance([q.latA,q.lngA],[q.latB,q.lngB]))} between pins A and B`;
-      instruction='Copy the question, then record the closer pin.';
+      description=`A ↔ B · ${distanceLabel(map.distance([q.latA,q.lngA],[q.latB,q.lngB]))}`;
     }
     if(q.type==='matching') {
       description=`${q.subcat} · ${q.nearestName || 'No place found at this pin'}`;
-      instruction=q.nearestId==='none' ? 'Does the hider also sit outside every area in this category?' : q.nearestId ? 'Does the hider have the same nearest place or containing area?' : 'Move your pin or choose another category in Pins & settings.';
+      instruction=q.nearestId ? '' : 'Choose a category or move pin';
     }
     if(q.type==='measuring') {
       description=`${q.subcat} · ${q.nearestName || 'No place found'}${q.nearestId ? ' · '+distanceLabel(q.seekerDist) : ''}`;
-      instruction='Is the hider closer or further from their own nearest place?';
+      instruction=q.nearestId ? '' : 'Choose a category or move pin';
     }
     if(q.type==='angle') {
-      const modeLabel={default:'One direction',bidirectional:'Two directions',triple:'Three directions',excludeRadius:'Exclude center'}[q.mode] || q.mode;
+      const modeLabel={default:'Single',bidirectional:'Double',triple:'Triple',excludeRadius:'Exclude center'}[q.mode] || q.mode;
       description=`${q.angle}° · ${modeLabel}${q.mode==='excludeRadius' ? ' · '+distanceLabel(q.excludeRadius)+' excluded' : ''}`;
-      instruction='Copy the question, then record Inside or Outside the cone.';
     }
-    if(q.hiderMode) instruction=getActiveHiderPin() ? 'The answer uses your active hiding pin. Copy only the answer code to the seeker.' : 'Place your hiding pin on the map to calculate the answer.';
-    else if(answer!=='pending') instruction='Answer saved · blue is ruled out, clear remains possible.';
+    if(q.hiderMode) instruction=getActiveHiderPin() ? '' : 'Place hiding pin';
     return {status,description,instruction,answer};
   }
 
-  function geometryIcon(q) {
-    const colors={radar:'#d78442',thermo:'#b49a30',matching:'#3da984',measuring:'#3d9dab',angle:'#9a75c2'};
-    let art='';
-    if(q.type==='radar') art='<circle cx="44" cy="36" r="25" fill="currentColor" fill-opacity=".13" stroke="currentColor" stroke-dasharray="4 3"/><circle cx="44" cy="36" r="4" fill="currentColor"/><path d="M44 36H69" stroke="currentColor"/>';
-    if(q.type==='thermo') art='<path d="M44 5V67" stroke="currentColor" stroke-dasharray="4 3"/><circle cx="22" cy="36" r="5" fill="#c6a92f"/><circle cx="66" cy="36" r="5" fill="#cf8440"/><text x="22" y="59" text-anchor="middle">A</text><text x="66" y="59" text-anchor="middle">B</text>';
-    if(q.type==='matching') art='<path d="M0 0H44L57 36L42 72H0Z" fill="currentColor" fill-opacity=".13"/><path d="M44 0L57 36L42 72M57 36H88" stroke="currentColor" fill="none"/><circle cx="25" cy="36" r="5" fill="currentColor"/><circle cx="68" cy="20" r="3" fill="currentColor"/><circle cx="68" cy="56" r="3" fill="currentColor"/>';
-    if(q.type==='measuring') art='<circle cx="27" cy="36" r="22" fill="currentColor" fill-opacity=".13" stroke="currentColor" stroke-dasharray="4 3"/><circle cx="65" cy="36" r="22" fill="currentColor" fill-opacity=".13" stroke="currentColor" stroke-dasharray="4 3"/><circle cx="27" cy="36" r="3" fill="currentColor"/><circle cx="65" cy="36" r="3" fill="currentColor"/>';
-    if(q.type==='angle') art='<path d="M16 36L82 7V65Z" fill="currentColor" fill-opacity=".15" stroke="currentColor"/><path d="M16 36H82" stroke="currentColor" stroke-dasharray="4 3"/><circle cx="16" cy="36" r="4" fill="currentColor"/><circle cx="61" cy="36" r="3" fill="currentColor"/>';
-    return `<svg viewBox="0 0 88 72" aria-hidden="true" style="color:${colors[q.type] || '#668b9a'}"><g fill="currentColor" font-size="11" font-family="sans-serif">${art}</g></svg>`;
-  }
-
   function makePreview(q) {
+    if(!['matching','measuring'].includes(q.type))return null;
     const detail=document.createElement('details'); detail.className='qe-preview';
-    const summary=document.createElement('summary'); summary.textContent=['matching','measuring'].includes(q.type) ? 'Explore places & coverage' : 'How this question works'; detail.append(summary);
-    const geometry=document.createElement('div'); geometry.className='qe-geometry';
-    const icon=document.createElement('div'); icon.className='qe-geometry-icon'; icon.innerHTML=geometryIcon(q); geometry.append(icon);
-    const text=document.createElement('div');
-    const title=document.createElement('strong'); title.textContent=typeLabel(q);
-    const note=document.createElement('p'); note.textContent={radar:'Inside or outside a circle around your pin.',thermo:'Which of two pins is closer to the hider?',matching:'Compare each player’s nearest place or containing area.',measuring:'Compare distances to each player’s own nearest place.',angle:'Inside or outside a cone from the center through the direction pin.'}[q.type];
-    text.append(title,note); geometry.append(text); detail.append(geometry);
-    const actions=document.createElement('div'); actions.className='qe-actions';
-    actions.append(button('Open map inspector',()=>preview(q.id))); detail.append(actions);
-    if(['matching','measuring'].includes(q.type)) {
-      const label=document.createElement('label'); label.className='qe-search-label'; label.textContent='Find a place in this category';
-      const search=document.createElement('input'); search.type='search'; search.placeholder='Search place names'; search.className='qe-place-search'; search.setAttribute('aria-label','Search '+q.subcat+' places');
-      search.value=placeSearch.get(String(q.id)) || ''; label.append(search); detail.append(label);
-      const count=document.createElement('p'); count.className='qe-place-count'; detail.append(count);
-      const list=document.createElement('div'); list.className='qe-places'; detail.append(list);
-      search.addEventListener('input',()=>{placeSearch.set(String(q.id),search.value); renderPlaces(q,detail);});
-      detail.addEventListener('toggle',()=>{if(detail.open)renderPlaces(q,detail);});
-    }
-    detail.addEventListener('toggle',()=>{const state=views.get(String(q.id));if(state)state.preview=detail.open;});
+    const summary=document.createElement('summary'); summary.textContent='Places'; detail.append(summary);
+    const search=document.createElement('input'); search.type='search'; search.placeholder='Find place'; search.className='qe-place-search'; search.setAttribute('aria-label','Search '+q.subcat+' places');
+    search.value=placeSearch.get(String(q.id)) || ''; detail.append(search);
+    const count=document.createElement('p'); count.className='qe-place-count'; detail.append(count);
+    const list=document.createElement('div'); list.className='qe-places'; detail.append(list);
+    search.addEventListener('input',()=>{placeSearch.set(String(q.id),search.value); renderPlaces(q,detail);});
+    detail.addEventListener('toggle',()=>{if(detail.open)renderPlaces(q,detail);const state=views.get(String(q.id));if(state)state.preview=detail.open;});
     return detail;
   }
 
@@ -125,23 +110,58 @@
   // Reuse the original answer controls and field handlers. Their ids and DOM
   // ownership remain intact for restore, multiplayer and answer-code imports.
   function organizeBody(q, body) {
-    if(!body || body.querySelector('.qe-workflow'))return;
-    const workflow=document.createElement('p');workflow.className='qe-workflow';
+    if(!body || body.querySelector('.qe-adjustment-fields'))return;
     const answer=body.querySelector('.zone-toggle,.closer-toggle');
     const answerBlock=answer?.parentElement;
     const copy=body.querySelector('.copy-btn');
     const removals=Array.from(body.querySelectorAll(':scope > .remove-btn,:scope > [id^="remove-row-"]'));
     const fields=Array.from(body.children).filter(node=>node!==answerBlock&&node!==copy&&!removals.includes(node));
-    const settings=document.createElement('details');settings.className='qe-adjustments';
-    const heading=document.createElement('summary');heading.textContent=q.hiderMode?'Question geometry':'Pins & settings';settings.append(heading);
-    const contents=document.createElement('div');contents.className='qe-adjustment-fields';contents.append(...fields);settings.append(contents);
-    const state=views.get(String(q.id));settings.open=state?.settings ?? (answerFor(q)==='pending');
-    settings.addEventListener('toggle',()=>{const current=views.get(String(q.id));if(current)current.settings=settings.open;});
-    body.replaceChildren(workflow);
-    if(answerBlock){answerBlock.classList.add('qe-answer-section');const label=answerBlock.querySelector('.q-label');if(label)label.textContent=q.type==='thermo'?'Hider is closer to':q.type==='matching'?'Same nearest place / area?':q.type==='measuring'?'Hider’s distance is':'Hider is';body.append(answerBlock);}
-    if(copy){copy.classList.add('qe-send-code');copy.textContent='Copy question code';body.append(copy);}
-    body.append(settings,makePreview(q));
-    if(removals.length){const more=document.createElement('details');more.className='qe-manage';const heading=document.createElement('summary');heading.textContent='Manage question';more.append(heading,...removals);body.append(more);}
+    const contents=document.createElement('div');contents.className='qe-adjustment-fields';
+    const pins=document.createElement('div');pins.className='qe-pin-actions';
+    const coords=document.createElement('details');coords.className='qe-coordinates';
+    const heading=document.createElement('summary');heading.textContent='Coordinates';coords.append(heading);
+    const coordinates=document.createElement('div');coordinates.className='qe-coordinate-values';coords.append(coordinates);
+    for(const field of fields){
+      if(field.classList.contains('icon-btns')){pins.append(...Array.from(field.children));continue;}
+      if(field.matches('.coord-disp') || (field.matches('.q-label')&&/position/i.test(field.textContent)) || field.querySelector('.coord-disp,.thermo-dist,[id^="match-nearest-"],[id^="meas-nearest-"],[id^="meas-dist-"]') || /^(match-dist|match-note)-/.test(field.id))coordinates.append(field);
+      else contents.append(field);
+    }
+    body.replaceChildren(contents);
+    if(pins.children.length)contents.append(pins);
+    if(coordinates.children.length)contents.append(coords);
+    const places=makePreview(q);if(places)body.append(places);
+    if(removals.length){const manage=document.createElement('div');manage.className='qe-manage';manage.append(...removals);body.append(manage);}
+    const summary=cardFor(q).querySelector('.qe-summary');
+    const controls=document.createElement('div');controls.className='qe-compact-controls';
+    if(answer){
+      answer.classList.add('qe-inline-answer');answer.setAttribute('role','group');answer.setAttribute('aria-label',typeLabel(q)+' answer');
+      controls.append(answer);
+    }
+    if(copy){copy.classList.add('qe-send-code');copy.textContent='Copy';copy.title='Copy question code';copy.setAttribute('aria-label','Copy '+typeLabel(q)+' question '+q.id+' code');controls.append(copy);}
+    if(q.hiderMode){const copyAnswerButton=button('Copy',()=>copyAnswer(q.id),'qe-btn qe-answer-copy');copyAnswerButton.title='Copy answer code';copyAnswerButton.setAttribute('aria-label','Copy '+typeLabel(q)+' answer '+q.id);controls.append(copyAnswerButton);}
+    const view=button('',()=>preview(q.id),'qe-btn qe-map-btn');view.innerHTML=iconMarkup('map');view.title='Show on map';view.setAttribute('aria-label','Show '+typeLabel(q)+' question '+q.id+' on map');controls.append(view);
+    summary.append(controls);
+    for(const el of contents.querySelectorAll('.icon-btn')){
+      const action=el.getAttribute('onclick') || '';
+      if(action.includes('goToThermoPin'))el.textContent=action.includes("'A'")?'Pin A':'Pin B';
+      else if(action.includes('goToAnglePin'))el.textContent=action.includes("'center'")?'Center':'Direction';
+      else if(action.includes('goToSeekerPin'))el.textContent='Pin';
+      else if(action.includes('setMyLocation_thermo'))el.textContent=action.includes('thermoA')?'GPS A':'GPS B';
+      else if(action.includes('setMyLocation'))el.textContent='GPS';
+      else if(action.includes('toggleThermoBorder'))el.textContent='Boundary';
+      else if(action.includes('toggleMatchingVoronoi'))el.textContent='Borders';
+      else if(action.includes('openMoveWindow'))el.textContent='Move 60s';
+      el.title=el.textContent;
+    }
+    for(const el of contents.querySelectorAll('.aq-mode')){
+      const action=el.getAttribute('onclick') || '';
+      el.textContent=action.includes("'bidirectional'")?'Double':action.includes("'triple'")?'Triple':action.includes("'excludeRadius'")?'Exclude':'Single';
+      el.parentElement.classList.add('qe-angle-modes');
+    }
+    body.querySelectorAll('.remove-btn').forEach(el=>{el.textContent='Delete';el.setAttribute('aria-label','Delete '+typeLabel(q)+' question '+q.id);});
+    body.querySelectorAll('input,select').forEach(el=>{
+      if(!el.getAttribute('aria-label'))el.setAttribute('aria-label',el.closest('div')?.querySelector('.q-label')?.textContent || (q.type==='angle'?'Angle in degrees':'Question setting'));
+    });
   }
 
   function renderPlaces(q, detail) {
@@ -154,13 +174,13 @@
       return {loc,p,dist};
     }).sort((a,b)=>Number(b.loc.id===q.nearestId)-Number(a.loc.id===q.nearestId)||a.dist-b.dist);
     list.replaceChildren();
-    setText(detail.querySelector('.qe-place-count'),candidates.length ? `Showing ${Math.min(candidates.length,12)} of ${candidates.length} places · distance from the question pin` : 'No matching places. Try another name or category.');
+    setText(detail.querySelector('.qe-place-count'),candidates.length ? `${Math.min(candidates.length,12)} / ${candidates.length}` : 'No places found');
     candidates.slice(0,12).forEach(({loc,p,dist})=>{
       const row=document.createElement('div'); row.className='qe-place'+(loc.id===q.nearestId?' nearest':'');
       const info=document.createElement('div'); info.className='qe-place-info';
       const name=document.createElement('strong');name.textContent=loc.name || loc.id;
       const meta=document.createElement('span');
-      meta.textContent=loc.type==='polygon' ? 'Area · view boundary' : loc.type ? 'Route · view geometry' : `${distanceLabel(dist)} straight-line${loc.id===q.nearestId?' · Nearest':''}`;
+      meta.textContent=loc.type==='polygon' ? 'Area' : loc.type ? 'Route' : `${distanceLabel(dist)}${loc.id===q.nearestId?' · Nearest':''}`;
       info.append(name,meta); row.append(info);
       const action=button('Show',()=>focusPlace(loc),'qe-btn qe-place-action'); action.disabled=!p; action.setAttribute('aria-label','Show '+(loc.name || loc.id)+' on map'); row.append(action);
       list.append(row);
@@ -171,33 +191,23 @@
     const card=cardFor(q);if(!card)return;
     let state=views.get(String(q.id));
     if(!state){state={expanded:questions[questions.length-1]===q,preview:false};views.set(String(q.id),state);if(state.expanded)for(const [id,other]of views)if(id!==String(q.id)){other.expanded=false;const item=byId(id);if(item)update(item);}}
-    let summary=card.querySelector('.qe-summary');
-    if(!summary){
+    if(!card.querySelector('.qe-summary')){
       card.classList.add('qe-card');
-      summary=document.createElement('div');summary.className='qe-summary';
-      const badge=document.createElement('span');badge.className='qe-status';
-      const lock=document.createElement('span');lock.className='qe-lock-state';
-      const statusRow=document.createElement('div');statusRow.className='qe-status-row';statusRow.append(badge,lock);
-      const description=document.createElement('p');description.className='qe-description';
-      const actions=document.createElement('div');actions.className='qe-actions';
-      const viewBtn=button('View map',()=>preview(q.id));
-      const detailsBtn=button('Edit question',()=>setExpanded(q,!state.expanded,true));detailsBtn.classList.add('qe-details-btn');
-      actions.append(viewBtn,detailsBtn);
-      if(q.hiderMode){
-        const copy=button('Copy answer',()=>copyAnswer(q.id));copy.classList.add('qe-answer-copy');actions.prepend(copy);
-      }
-      summary.append(statusRow,description,actions);
-      const header=card.querySelector('.q-card-header'); if(header)header.after(summary);else card.prepend(summary);
-      if(header){const toggle=button('Expand question',()=>setExpanded(q,!state.expanded,true),'qe-card-toggle');toggle.setAttribute('aria-label','Expand '+typeLabel(q)+' question '+q.id);header.append(toggle);}
-      if(['matching','measuring'].includes(q.type)) {
-        const b=card.querySelector('.q-card-body');
-        if(b){b.querySelectorAll('select').forEach(el=>el.setAttribute('aria-label',q.type+' place category'));}
-      }
+      const summary=document.createElement('div');summary.className='qe-summary';
+      const description=document.createElement('p');description.className='qe-description';summary.append(description);
+      const header=card.querySelector('.q-card-header');
+      if(header){
+        const title=header.querySelector('.q-title');if(title){title.textContent=shortType(q);title.title=typeLabel(q);}
+        const originalIcon=header.firstElementChild;if(originalIcon&&!originalIcon.classList.contains('q-title'))originalIcon.remove();
+        const glyph=document.createElement('span');glyph.className='qe-type-icon';glyph.innerHTML=iconMarkup(q.type);header.prepend(glyph);
+        const badge=document.createElement('span');badge.className='qe-status';header.append(badge);
+        const toggle=button('',()=>setExpanded(q,!state.expanded,true),'qe-card-toggle qe-details-btn');header.append(toggle);header.after(summary);
+      }else card.prepend(summary);
+      if(['matching','measuring'].includes(q.type))card.querySelectorAll('select').forEach(el=>el.setAttribute('aria-label',q.type+' place category'));
     }
     organizeBody(q,card.querySelector('.q-card-body'));
-    const preview=card.querySelector('.qe-preview');if(preview&&state.preview)preview.open=true;
-    bindQuestionPins(q);
-    update(q);
+    const explorer=card.querySelector('.qe-preview');if(explorer&&state.preview)explorer.open=true;
+    bindQuestionPins(q);update(q);
   }
 
   function update(q) {
@@ -216,11 +226,12 @@
     }
     setText(summary.querySelector('.qe-description'),data.description);
     summary.querySelector('.qe-description').title=data.description;
-    const status=summary.querySelector('.qe-status');setText(status,data.status);status.dataset.state=data.answer;
-    setText(summary.querySelector('.qe-lock-state'),q.locked?'Position locked':questionMoveAllowed(q)?'Position editable':'Movement protected');
+    const status=card.querySelector('.qe-status');setText(status,data.status);status.dataset.state=data.answer;
+    status.title=q.locked?'Position locked':questionMoveAllowed(q)?'Position editable':'Movement protected';
+    card.classList.toggle('qe-locked',!!q.locked);
     card.classList.toggle('qe-expanded',!!state.expanded);
     const body=card.querySelector('.q-card-body');if(body){body.hidden=!state.expanded;setText(body.querySelector('.qe-workflow'),data.instruction);}
-    const toggle=summary.querySelector('.qe-details-btn');setText(toggle,state.expanded?'Close editor':q.hiderMode?'Details':'Edit question');toggle.setAttribute('aria-expanded',String(state.expanded));
+    const toggle=card.querySelector('.qe-details-btn');toggle.setAttribute('aria-expanded',String(state.expanded));
     const headerToggle=card.querySelector('.qe-card-toggle');if(headerToggle){headerToggle.textContent=state.expanded?'−':'+';headerToggle.setAttribute('aria-label',(state.expanded?'Collapse ':'Expand ')+typeLabel(q)+' question '+q.id);headerToggle.setAttribute('aria-expanded',String(state.expanded));}
     if(body){
       if(!body.id)body.id=`qe-body-${q.id}`;toggle.setAttribute('aria-controls',body.id);
@@ -231,17 +242,22 @@
       const input=body.querySelector(`[id="rad-inp-${q.id}"]`);if(input && document.activeElement!==input && input.value!==String(q.radius))input.value=q.radius;
       if(q.type==='radar'){document.getElementById(`unit-m-${q.id}`)?.classList.toggle('active',q.unit==='M');document.getElementById(`unit-km-${q.id}`)?.classList.toggle('active',q.unit==='KM');}
       // The same CSS state is shared by several answers; assign in one pass.
-      body.querySelectorAll('.zone-btn,.closer-btn').forEach(el=>{
+      card.querySelectorAll('.zone-btn,.closer-btn').forEach(el=>{
         const handler=el.getAttribute('onclick') || '';el.classList.remove('active-pend','active-in','active-out','active-a','active-b');
         if(handler.includes(`'${data.answer}'`)){const active={pending:'active-pend',inside:'active-in',outside:'active-out',yes:'active-in',no:'active-out',closer:'active-in',further:'active-out',A:'active-a',B:'active-b'}[data.answer];if(active)el.classList.add(active);}
         el.setAttribute('aria-pressed',String(handler.includes(`'${data.answer}'`)));
-        if(!el.dataset.qeLabel){el.dataset.qeLabel='1';const value=['pending','inside','outside','yes','no','closer','further','A','B'].find(value=>handler.includes(`'${value}'`));if(value)el.textContent={pending:'Waiting',inside:'Inside',outside:'Outside',yes:'Same',no:'Different',closer:'Closer',further:'Further',A:'Pin A',B:'Pin B'}[value];}
+        const value=['pending','inside','outside','yes','no','closer','further','A','B'].find(value=>handler.includes(`'${value}'`));
+        if(value){el.textContent={pending:'—',inside:'Inside',outside:'Outside',yes:'Same',no:'Diff.',closer:'Closer',further:'Further',A:'A',B:'B'}[value];el.title={pending:'Clear answer',A:'Closer to pin A',B:'Closer to pin B',yes:'Same place or area',no:'Different place or area'}[value] || el.textContent;el.setAttribute('aria-label',el.title);}
+        el.disabled=value!=='pending'&&!readyToAsk(q);
       });
       const lockPrefix={radar:'lock',thermo:'tlock',matching:'mlock',measuring:'measlock',angle:'aq-lock'}[q.type];
-      const lockBtn=document.getElementById(`${lockPrefix}-btn-${q.id}`);if(lockBtn){setText(lockBtn,q.locked?'Unlock position':'Lock position');lockBtn.classList.toggle('locked',!!q.locked);lockBtn.setAttribute('aria-pressed',String(!!q.locked));}
+      const lockBtn=document.getElementById(`${lockPrefix}-btn-${q.id}`);if(lockBtn){setText(lockBtn,q.locked?'Unlock':'Lock');lockBtn.classList.toggle('locked',!!q.locked);lockBtn.setAttribute('aria-pressed',String(!!q.locked));}
+      for(const [prefix,on,label] of [['tborder',typeof thermoBorderVisible==='function'?thermoBorderVisible(q):q.thermoBorder,'Boundary'],['mvoronoi',q.showVoronoi,'Borders']]){
+        const control=document.getElementById(`${prefix}-btn-${q.id}`);if(control){setText(control,label);control.setAttribute('aria-pressed',String(!!on));}
+      }
       const nearest=body.querySelector(`[id="match-nearest-${q.id}"],[id="meas-nearest-${q.id}"]`);if(nearest)setText(nearest,q.nearestName || 'No place found');
       const distance=body.querySelector(`[id="meas-dist-${q.id}"]`);if(distance)setText(distance,q.nearestId?distanceLabel(q.seekerDist):'—');
-      body.querySelectorAll('.copy-btn').forEach(el=>el.disabled=!readyToAsk(q));
+      card.querySelectorAll('.copy-btn').forEach(el=>el.disabled=!readyToAsk(q));
     }
     const copy=summary.querySelector('.qe-answer-copy');if(copy)copy.disabled=data.answer==='pending'||!getActiveHiderPin();
   }
@@ -260,7 +276,7 @@
     if(inspector)return inspector;
     inspector=document.createElement('section');inspector.id='qe-map-inspector';inspector.className='qe-map-inspector';inspector.hidden=true;
     inspector.setAttribute('role','region');inspector.setAttribute('aria-labelledby','qe-inspector-title');
-    inspector.innerHTML='<div class="qe-inspector-header"><div><span class="qe-eyebrow">Question on map</span><h2 id="qe-inspector-title"></h2></div></div><div class="qe-inspector-main"><div class="qe-inspector-state"><span class="qe-status"></span><span class="qe-inspector-lock"></span></div><p class="qe-inspector-description"></p><div class="qe-inspector-answer"></div><div class="qe-inspector-actions"></div><details class="qe-pin-tools"><summary>Pin tools</summary><div class="qe-pin-tools-body"></div></details></div>';
+    inspector.innerHTML='<div class="qe-inspector-header"><div><h2 id="qe-inspector-title"></h2></div></div><div class="qe-inspector-main"><div class="qe-inspector-state"><span class="qe-status"></span><span class="qe-inspector-lock"></span></div><p class="qe-inspector-description"></p><div class="qe-inspector-answer"></div><div class="qe-inspector-actions"></div><details class="qe-pin-tools"><summary>Pin tools</summary><div class="qe-pin-tools-body"></div></details></div>';
     const close=button('×',()=>closeInspector(),'qe-inspector-close');close.setAttribute('aria-label','Close question inspector');inspector.querySelector('.qe-inspector-header').append(close);
     inspector.querySelector('.qe-pin-tools').addEventListener('toggle',()=>{if(!inspector.hidden)inspector.dataset.toolsOpen=String(inspector.querySelector('.qe-pin-tools').open);});
     document.body.append(inspector);return inspector;
@@ -298,10 +314,10 @@
   }
 
   function answerChoices(q) {
-    if(q.type==='thermo')return [['pending','Waiting'],['A','Pin A'],['B','Pin B']];
-    if(q.type==='matching')return [['pending','Waiting'],['yes','Same'],['no','Different']];
-    if(q.type==='measuring')return [['pending','Waiting'],['closer','Closer'],['further','Further']];
-    return [['pending','Waiting'],['inside','Inside'],['outside','Outside']];
+    if(q.type==='thermo')return [['pending','Clear'],['A','A'],['B','B']];
+    if(q.type==='matching')return [['pending','Clear'],['yes','Same'],['no','Diff.']];
+    if(q.type==='measuring')return [['pending','Clear'],['closer','Closer'],['further','Further']];
+    return [['pending','Clear'],['inside','Inside'],['outside','Outside']];
   }
 
   function recordAnswer(id,answer) {
@@ -335,7 +351,7 @@
     const data=overview(q);
     setText(inspector.querySelector('h2'),`${typeLabel(q)} #${q.id}`);
     const status=inspector.querySelector('.qe-status');setText(status,data.status);status.dataset.state=data.answer;
-    setText(inspector.querySelector('.qe-inspector-lock'),q.hiderMode?'Seeker’s question':q.locked?'Position locked':questionMoveAllowed(q)?'Position editable':'Movement protected');
+    setText(inspector.querySelector('.qe-inspector-lock'),q.hiderMode?'Seeker pin':q.locked?'Locked':questionMoveAllowed(q)?'Movable':'Protected');
     setText(inspector.querySelector('.qe-inspector-description'),data.description);
     const answer=inspector.querySelector('.qe-inspector-answer');
     const contentKey=JSON.stringify([q.id,q.type,!!q.hiderMode]);
@@ -343,12 +359,12 @@
       answer.dataset.state=contentKey;answer.replaceChildren();
       if(q.hiderMode){const note=document.createElement('p');note.className='qe-workflow';answer.append(note);}
       else {
-        const label=document.createElement('span');label.className='qe-inspector-answer-label';label.textContent=q.type==='thermo'?'Hider is closer to':q.type==='matching'?'Same place / area?':q.type==='measuring'?'Hider’s distance':'Record hider’s answer';
+        const label=document.createElement('span');label.className='qe-inspector-answer-label';label.textContent='Answer';
         const choices=document.createElement('div');choices.className='qe-quick-answer';
         for(const [value,label]of answerChoices(q)){const btn=button(label,()=>recordAnswer(q.id,value),'qe-btn');btn.dataset.answer=value;choices.append(btn);}answer.append(label,choices);
       }
       const actions=inspector.querySelector('.qe-inspector-actions');actions.replaceChildren();
-      actions.append(button(q.hiderMode?'Copy answer':'Copy question',()=>copyFromInspector(byId(q.id)),'qe-btn qe-inspector-copy'),button(q.hiderMode?'Question details':'Edit question',()=>editQuestion(q.id),'qe-btn qe-inspector-edit'));
+      actions.append(button(q.hiderMode?'Copy answer':'Copy question',()=>copyFromInspector(byId(q.id)),'qe-btn qe-inspector-copy'),button('Edit',()=>editQuestion(q.id),'qe-btn qe-inspector-edit'));
     }
     if(q.hiderMode)setText(answer.querySelector('.qe-workflow'),data.instruction);
     else answer.querySelectorAll('[data-answer]').forEach(btn=>{btn.setAttribute('aria-pressed',String(data.answer===btn.dataset.answer));btn.disabled=btn.dataset.answer!=='pending'&&!readyToAsk(q);});
@@ -358,17 +374,16 @@
     const toolKey=JSON.stringify([q.id,selectedPin,q.locked,questionMoveAllowed(q),q.hiderMode]);
     if(tools.dataset.state!==toolKey){
       tools.dataset.state=toolKey;tools.replaceChildren();
-      if(pinOptions(q).length>1){const label=document.createElement('label');label.className='qe-pin-picker';label.textContent='Work with';const select=document.createElement('select');for(const [value,name]of pinOptions(q)){const option=document.createElement('option');option.value=value;option.textContent=name;option.selected=value===selectedPin;select.append(option);}select.addEventListener('change',()=>{selectedPin=select.value;updateInspector();});label.append(select);tools.append(label);}
+      if(pinOptions(q).length>1){const label=document.createElement('label');label.className='qe-pin-picker';label.textContent='Pin';const select=document.createElement('select');for(const [value,name]of pinOptions(q)){const option=document.createElement('option');option.value=value;option.textContent=name;option.selected=value===selectedPin;select.append(option);}select.addEventListener('change',()=>{selectedPin=select.value;updateInspector();});label.append(select);tools.append(label);}
       const row=document.createElement('div');row.className='qe-pin-action-grid';
-      row.append(button('Show all pins',()=>preview(q.id)),button('Center this pin',()=>{const pos=pinPoint(q,selectedPin);if(pos&&validQuestionPoint(pos.lat,pos.lng))map.setView([pos.lat,pos.lng],Math.max(map.getZoom(),15),{animate:false});}));
+      row.append(button('All pins',()=>preview(q.id)),button('Center',()=>{const pos=pinPoint(q,selectedPin);if(pos&&validQuestionPoint(pos.lat,pos.lng))map.setView([pos.lat,pos.lng],Math.max(map.getZoom(),15),{animate:false});}));
       if(!q.hiderMode){
-        row.append(button(q.locked?'Unlock position':'Lock position',()=>lockQuestion(q)));
-        const gps=button('Use GPS for pin',()=>{const id=q.id,pin=selectedPin;_getGPS((lat,lng)=>{if(byId(id)===q&&moveInspectorPin(id,pin,{lat,lng}))preview(id,{pin});});});gps.disabled=!questionMoveAllowed(q);row.append(gps);
-        const center=button('Place at map center',()=>{const position=map.getCenter();moveInspectorPin(q.id,selectedPin,{lat:position.lat,lng:position.lng});});center.disabled=!questionMoveAllowed(q);row.append(center);
-        if(!q.locked&&!questionMoveAllowed(q))row.append(button('Allow moving for 60s',()=>{openMoveWindow(q.id);updateInspector();}));
+        row.append(button(q.locked?'Unlock':'Lock',()=>lockQuestion(q)));
+        const gps=button('GPS',()=>{const id=q.id,pin=selectedPin;_getGPS((lat,lng)=>{if(byId(id)===q&&moveInspectorPin(id,pin,{lat,lng}))preview(id,{pin});});});gps.disabled=!questionMoveAllowed(q);row.append(gps);
+        const center=button('Map center',()=>{const position=map.getCenter();moveInspectorPin(q.id,selectedPin,{lat:position.lat,lng:position.lng});});center.disabled=!questionMoveAllowed(q);row.append(center);
+        if(!q.locked&&!questionMoveAllowed(q))row.append(button('Move 60s',()=>{openMoveWindow(q.id);updateInspector();}));
       }
       tools.append(row);
-      const note=document.createElement('p');note.className='qe-workflow';note.textContent=q.hiderMode?'These are the seeker’s public question pins. Your hiding location is never included.':'Moving a pin clears its previous answer. Lock positions to prevent accidental drags.';tools.append(note);
     }
   }
 
@@ -427,24 +442,24 @@
       const card=document.getElementById(name==='hider'?'hider-loc-card':'endgame-card');if(!card)continue;
       card.classList.add('qe-card');
       const body=card.querySelector('.q-card-body');
-      if(body && !body.querySelector('.qe-location-note')){const note=document.createElement('p');note.className='qe-next qe-location-note';note.textContent=name==='hider'?'Place and lock your hiding pin. The cards below calculate answers; share their answer codes with the seeker.':'The endgame pin replaces the hiding pin when calculating every question answer.';body.prepend(note);}
       const placed=name==='hider'?!!hiderPin:!!endgamePin;
       const locked=name==='hider'?hiderPinLocked:endgamePinLocked;
       const go=document.getElementById(`${name}-goto-btn`),lock=document.getElementById(`${name}-lock-btn`);
-      if(go)go.disabled=!placed;if(lock){lock.disabled=!placed;setText(lock,locked?'Unlock position':'Lock position');lock.setAttribute('aria-pressed',String(locked));}
+      if(go){go.disabled=false;go.classList.remove('disabled');setText(go,placed?'Map':'Place pin');}
+      if(lock){lock.disabled=!placed;setText(lock,locked?'Unlock':'Lock');lock.setAttribute('aria-pressed',String(locked));}
     }
     if(previewId!==null && !byId(previewId))clearPreview();
     if(previewId!==null){const current=byId(previewId);if(current&&previewSignature!==geometrySignature(current))preview(current.id,{open:false,fit:false});}
     updateInspector();
     for(const id of views.keys())if(!byId(id)){views.delete(id);placeSearch.delete(id);}
     const list=document.getElementById('question-list');if(list && !questions.length && mode==='seeker' && !list.querySelector('.qe-empty')){
-      const empty=document.createElement('div');empty.className='qe-empty';empty.innerHTML='<strong>Your next clue starts here</strong><ol><li>Add a question below.</li><li>Place its pins and copy the code.</li><li>Record or import the hider’s answer.</li></ol><p>Blue is ruled out. Clear areas remain possible. Tap any question pin for quick controls.</p>';list.append(empty);
+      const empty=document.createElement('div');empty.className='qe-empty';empty.innerHTML='<strong>No questions</strong>';list.append(empty);
     }
     if(questions.length)document.querySelectorAll('.qe-empty').forEach(el=>el.remove());
     if(typeof _updateQuestionTools==='function')_updateQuestionTools();
   }
   const schedule=()=>{if(!frame)frame=requestAnimationFrame(sync);};
-  const hooks=['addQuestion','addMatchingQuestion','addMeasuringQuestion','addAngleQuestion','setZone','setCloser','setMatchingAnswer','setMeasuringAnswer','setAngleZone','onRadiusChange','setUnit','toggleSeekerLock','toggleThermoLock','toggleMatchingLock','toggleMeasuringLock','toggleAngleLock','toggleHiderLock','toggleEndgameLock','setMoveLockEnabled','openMoveWindow','applyQuestionMoveLocks','setMatchingSubcat','setMeasuringSubcat','setAngleQuestionAngle','setAngleQuestionMode','setAngleExcludeRadius','applyPinMove','recordPinMove','placeSeekerPin','placeThermoPin','placeSeekerMatchingPin','placeSeekerMeasuringPin','angleQuestionSetupMap','placeHiderPin','placeEndgamePin','checkAllHiderRadars','checkHiderRadar','checkHiderThermo','checkHiderMatching','checkHiderMeasuring','checkHiderAngle','decodeAndAdd','seekerDecodeAndAdd','removeQuestion','removeAngleQuestion','restoreState','switchMode','chooseMode','updateMatchingNearest','updateMeasuringNearest','_startEndgame','_endgameExitLocal'];
+  const hooks=['addQuestion','addMatchingQuestion','addMeasuringQuestion','addAngleQuestion','setZone','setCloser','setMatchingAnswer','setMeasuringAnswer','setAngleZone','onRadiusChange','setUnit','toggleSeekerLock','toggleThermoLock','toggleThermoBorder','toggleMatchingVoronoi','toggleMatchingLock','toggleMeasuringLock','toggleAngleLock','toggleHiderLock','toggleEndgameLock','setMoveLockEnabled','openMoveWindow','applyQuestionMoveLocks','setMatchingSubcat','setMeasuringSubcat','setAngleQuestionAngle','setAngleQuestionMode','setAngleExcludeRadius','applyPinMove','recordPinMove','placeSeekerPin','placeThermoPin','placeSeekerMatchingPin','placeSeekerMeasuringPin','angleQuestionSetupMap','placeHiderPin','placeEndgamePin','checkAllHiderRadars','checkHiderRadar','checkHiderThermo','checkHiderMatching','checkHiderMeasuring','checkHiderAngle','decodeAndAdd','seekerDecodeAndAdd','removeQuestion','removeAngleQuestion','restoreState','switchMode','chooseMode','updateMatchingNearest','updateMeasuringNearest','_startEndgame','_endgameExitLocal'];
   hooks.forEach(name=>{const original=window[name];if(typeof original!=='function')return;window[name]=function(...args){const result=original.apply(this,args);sync();return result;};});
   for(const name of ['renderAngleCard','renderSeekerRadarCard','renderSeekerThermoCard','renderSeekerMatchingCard','renderSeekerMeasuringCard','renderHiderRadarCard','renderHiderThermoCard','renderHiderMatchingCard','renderHiderMeasuringCard','renderHiderAngleCard']) {
     const render=window[name];if(typeof render==='function')window[name]=function(q){const result=render(q);enhance(q);return result;};

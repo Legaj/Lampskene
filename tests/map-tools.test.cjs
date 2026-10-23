@@ -5,6 +5,22 @@ const vm=require('node:vm');
 const path=require('node:path');
 const geo=require('../map-utils.js');
 
+test('basemap replacement removes every stale basemap while preserving independent layers',()=>{
+  const active=new Set(),removed=[];
+  const map={hasLayer:layer=>active.has(layer),removeLayer(layer){removed.push(layer);active.delete(layer);}};
+  const make=name=>({name,zIndex:1,setZIndex(value){this.zIndex=value;},addTo(){active.add(this);return this;}});
+  const street=make('street'),terrain=make('terrain'),aerial=make('aerial'),question=make('question'),trail=make('trail');
+  [street,terrain,question,trail].forEach(layer=>active.add(layer));
+  const layers={street,terrain,aerial,alias:street};
+  assert.equal(geo.replaceBaseLayer(map,layers,'aerial'),true);
+  assert.deepEqual([...active],[question,trail,aerial]);assert.equal(aerial.zIndex,0);
+  assert.equal(removed.length,2,'aliases never remove a layer twice');
+  active.delete(aerial);geo.replaceBaseLayer(map,layers,'aerial');
+  assert.ok(active.has(aerial),'same selection repairs a missing layer');
+  assert.equal(geo.replaceBaseLayer(map,layers,'missing'),false);
+  assert.deepEqual([...active],[question,trail,aerial],'unknown style never clears the working map');
+});
+
 test('distance, compass bearing and 3D vehicle footprint retain physical dimensions',()=>{
   const origin={lat:59.3293,lng:18.0686};
   const east=geo.destination(origin,100,90);
@@ -85,4 +101,21 @@ test('overlapping and duplicate valid polygons use a union mask, never winding-c
   const root=f.group.children[0],mask=root.children.find(c=>c.tag==='defs').children[0];
   assert.equal(mask.children.filter(c=>c.tag==='path'&&c.attrs.fill==='black').length,2);
   assert.match(root.children.find(c=>c.tag==='path').attrs.mask,/valid-area-mask/);
+});
+
+test('thermometer boundaries honor global and individual choices and reject coincident pins',()=>{
+  const f=overlayFixture(),lines=[],group={clearLayers(){lines.length=0;},addTo(){return this;}};
+  f.ctx.L.layerGroup=()=>group;f.ctx.L.point=(x,y)=>({x,y});
+  f.ctx.L.polyline=(points,options)=>({addTo(){lines.push({points,options});return this;}});
+  f.ctx.map.layerPointToLatLng=p=>({lat:-p.y,lng:p.x});
+  f.ctx.questions=[{id:1,type:'thermo',latA:0,lngA:0,latB:1,lngB:1}];
+  f.run('redrawThermoBorders()');assert.equal(lines.length,0);
+  f.run('setThermoBordersEnabled(true,false)');assert.equal(lines.length,2,'global setting shows a halo and a boundary');
+  assert.equal(lines[1].options.className,'thermo-boundary-line');
+  f.run('toggleThermoBorder(1)');assert.equal(lines.length,0,'individual off overrides a restored global preference');
+  f.run('redrawThermoBorders()');assert.equal(lines.length,0,'the individual choice survives redraw');
+  f.run('setThermoBordersEnabled(false,false)');assert.equal(lines.length,0);
+  f.ctx.questions[0].thermoBorder=true;f.run('redrawThermoBorders()');assert.equal(lines.length,2,'individual boundary remains usable on its own');
+  f.ctx.questions[0].latB=0;f.ctx.questions[0].lngB=0;f.run('redrawThermoBorders()');assert.equal(lines.length,0);
+  f.ctx.questions[0].latB=NaN;f.run('redrawThermoBorders()');assert.equal(lines.length,0);
 });

@@ -91,17 +91,17 @@ function slNormalizeAlerts(data) {
     <summary><span>Departure board</span><span id="departure-summary" class="departure-badge">Choose station</span></summary>
     <div class="departure-body">
       <p class="departure-help">Check SL’s expected departures, platforms, cancellations, and disruptions before choosing your next move.</p>
-      <label class="departure-search-label">Station or stop<input type="search" id="departure-station-search" placeholder="Search SL stations and stops" autocomplete="off" maxlength="100"></label>
+      <label class="departure-search-label">Stop<input type="search" id="departure-station-search" placeholder="Station or stop" autocomplete="off" maxlength="100"></label>
       <p id="departure-site-status" class="departure-note" role="status">Station list loads when this board opens.</p>
       <div id="departure-site-results" class="departure-site-results" aria-label="Matching stations"></div>
       <button type="button" id="departure-site-retry" hidden>Retry station list</button>
-      <div id="departure-selected" class="departure-selected" hidden><span><strong id="departure-station-title"></strong><small id="departure-station-note"></small></span><button type="button" id="departure-station-map">Show on map</button></div>
+      <div id="departure-selected" class="departure-selected" hidden><span><strong id="departure-station-title"></strong><small id="departure-station-note"></small></span><button type="button" id="departure-station-map" aria-label="Show selected stop on map">Map</button></div>
       <div id="departure-toolbar" class="departure-toolbar" hidden><label>Service<select id="departure-mode"><option value="all">All services</option><option value="BUS">Bus</option><option value="METRO">Metro</option><option value="TRAIN">Train</option><option value="TRAM">Tram</option><option value="FERRY">Ferry</option></select></label><button type="button" id="departure-refresh">Refresh</button></div>
       <p id="departure-status" class="departure-note" role="status" aria-live="polite">Select a station to load departures.</p>
       <p id="departure-error" class="departure-error" hidden></p>
       <div id="departure-list" class="departure-list" aria-label="Upcoming departures"></div>
       <div id="departure-disruptions" class="departure-disruptions" hidden><div class="departure-alert-heading">Station disruptions <span id="departure-alert-count"></span></div><p id="departure-alert-status" class="departure-note"></p><div id="departure-alert-list"></div></div>
-      <p class="departure-footnote">Times are in Stockholm time. Expected times come from SL and can change. This board refreshes once per minute while open. Estimates older than three minutes are hidden.</p>
+      <p class="departure-footnote">Stockholm time · SL estimates · updates every minute</p>
       <a class="departure-source" href="https://www.trafiklab.se/api/our-apis/sl/transport/" target="_blank" rel="noopener">Live data: SL via Trafiklab</a>
     </div>`;
   const tracker = document.getElementById('sl-tracker-section');
@@ -130,9 +130,9 @@ function slNormalizeAlerts(data) {
   function renderStationSearch() {
     const query = el('departure-station-search').value.trim().toLocaleLowerCase('sv');
     const results = el('departure-site-results'); results.replaceChildren();
-    if (query.length < 2) { text('departure-site-status',sites.length ? 'Type at least two letters; choose a result to load its board.' : sitesPromise ? 'Loading SL station list…' : 'Station list unavailable. Retry to load stations.'); return; }
+    if (query.length < 2) { text('departure-site-status',sites.length ? 'Enter 2+ letters.' : sitesPromise ? 'Loading stops…' : 'Stops unavailable. Retry.'); return; }
     const matches = sites.filter(site => (site.name + ' ' + site.note).toLocaleLowerCase('sv').includes(query)).sort((a,b) => Number(!a.name.toLocaleLowerCase('sv').startsWith(query)) - Number(!b.name.toLocaleLowerCase('sv').startsWith(query)) || a.name.localeCompare(b.name,'sv'));
-    text('departure-site-status',matches.length ? matches.length + ' matching stops' + (matches.length > 12 ? ' · refine your search for more' : '') : sites.length ? 'No matching station. Try a shorter name.' : 'Waiting for station list…');
+    text('departure-site-status',matches.length ? matches.length + ' stops' + (matches.length > 12 ? ' · first 12 shown' : '') : sites.length ? 'No matching stop.' : 'Loading stops…');
     for (const site of matches.slice(0,12)) {
       const button = document.createElement('button'); button.type = 'button'; button.className = 'departure-site-result';
       const name = document.createElement('strong'), note = document.createElement('span'); name.textContent = site.name; note.textContent = site.note || 'SL station ' + site.id;
@@ -165,7 +165,7 @@ function slNormalizeAlerts(data) {
     if (siteMarker && typeof map !== 'undefined' && map) map.removeLayer(siteMarker); siteMarker = null;
     selected = site; departures = []; alerts = []; receivedAt = 0; alertsAt = 0; error = ''; alertsError = ''; signature = '';
     el('departure-site-results').replaceChildren(); el('departure-station-search').value = site.name;
-    text('departure-site-status','Station selected. Search again to change.');
+    text('departure-site-status','');
     try { localStorage.setItem(selectedKey,site.id); } catch (_) {}
     render(); refresh();
   }
@@ -200,14 +200,14 @@ function slNormalizeAlerts(data) {
       if (parts.noticeSignature !== noticeSignature) {
         parts.noticeSignature = noticeSignature; parts.notices.replaceChildren();
         for (const message of d.deviations) { const p = document.createElement('p'); p.className = 'departure-deviation'; p.textContent = message; parts.notices.append(p); }
-        if (!d.deviations.length) { const p = document.createElement('p'); p.textContent = d.cancelled ? 'SL marks this departure as cancelled.' : 'No extra message for this departure.'; parts.notices.append(p); }
+        if (!d.deviations.length && d.cancelled) { const p = document.createElement('p'); p.textContent = 'Cancelled by SL.'; parts.notices.append(p); }
       }
       const reference = previous ? previous.nextSibling : list.firstChild;
       if (reference !== parts.row) list.insertBefore(parts.row,reference);
       previous = parts.row;
     }
     if (selected && !loading && !stale && !visible.length) {
-      departureEmpty = document.createElement('p'); departureEmpty.className = 'departure-empty'; departureEmpty.textContent = mode !== 'all' ? 'No upcoming departures for this service filter.' : 'SL reports no upcoming departures. Check station disruptions below.'; list.append(departureEmpty);
+      departureEmpty = document.createElement('p'); departureEmpty.className = 'departure-empty'; departureEmpty.textContent = mode !== 'all' ? 'No departures for this service.' : 'No upcoming departures.'; list.append(departureEmpty);
     }
   }
   function renderAlerts() {
@@ -217,7 +217,7 @@ function slNormalizeAlerts(data) {
     const visible = stale ? [] : alerts.slice(0,8), seen = new Set(visible.map(alert => alert.id));
     for (const [key,parts] of alertRows) if (!seen.has(key)) { parts.detail.remove(); alertRows.delete(key); }
     text('departure-alert-count',!stale && alerts.length ? String(alerts.length) : '');
-    text('departure-alert-status',alertsError || (stale ? 'Waiting for fresh disruption data.' : alerts.length ? 'SL disruption feed · updated ' + age(alertsAt) : 'No station disruption messages returned by SL.'));
+    text('departure-alert-status',alertsError || (stale ? 'Loading disruptions…' : alerts.length ? 'Updated ' + age(alertsAt) : 'No disruptions reported.'));
     if (stale) return;
     let previous = null;
     for (const alert of visible) {
@@ -237,12 +237,12 @@ function slNormalizeAlerts(data) {
     const stale = receivedAt && Date.now() - receivedAt > SL_BOARD_STALE_MS;
     text('departure-summary',selected ? selected.name : 'Choose station');
     ['departure-selected','departure-toolbar','departure-disruptions'].forEach(id => { el(id).hidden = !selected; });
-    if (selected) { text('departure-station-title',selected.name); text('departure-station-note',selected.note || 'SL station ' + selected.id); }
+    if (selected) { text('departure-station-title',selected.name); text('departure-station-note',selected.note || ''); }
     el('departure-station-map').disabled = !selected || !Number.isFinite(selected.lat) || !Number.isFinite(selected.lng) || typeof map === 'undefined' || !map;
     el('departure-refresh').disabled = loading || remaining() > 0;
     el('departure-refresh').title = remaining() > 0 ? 'Next refresh in ' + Math.ceil(remaining() / 1000) + ' seconds' : 'Refresh this station';
-    text('departure-refresh',loading ? 'Refreshing…' : remaining() > 0 ? 'Refresh in ' + Math.ceil(remaining() / 1000) + 's' : 'Refresh');
-    const status = !selected ? 'Select a station to load departures.' : loading ? 'Fetching live departures and disruptions…' : stale ? 'Feed stale. Old departure estimates are hidden.' : receivedAt ? 'SL feed received ' + age(receivedAt) : remaining() > 0 ? 'Station update in ' + Math.ceil(remaining() / 1000) + 's · one request per minute' : 'Waiting for live departures.';
+    text('departure-refresh',loading ? 'Refreshing…' : remaining() > 0 ? 'Refresh ' + Math.ceil(remaining() / 1000) + 's' : 'Refresh');
+    const status = !selected ? '' : loading ? 'Loading departures…' : stale ? 'Feed stale · estimates hidden' : receivedAt ? 'Updated ' + age(receivedAt) : remaining() > 0 ? 'Update in ' + Math.ceil(remaining() / 1000) + 's' : 'Waiting for departures…';
     text('departure-status',status); el('departure-error').hidden = !error; text('departure-error',error);
     renderDepartures(); renderAlerts();
   }

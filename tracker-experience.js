@@ -19,10 +19,10 @@
       </div>
       <p id="tracker-feed-error" class="tracker-message" hidden></p>
       <div class="tracker-filters">
-        <label>Find a line or vehicle<input type="search" id="tracker-query" placeholder="Line, vehicle, or service type" autocomplete="off" maxlength="80"></label>
+        <label>Search<input type="search" id="tracker-query" placeholder="Line or vehicle" autocomplete="off" maxlength="80"></label>
         <label>Service<select id="tracker-type"><option value="all">All services</option><option value="bus">Bus</option><option value="subway">Metro</option><option value="train">Train</option><option value="tram">Tram</option><option value="light_rail">Light rail</option><option value="ferry">Ferry</option><option value="unknown">Unidentified</option></select></label>
       </div>
-      <div class="tracker-view-filter"><label><input type="checkbox" id="tracker-in-view"> Only in this map view</label><button type="button" id="tracker-reset">Reset filters</button></div>
+      <div class="tracker-view-filter"><label><input type="checkbox" id="tracker-in-view"> In map view</label><button type="button" id="tracker-reset">Reset</button></div>
       <div class="tracker-results-head"><span id="tracker-results-count">0 vehicles</span><span>Choose one to inspect</span></div>
       <div id="tracker-vehicle-list" class="tracker-vehicle-list" aria-label="Live vehicles"></div>
       <p id="tracker-empty" class="tracker-empty">Turn on a live vehicle layer to begin.</p>
@@ -30,9 +30,9 @@
       <div id="tracker-detail" class="tracker-detail" aria-label="Selected vehicle">
         <div class="tracker-detail-heading"><span id="tracker-detail-title">Vehicle preview</span><span id="tracker-detail-badge" class="tracker-badge" hidden></span></div>
         <p id="tracker-detail-summary">Select a vehicle in the list or on the map to see its direction, freshness, and nearest mapped stop.</p>
-        <dl id="tracker-detail-facts" hidden><div><dt>Direction</dt><dd id="tracker-direction">Unavailable</dd></div><div><dt>Movement</dt><dd id="tracker-movement">Waiting for samples</dd></div><div><dt>Position</dt><dd id="tracker-position-age">Unknown</dd></div><div><dt>Nearest mapped stop</dt><dd id="tracker-nearest-stop">Unavailable</dd></div></dl>
-        <div id="tracker-detail-actions" class="tracker-detail-actions" hidden><button type="button" id="tracker-center">Center on map</button><button type="button" id="tracker-follow" aria-pressed="false">Follow vehicle</button><button type="button" id="tracker-nearby-departures" hidden>Check this stop’s departures</button></div>
-        <label class="tracker-projection-option" id="tracker-projection-label" hidden><input type="checkbox" id="tracker-projection"> Show short movement estimate</label>
+        <dl id="tracker-detail-facts" hidden><div><dt>Direction</dt><dd id="tracker-direction">Unavailable</dd></div><div><dt>Speed</dt><dd id="tracker-movement">Waiting for samples</dd></div><div><dt>Position age</dt><dd id="tracker-position-age">Unknown</dd></div><div><dt>Nearest stop</dt><dd id="tracker-nearest-stop">Unavailable</dd></div></dl>
+        <div id="tracker-detail-actions" class="tracker-detail-actions" hidden><button type="button" id="tracker-center">Center</button><button type="button" id="tracker-follow" aria-pressed="false">Follow</button><button type="button" id="tracker-nearby-departures" hidden>Stop departures</button></div>
+        <label class="tracker-projection-option" id="tracker-projection-label" hidden><input type="checkbox" id="tracker-projection"> Motion estimate</label>
         <p id="tracker-projection-note" class="tracker-footnote" hidden>A dashed 20-second direction estimate, capped at 600 m. It assumes a straight course and constant speed; the circle illustrates uncertainty.</p>
       </div>
       <p class="tracker-footnote">Markers show received positions; coverage varies by service. The vehicle feed has no stop sequence or delay forecasts. Use the departure board below for SL’s expected departures and disruptions.</p>
@@ -110,19 +110,19 @@
     }
     const info = tracker.info(v), motion = tracker.motion(v), projection = tracker.projection(v), nearest = nearestStop(v,info.line);
     text('tracker-detail-title',(labels[info.type] || 'Vehicle') + (info.line ? ' ' + info.line : ' · unidentified line'));
-    text('tracker-detail-badge',state.followId === v.id ? 'Following' : state.paused ? 'Paused' : 'Received position');
+    text('tracker-detail-badge',state.followId === v.id ? 'Following' : state.paused ? 'Paused' : 'Live');
     text('tracker-detail-summary','Vehicle ' + String(v.label || v.id) + ' · ' + v.lat.toFixed(5) + ', ' + v.lng.toFixed(5));
-    text('tracker-direction',bearingToCompass(v.bearing) ? bearingToCompass(v.bearing) + ' · reported bearing' : motion ? bearingToCompass(motion.bearing) + ' · inferred from movement' : 'Direction unavailable');
-    text('tracker-movement',motion ? '~' + Math.round(motion.speed * 3.6) + ' km/h · between samples' : 'Not enough recent movement samples');
+    text('tracker-direction',bearingToCompass(v.bearing) ? bearingToCompass(v.bearing) : motion ? '~' + bearingToCompass(motion.bearing) : 'Unavailable');
+    text('tracker-movement',motion ? '~' + Math.round(motion.speed * 3.6) + ' km/h' : 'Waiting for samples');
     text('tracker-position-age',v.timestamp !== null ? 'Reported ' + ageText(Date.now() - v.timestamp) : 'Received ' + ageText(state.age || 0) + ' · source time unavailable');
-    text('tracker-nearest-stop',nearest ? nearest.name + ' · ' + metricDistance(nearest.meters) + ' in a straight line' : 'No stops mapped for this service');
+    text('tracker-nearest-stop',nearest ? nearest.name + ' · ' + metricDistance(nearest.meters) + ' direct' : 'Unavailable');
     el('tracker-nearby-departures').hidden = !nearest || !window.lampskeneDepartures;
-    text('tracker-follow',state.followId === v.id ? 'Stop following' : 'Follow vehicle');
+    text('tracker-follow',state.followId === v.id ? 'Unfollow' : 'Follow');
     setPressed('tracker-follow',state.followId === v.id);
     el('tracker-follow').disabled = state.paused;
     el('tracker-projection').checked = state.projectionOn;
     el('tracker-projection').disabled = (!projection || state.paused) && !state.projectionOn;
-    if (state.projectionOn) text('tracker-projection-note',projection && !state.paused ? 'Dashed 20-second direction estimate, capped at 600 m. Assumes a straight course and constant speed; the circle illustrates uncertainty. This is not an arrival prediction.' : 'Estimate unavailable until two recent, plausible movement samples arrive. Stale estimates are hidden.');
+    if (state.projectionOn) text('tracker-projection-note',projection && !state.paused ? '20s straight-line estimate, max 600 m. Circle = uncertainty.' : 'Waiting for recent movement samples.');
   }
   function render() {
     const state = tracker.state();
@@ -131,7 +131,7 @@
     text('tracker-summary-status',summary);
     el('tracker-summary-status').classList.toggle('is-live',state.enabled && !state.paused && !state.error && state.age !== null && state.age <= 120000);
     let feed = 'Tracking is off';
-    if (state.enabled) feed = state.paused ? 'Paused · positions age until resumed' : state.loading ? 'Refreshing live feed…' : state.age === null ? 'Waiting for positions' : state.age > 120000 ? 'Feed stale · old markers hidden' : 'Feed received ' + ageText(state.age);
+    if (state.enabled) feed = state.paused ? 'Paused' : state.loading ? 'Refreshing…' : state.age === null ? 'Connecting…' : state.age > 120000 ? 'Feed stale' : 'Updated ' + ageText(state.age);
     // Updating seconds is useful visually; announce only actual feed state changes.
     const announcementState = [state.enabled,state.paused,state.loading,Boolean(state.error),state.age !== null && state.age > 120000].join('|');
     el('tracker-feed-status').setAttribute('aria-live',announcementState === previousFeedState ? 'off' : 'polite'); previousFeedState = announcementState;
@@ -140,15 +140,15 @@
     el('tracker-refresh').disabled = !state.enabled || state.loading;
     el('tracker-pause').disabled = !state.enabled;
     text('tracker-pause',state.paused ? 'Resume' : 'Pause');
-    text('tracker-refresh',state.paused ? 'Resume & refresh' : 'Refresh');
+    text('tracker-refresh',state.paused ? 'Reconnect' : 'Refresh');
     if (document.activeElement !== el('tracker-query')) el('tracker-query').value = state.filters.query;
     el('tracker-type').value = state.filters.type; el('tracker-in-view').checked = state.filters.inView;
     text('tracker-results-count',state.vehicles.length + ' visible' + (state.total ? ' / ' + state.total + ' in feed' : ''));
     el('tracker-empty').hidden = state.vehicles.length > 0;
-    let empty = 'Turn on a live vehicle layer to begin.';
+    let empty = 'Choose All vehicles or Displayed lines.';
     if (state.enabled) {
       const filtered = state.filters.query || state.filters.type !== 'all' || state.filters.inView;
-      empty = state.loading && !state.receivedAt ? 'Connecting to the live feed…' : state.age !== null && state.age > 120000 ? 'No fresh positions. Resume or refresh to reconnect.' : filtered ? 'No vehicles match. Reset filters or move the map.' : state.linesEnabled && !state.allEnabled ? 'Add lines in the search below, or enable All vehicles.' : 'No vehicles reported yet. Coverage varies; the feed refreshes automatically.';
+      empty = state.loading && !state.receivedAt ? 'Connecting…' : state.age !== null && state.age > 120000 ? 'No fresh positions. Refresh to reconnect.' : filtered ? 'No matches. Reset filters or move the map.' : state.linesEnabled && !state.allEnabled ? 'Add routes in Routes, or choose All vehicles.' : 'No vehicles reported.';
     }
     text('tracker-empty',empty);
     renderRows(state); renderDetail(state);

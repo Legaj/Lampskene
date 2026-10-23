@@ -916,15 +916,16 @@
     }
     @media (min-width:769px) { #curse-fab { display:none!important; } }
   </style>
-  <link rel="stylesheet" href="map-experience.css?v=3" />
-  <link rel="stylesheet" href="advanced-map.css?v=3" />
+  <link rel="stylesheet" href="map-experience.css?v=4" />
+  <link rel="stylesheet" href="advanced-map.css?v=4" />
   <link rel="stylesheet" href="map-3d.css?v=3" />
-  <link rel="stylesheet" href="question-experience.css?v=3" />
+  <link rel="stylesheet" href="question-experience.css?v=4" />
   <link rel="stylesheet" href="tracker-experience.css?v=1" />
   <link rel="stylesheet" href="departure-board.css?v=1" />
-  <link rel="stylesheet" href="app-shell.css?v=3" />
+  <link rel="stylesheet" href="app-shell.css?v=4" />
   <link rel="stylesheet" href="position-experience.css?v=3" />
   <link rel="stylesheet" href="field-lab.css?v=3" />
+  <link rel="stylesheet" href="transit-workspace.css?v=4" />
 </head>
 <body class="bambu">
 
@@ -1054,9 +1055,11 @@
       <button class="layer-btn" id="area-mode-medium" onclick="setGameAreaMode('medium')">Medium</button>
       <button class="layer-btn" id="area-mode-small" onclick="setGameAreaMode('small')">Small</button>
     </div>
-    <button class="sp-btn" onclick="toggleSlPanel()" style="margin-top:8px">
-      <span>SL Lines</span><span id="settings-lines-status">Open</span>
-    </button>
+    <div class="sp-slider-row" id="area-opacity-row">
+      <label for="area-opacity-slider">Area shading</label>
+      <input type="range" class="sp-slider" id="area-opacity-slider" min="12" max="55" value="30" oninput="setAreaOpacitySetting(this.value)">
+      <span class="sp-val" id="area-opacity-val">30%</span>
+    </div>
   </div>
   <div>
     <div class="sp-label">Comfort</div>
@@ -1152,10 +1155,10 @@
     <button class="sp-btn" id="move-lock-setting-btn" onclick="toggleMoveLockSetting()" style="margin-top:5px">
       <span>60s Move Lock</span><span id="move-lock-setting-status">OFF</span>
     </button>
-    <button class="sp-btn" id="question-sort-setting-btn" onclick="toggleQuestionAdvancedSorting()" style="margin-top:5px">
+    <button hidden class="sp-btn" id="question-sort-setting-btn" onclick="toggleQuestionAdvancedSorting()" style="margin-top:5px">
       <span>Question Sorting</span><span id="question-sort-setting-status">Simple</span>
     </button>
-    <button class="sp-btn" id="seeker-code-menu-btn" onclick="toggleSeekerQuestionCodeMenu()" style="margin-top:5px">
+    <button hidden class="sp-btn" id="seeker-code-menu-btn" onclick="toggleSeekerQuestionCodeMenu()" style="margin-top:5px">
       <span>Seeker Code Input</span><span id="seeker-code-menu-status">OFF</span>
     </button>
     <button class="sp-btn" onclick="downloadGameStats()" style="margin-top:5px;">
@@ -1330,25 +1333,25 @@
     <div id="seeker-footer" style="display:none">
       <button class="add-q-btn" onclick="toggleTypePicker()">+ Add Question</button>
       <div class="type-picker" id="type-picker" style="display:none">
-        <button class="type-option" onclick="addQuestion('radar')"><span class="dot" style="background:var(--radar)"></span> 📡 Radar</button>
-        <button class="type-option" onclick="addQuestion('thermo')"><span class="dot" style="background:#f5d020"></span> 🌡️ Thermometer</button>
-        <button class="type-option" onclick="addMatchingQuestion()"><span class="dot" style="background:#4ade80"></span> 🔗 Matching</button>
-        <button class="type-option" onclick="addMeasuringQuestion()"><span class="dot" style="background:#06b6d4"></span> 📏 Measuring</button>
-        <button class="type-option" onclick="addAngleQuestion('default')"><span class="dot" style="background:#9a4dff"></span> 🟪 Angle</button>
+        <button class="type-option" onclick="addQuestion('radar')"><span class="dot" style="background:var(--radar)"></span>Radar</button>
+        <button class="type-option" onclick="addQuestion('thermo')"><span class="dot" style="background:#b68e23"></span>Thermo</button>
+        <button class="type-option" onclick="addMatchingQuestion()"><span class="dot" style="background:#3d9b70"></span>Match</button>
+        <button class="type-option" onclick="addMeasuringQuestion()"><span class="dot" style="background:#188ba1"></span>Measure</button>
+        <button class="type-option" onclick="addAngleQuestion('default')"><span class="dot" style="background:#9163c6"></span>Angle</button>
       </div>
       <div class="code-input-wrap" id="seeker-code-input-wrap" style="margin-top:6px;display:none">
-        <div class="q-label">Paste a question/answer code</div>
+        <label class="q-label" for="seeker-code-field">Code</label>
         <div class="code-input-row">
-          <input class="code-input" id="seeker-code-field" placeholder="RAD-… / THM-… / MAT-… / MEA-…" />
+          <input class="code-input" id="seeker-code-field" placeholder="Paste code…" autocapitalize="off" spellcheck="false" />
           <button class="decode-btn" onclick="seekerDecodeAndAdd()">Add</button>
         </div>
       </div>
     </div>
     <div id="hider-footer" style="display:none">
       <div class="code-input-wrap">
-        <div class="q-label">Enter question code from seeker</div>
+        <label class="q-label" for="hider-code-field">Code</label>
         <div class="code-input-row">
-          <input class="code-input" id="hider-code-field" placeholder="RAD-59.32930-18.06860-500M" />
+          <input class="code-input" id="hider-code-field" placeholder="Paste code…" autocapitalize="off" spellcheck="false" />
           <button class="decode-btn" onclick="decodeAndAdd()">Add</button>
         </div>
       </div>
@@ -1377,7 +1380,6 @@
 
 <div id="quick-actions" aria-label="Quick actions">
   <button class="quick-btn" onclick="quickCenterActive()" title="Center active pin">⌖</button>
-  <button class="quick-btn" onclick="undoLastPinMove()" title="Undo pin move">↩</button>
   <button class="quick-btn primary" onclick="quickAddOrCode()" title="Add or answer question">＋</button>
 </div>
 
@@ -1421,6 +1423,7 @@ let _gameAreaMode = 'normal';
 let _gameAreaLayer = null;
 let _gameAreaOutlineLayer = null;
 let _gameAreaGeoCache = {};
+let _gameAreaRenderVersion = 0;
 
 const LOC_PREF_KEY = 'jetlag_location_prefs_v1';
 const TRACKER_PREF_KEY = 'jetlag_tracker_viewer_v1';
@@ -1543,15 +1546,20 @@ function setGameAreaOverlayOpacity(opacity) {
 }
 
 async function updateGameAreaOverlay() {
+  const renderVersion = ++_gameAreaRenderVersion;
+  const targetMap = map;
   _updateGameAreaButtons();
   if (!map) return;
   _clearGameAreaOverlay();
-  if (_gameAreaMode === 'normal') return;
+  if (_gameAreaMode === 'normal') {
+    if (_slBlueZoneBusOn && typeof redrawSlLineLayers === 'function') redrawSlLineLayers();
+    return;
+  }
 
   const areaModeAtStart = _gameAreaMode;
   try {
     const geo = await _loadGameAreaGeoJson(areaModeAtStart);
-    if (_gameAreaMode !== areaModeAtStart || !geo) return;
+    if (renderVersion !== _gameAreaRenderVersion || map !== targetMap || _gameAreaMode !== areaModeAtStart || !geo) return;
     const rings = _geoJsonToMaskRings(geo);
     if (!rings.length) return;
     _ensureGameAreaPane();
@@ -1577,10 +1585,11 @@ async function updateGameAreaOverlay() {
       }
     }).addTo(map);
   } catch(e) {
+    if (renderVersion !== _gameAreaRenderVersion || map !== targetMap) return;
     console.warn('Game area overlay failed:', e);
     showToast('Could not load game area');
   } finally {
-    if (_slBlueZoneBusOn && typeof redrawSlLineLayers === 'function') redrawSlLineLayers();
+    if (renderVersion === _gameAreaRenderVersion && map === targetMap && _slBlueZoneBusOn && typeof redrawSlLineLayers === 'function') redrawSlLineLayers();
   }
 }
 
@@ -2475,18 +2484,20 @@ document.addEventListener('keydown', e => {
 });
 
 // ── THEME ──────────────────────────────────────────────────────
-const THEMES = ['bambu','kelp','dark','light'];
-const THEME_LABELS = { dark:'🌙 Dark', light:'☀️ Light', bambu:'🎋 Bamboo', kelp:'🌿 Kelp' };
+const THEMES = ['bambu','kelp','dark','light','sepia','ocean','dusk','graphite'];
+const THEME_LABELS = { dark:'Dark', light:'Light', bambu:'Bamboo', kelp:'Kelp', sepia:'Sepia', ocean:'Ocean', dusk:'Dusk', graphite:'Graphite' };
 let currentTheme = 'bambu';
 document.body.classList.add('bambu');
 
 function applyTheme(theme, save=true) {
   currentTheme = THEMES.includes(theme) ? theme : 'bambu';
-  document.body.classList.remove('light','bambu','kelp');
+  document.body.classList.remove(...THEMES);
   if (currentTheme !== 'dark') document.body.classList.add(currentTheme);
+  document.body.dataset.theme = currentTheme;
   const s = document.getElementById('theme-sp-status');
   if (s) s.textContent = THEME_LABELS[currentTheme];
   if (save && typeof _writeRevampPrefs === 'function') _writeRevampPrefs({ theme:currentTheme });
+  if (typeof CustomEvent === 'function') document.dispatchEvent(new CustomEvent('jetlag:themechange', { detail: { theme: currentTheme } }));
 }
 
 function cycleTheme() {
@@ -3329,6 +3340,7 @@ function _initRevampPreferences() {
   setQuestionAdvancedSorting(!!prefs.questionAdvancedSorting, false);
   setPanelWidth(prefs.panelWidth || 320, false);
   setBlueOpacitySetting(prefs.blueOpacity || 30, false);
+  setAreaOpacitySetting(prefs.areaOpacity || 30, false);
   if (prefs.zoneRadius && typeof setHiderZoneRadius === 'function') setHiderZoneRadius(prefs.zoneRadius, false);
   setGameAreaMode(prefs.gameAreaMode || 'normal', false);
   if (prefs.theme && THEMES.includes(prefs.theme)) applyTheme(prefs.theme, false);
@@ -3412,8 +3424,17 @@ function setBlueOpacitySetting(value, save=true) {
   if (slider) slider.value = pct;
   if (val) val.textContent = pct + '%';
   if (typeof setBlueOverlayOpacity === 'function') setBlueOverlayOpacity(pct / 100);
-  if (typeof setGameAreaOverlayOpacity === 'function') setGameAreaOverlayOpacity(pct / 100);
   if (save) _writeRevampPrefs({ blueOpacity:pct });
+}
+
+function setAreaOpacitySetting(value, save=true) {
+  const pct = Math.max(12, Math.min(55, parseInt(value, 10) || 30));
+  const slider = document.getElementById('area-opacity-slider');
+  const val = document.getElementById('area-opacity-val');
+  if (slider) slider.value = pct;
+  if (val) val.textContent = pct + '%';
+  if (typeof setGameAreaOverlayOpacity === 'function') setGameAreaOverlayOpacity(pct / 100);
+  if (save) _writeRevampPrefs({ areaOpacity:pct });
 }
 
 function setHiderZoneRadius(value, save=true) {
@@ -3476,8 +3497,11 @@ function _cardQuestionType(card) {
 function _cardMatchesFilter(card) {
   if (!card) return false;
   const text = card.textContent.toLowerCase();
-  const locked = text.includes('locked') || !!card.querySelector('.locked');
-  const answered = !!card.querySelector('.answer-badge.inside,.answer-badge.outside,.active-in,.active-out,.active-a,.active-b');
+  const id = String(card.id).replace(/^(q-card-|angle-card-)/, '');
+  const question = questions.find(q => String(q.id) === id);
+  const locked = question ? Boolean(question.locked) : !!card.querySelector('.locked');
+  const answer = !question ? null : question.type === 'thermo' ? question.closer : ['matching','measuring'].includes(question.type) ? question.answer : question.zone;
+  const answered = Boolean(answer && answer !== 'pending');
   if (_questionFilter === 'locked' && !locked) return false;
   if (_questionFilter === 'open' && locked) return false;
   if (_questionFilter === 'answered' && !answered) return false;
@@ -3547,13 +3571,14 @@ function showToast(msg, dur=2200) {
 }
 
 // ── TEARDROP PIN ───────────────────────────────────────────────
-function tearDropIcon(color, size=34) {
-  const s = size;
-  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${s}" height="${Math.round(s*1.18)}" viewBox="0 0 34 40">
-    <path d="M17 38 C17 38 2 22 2 13 A15 15 0 0 1 32 13 C32 22 17 38 17 38Z" fill="${color}" stroke="rgba(0,0,0,0.35)" stroke-width="1.5"/>
-    <circle cx="17" cy="13" r="5.5" fill="rgba(255,255,255,0.35)"/>
-  </svg>`;
-  return L.divIcon({ html:svg, className:'', iconSize:[s,Math.round(s*1.18)], iconAnchor:[s/2,Math.round(s*1.18)] });
+function tearDropIcon(color, size=34, label='') {
+  const s = Math.max(24, Math.min(34, Number(size) || 30));
+  const h = Math.round(s * 1.18), hitWidth = 44, hitHeight = Math.max(44, h);
+  const safeColor = /^#[0-9a-f]{3,8}$/i.test(color) ? color : '#507b70';
+  const safeLabel = /^[A-Z0-9]$/.test(label) ? label : '';
+  const center = safeLabel ? `<text x="17" y="18" text-anchor="middle" fill="#18302d" font-size="13" font-family="system-ui,sans-serif" font-weight="750">${safeLabel}</text>` : '<circle cx="17" cy="13.5" r="4" fill="#fff"/>';
+  const svg = `<svg aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="${s}" height="${h}" viewBox="0 0 34 40"><path d="M17 38S3 24 3 14a14 14 0 0 1 28 0c0 10-14 24-14 24Z" fill="${safeColor}" stroke="#fff" stroke-width="2"/>${center}</svg>`;
+  return L.divIcon({ html:svg, className:'game-map-pin', iconSize:[hitWidth,hitHeight], iconAnchor:[hitWidth/2,hitHeight], popupAnchor:[0,-h+2], tooltipAnchor:[0,-h/2] });
 }
 
 // ── PERSISTENCE ────────────────────────────────────────────────
@@ -3810,8 +3835,8 @@ function resetAllData() {
 <script src="measuring-data.js"></script>
 <script src="matching-area-data.js"></script>
 <script src="sl-line-voronoi-data.js?v=1"></script>
-<script src="questions.js?v=63"></script>
-<script src="vehicles.js?v=4"></script>
+<script src="questions.js?v=64"></script>
+<script src="vehicles.js?v=5"></script>
 <script src="curses.js?v=5"></script>
 
 <!-- Firebase module bootstrap -->
@@ -4912,15 +4937,16 @@ function timelineFitPath() {
   }
 }
 </script>
-<script src="map-utils.js?v=3"></script>
-<script src="map-experience.js?v=3"></script>
-<script src="advanced-map.js?v=3"></script>
-<script src="map-3d.js?v=3"></script>
-<script src="question-experience.js?v=3"></script>
-<script src="tracker-experience.js?v=1"></script>
-<script src="departure-board.js?v=1"></script>
-<script src="app-shell.js?v=3"></script>
+<script src="map-utils.js?v=4"></script>
+<script src="map-experience.js?v=4"></script>
+<script src="advanced-map.js?v=4"></script>
+<script src="map-3d.js?v=4"></script>
+<script src="question-experience.js?v=4"></script>
+<script src="tracker-experience.js?v=2"></script>
+<script src="departure-board.js?v=2"></script>
+<script src="app-shell.js?v=4"></script>
 <script src="position-experience.js?v=3"></script>
 <script src="field-lab.js?v=3"></script>
+<script src="transit-workspace.js?v=4"></script>
 </body>
 </html>

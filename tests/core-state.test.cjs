@@ -11,7 +11,7 @@ function fixture() {
   const classList = () => { const classes=new Set(); return {add:(...a)=>a.forEach(v=>classes.add(v)),remove:(...a)=>a.forEach(v=>classes.delete(v)),contains:v=>classes.has(v),toggle:(v,on)=>{const result=on===undefined?!classes.has(v):on;result?classes.add(v):classes.delete(v);return result;}}; };
   const element = id => ({id,classList:classList(),style:{},dataset:{},textContent:'',innerHTML:'',value:'',addEventListener(){},removeEventListener(){},querySelector(){return null;},querySelectorAll(){return [];},appendChild(){},setAttribute(){},remove(){},focus(){}});
   const document = {
-    body:{classList:classList()}, addEventListener(){},querySelectorAll(){return[];},createElement:()=>element('created'),
+    body:{classList:classList(),dataset:{}}, addEventListener(){},querySelectorAll(){return[];},createElement:()=>element('created'),
     getElementById(id){if(!elements.has(id))elements.set(id,element(id));return elements.get(id);}
   };
   const tasks=[];
@@ -56,6 +56,40 @@ function mapFixture(f) {
   return {removed,cleaned};
 }
 const tick=()=>Promise.resolve().then(()=>Promise.resolve());
+
+test('question filters read lock and answer state instead of action labels',()=>{
+  const f=fixture();
+  f.run("questions=[{id:1,type:'radar',locked:false,zone:'pending'},{id:2,type:'matching',locked:true,answer:'yes'},{id:'aq3',type:'angle',locked:true,zone:'outside'}]");
+  const card={id:'q-card-1',textContent:'Unlocked · Lock · Inside · Outside',querySelector:()=>null};
+  f.ctx.filterCard=card;
+  assert.equal(f.run("_questionFilter='open'; _cardMatchesFilter(filterCard)"),true);
+  assert.equal(f.run("_questionFilter='locked'; _cardMatchesFilter(filterCard)"),false);
+  assert.equal(f.run("_questionFilter='answered'; _cardMatchesFilter(filterCard)"),false);
+  card.id='q-card-2';
+  assert.equal(f.run('_cardMatchesFilter(filterCard)'),true);
+  card.id='angle-card-aq3';
+  assert.equal(f.run('_cardMatchesFilter(filterCard)'),true,'angle IDs use the same model-based filter');
+});
+
+test('question and game area shading preferences are independent',()=>{
+  const f=fixture(),updates=[];
+  f.ctx.setBlueOverlayOpacity=value=>updates.push(['question',value]);
+  f.ctx.setGameAreaOverlayOpacity=value=>updates.push(['area',value]);
+  f.run('setBlueOpacitySetting(20);setAreaOpacitySetting(45)');
+  assert.deepEqual(updates,[['question',.2],['area',.45]]);
+  assert.equal(f.run('_readRevampPrefs().blueOpacity'),20);
+  assert.equal(f.run('_readRevampPrefs().areaOpacity'),45);
+});
+
+test('all eight themes replace the previous theme and persist independently of maps',()=>{
+  const f=fixture();
+  for (const theme of ['bambu','kelp','sepia','ocean','dusk','graphite','light','dark']) {
+    f.run(`applyTheme('${theme}')`);
+    assert.equal(f.ctx.document.body.dataset.theme,theme);
+    assert.equal(f.run('THEMES.filter(t=>document.body.classList.contains(t)).length'),theme==='dark'?0:1);
+    assert.equal(f.run('_readRevampPrefs().theme'),theme);
+  }
+});
 test('all local scripts parse and every stylesheet/script reference exists',()=>{
   for(const match of html.matchAll(/<(script|link)\b[^>]*(?:src|href)="([^"?#]+)(?:[?#][^"]*)?"/g)){
     if(/^https?:/.test(match[2]))continue;
@@ -166,4 +200,32 @@ test('delayed private endgame pin restore is cancelled after role or round chang
     while(f.tasks.length)f.tasks.shift()();
     assert.equal(placed,0,scenario);
   }
+});
+
+test('rapid game-area changes cannot leave orphaned masks from stale requests',async()=>{
+  const f=fixture(),active=new Set(),pending=[];
+  const layer=()=>({addTo(){active.add(this);return this;}});
+  f.ctx.mapStub={removeLayer:layer=>active.delete(layer),getPane:()=>({style:{}})};
+  f.ctx.L={polygon:layer,geoJSON:layer};
+  f.ctx._loadGameAreaGeoJson=()=>new Promise(resolve=>pending.push(resolve));
+  const geo={type:'Polygon',coordinates:[[[18,59],[19,59],[19,60],[18,59]]]};
+  f.run("map=mapStub;_gameAreaMode='medium';");const first=f.run('updateGameAreaOverlay()');
+  f.run("_gameAreaMode='small';");const second=f.run('updateGameAreaOverlay()');
+  f.run("_gameAreaMode='medium';");const third=f.run('updateGameAreaOverlay()');
+  pending[2](geo);await third;assert.equal(active.size,2);
+  pending[0](geo);pending[1](geo);await Promise.all([first,second]);
+  assert.equal(active.size,2,'a repeated area name must not admit an older completion');
+  f.run("_gameAreaMode='normal';");await f.run('updateGameAreaOverlay()');
+  assert.equal(active.size,0,'normal area removes every mask and outline');
+});
+
+test('switching to the normal game area invalidates a pending load',async()=>{
+  const f=fixture(),active=new Set();let finish;
+  f.ctx.mapStub={removeLayer:layer=>active.delete(layer),getPane:()=>({style:{}})};
+  const layer=()=>({addTo(){active.add(this);return this;}});f.ctx.L={polygon:layer,geoJSON:layer};
+  f.ctx._loadGameAreaGeoJson=()=>new Promise(resolve=>finish=resolve);
+  f.run("map=mapStub;_gameAreaMode='small';");const loading=f.run('updateGameAreaOverlay()');
+  f.run("_gameAreaMode='normal';");await f.run('updateGameAreaOverlay()');
+  finish({type:'Polygon',coordinates:[[[18,59],[19,59],[19,60],[18,59]]]});await loading;
+  assert.equal(active.size,0);
 });
