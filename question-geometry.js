@@ -33,10 +33,10 @@
       const first=map.layerPointToLatLng(L.point(a[0]+lo*dx,a[1]+lo*dy));
       const last=map.layerPointToLatLng(L.point(a[0]+hi*dx,a[1]+hi*dy));
       if(geo.distance(first,last)<.05)return;
-      const bearing=geo.bearing(first,last),width=1.05;
+      const bearing=geo.bearing(first,last),width=1.15;
       const corners=[geo.destination(first,width,bearing-90),geo.destination(last,width,bearing-90),geo.destination(last,width,bearing+90),geo.destination(first,width,bearing+90)];
       const coords=corners.map(p=>[p.lng,p.lat]);coords.push(coords[0]);
-      walls.push({type:'Feature',geometry:{type:'Polygon',coordinates:[coords]},properties:{id:current?.id??'area',color:colors[current?.type]||'#4882dc',height:current?.id===window.lampskeneQuestions?.previewId?65:32}});
+      walls.push({type:'Feature',geometry:{type:'Polygon',coordinates:[coords]},properties:{id:current?.id??'area',color:colors[current?.type]||'#4882dc',height:current?.id===window.lampskeneQuestions?.previewId?110:75}});
     }
     function outline(points){
       if(!current)return;const r=ring(points);if(!r)return;

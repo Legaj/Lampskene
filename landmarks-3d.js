@@ -67,7 +67,7 @@
       box(door,hotel?153:154,5.5,3.4,3.9,4.35,cream);
       labels.push(feature({type:'Point',coordinates:[center.lng,center.lat]},{...common,label:hotel?'Vanadis · pastel corner':p.name}));
     }
-    return {parts:{type:'FeatureCollection',features},labels:{type:'FeatureCollection',features:labels},masks:{type:'MultiPolygon',coordinates:masks},replacementPoints:{type:'MultiPoint',coordinates:replacementPoints}};
+    return {footprints:collection,parts:{type:'FeatureCollection',features},labels:{type:'FeatureCollection',features:labels},masks:{type:'MultiPolygon',coordinates:masks},replacementPoints:{type:'MultiPoint',coordinates:replacementPoints}};
   }
   function load(){
     if(!pending)pending=fetch('landmark-footprints.geojson?v=6',{cache:'force-cache'}).then(r=>{if(!r.ok)throw Error('Landmark footprints unavailable');return r.json();}).then(build).catch(error=>{pending=null;throw error;});

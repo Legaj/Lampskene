@@ -113,7 +113,9 @@ const server=http.createServer((req,res)=>{
     const parts=await page.evaluate(async()=>(await lampskene3D.map.getSource('field-landmarks').getData()).features.length);assert.ok(parts>100);
     await page.waitForTimeout(450);
     await page.evaluate(()=>{document.querySelector('[data-map3d-toggle="questions"]').click();lampskene3D.setBackground('clean');lampskene3D.map.jumpTo({center:[18.0614,59.3439],zoom:17.8,pitch:58,bearing:240,elevation:0});});
-    await page.waitForTimeout(2000);await page.screenshot({path:path.join(out,'norra-real.png')});
+    await page.waitForFunction(()=>JSON.stringify(lampskene3D.map.getFilter('building-3d')).includes('415984312'),undefined,{timeout:20000});
+    await page.waitForTimeout(1200);await page.screenshot({path:path.join(out,'norra-real.png')});
+    assert.ok(await page.evaluate(async()=>(await lampskene3D.map.getSource('field-landmark-neighbours').getData()).features.length>0),'grouped building neighbours are restored after landmark cutouts');
     if(process.env.CHECK_LANDMARK_OCCLUSION){
       await page.evaluate(()=>{for(const l of lampskene3D.map.getStyle().layers)if(l.type==='fill-extrusion'&&!l.id.startsWith('field-'))lampskene3D.map.setLayoutProperty(l.id,'visibility','none');});
       await page.waitForTimeout(300);await page.screenshot({path:path.join(out,'norra-model-only.png')});
