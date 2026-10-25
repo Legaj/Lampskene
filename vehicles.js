@@ -406,6 +406,12 @@ function toggleSlLineLive() {
   if (!map) { showToast('Choose a game mode to use live tracking'); return; }
   _slLineLive = !_slLineLive; syncVehiclePolling();
 }
+function setLiveTransitEnabled(value) {
+  if (!map) { showToast('Choose a game mode to use live tracking'); return; }
+  trainsEnabled=Boolean(value);_slLineLive=false;
+  if(trainsEnabled)_vehiclePaused=false;
+  syncVehiclePolling();
+}
 function setVehiclePaused(value) {
   _vehiclePaused = Boolean(value); clearTimeout(trainInterval); trainInterval = null;
   if (_vehiclePaused) { cancelVehicleRequest(); _vehicleFollowId = ''; clearVehicleProjection(); }
@@ -430,6 +436,7 @@ function emitVehicleUpdate() {
 window.lampskeneTracker = {
   state:vehicleTrackerState, info:resolveVehicle, motion:v => vehicleMotion(v,Date.now()), projection:v => vehicleProjection(v,Date.now()),
   toggleAll:toggleLiveTrains, toggleLines:toggleSlLineLive, pause:setVehiclePaused, filters:setVehicleFilters,
+  setEnabled:setLiveTransitEnabled,
   select:selectTrackedVehicle, center:() => centerTrackedVehicle(false), follow:() => centerTrackedVehicle(true),
   stopFollowing:() => { _vehicleFollowId = ''; emitVehicleUpdate(); },
   refresh:() => { if (_vehiclePaused) setVehiclePaused(false); else fetchAndRenderTrains(); },

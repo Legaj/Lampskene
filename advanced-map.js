@@ -17,8 +17,8 @@
   let detailLayer,measureLayer,labelsLayer,trailsLayer,request=null,version=0,nextRequest=0,loadedBounds=null;
   let detailData={type:'FeatureCollection',features:[]},detailStatus='Choose details, then load this area.',measureMode=false,points=[],sourceLayers=new Map();
   const cache=new Map();
-  let searchCenter=null,searchRadius=600,choosingCircle=false,searchCircle=null,searchMarker=null;
-  const detailServers=['https://overpass.kumi.systems/api/interpreter','https://overpass-api.de/api/interpreter','https://overpass.private.coffee/api/interpreter'];
+  let searchCenter=null,searchRadius=400,choosingCircle=false,searchCircle=null,searchMarker=null;
+  const detailServers=['https://overpass-api.de/api/interpreter','https://overpass.private.coffee/api/interpreter','https://overpass.kumi.systems/api/interpreter'];
 
   function mount() {
     const tools=section('Map tools','map-tools-settings');
@@ -44,7 +44,7 @@
     const radiusLabel=node('label','workspace-label','Search radius');radiusLabel.htmlFor='field-detail-radius';
     const radius=node('select');radius.id='field-detail-radius';
     for(const value of [200,400,600,1000,1200]){const option=node('option','',value+' m');option.value=String(value);radius.append(option);}radius.value=String(searchRadius);
-    radius.addEventListener('change',()=>{searchRadius=Number(radius.value);drawSearchCircle();});
+    radius.addEventListener('change',()=>{cancelRequest();searchRadius=Number(radius.value);drawSearchCircle();});
     const choose=btn('Choose search circle in 2D',chooseCircle);choose.id='field-detail-choose';host.append(radiusLabel,radius,choose);
     const grid=node('div','field-detail-grid');
     for(const d of geo.DETAILS) {
@@ -70,56 +70,65 @@
   function syncDetailButtons(){document.querySelectorAll('[data-detail]').forEach(b=>b.setAttribute('aria-pressed',String(prefs.details.includes(b.dataset.detail))));}
   function updateDetailStatus(){if(by('field-detail-status'))by('field-detail-status').textContent=detailStatus;const b=by('field-detail-load');if(b){b.disabled=Boolean(request);b.textContent=request?'Searching…':'Search circle';}}
   function chooseCircle(){
-    if(!map)return;window.lampskene3D?.close(true);stopMeasure();window.appShell?.close();choosingCircle=true;
+    if(!map)return;cancelRequest();window.lampskeneReach?.cancelPick();window.lampskene3D?.close(true);stopMeasure();window.appShell?.close();choosingCircle=true;
     detailStatus='Click the 2D map to place your search circle.';updateDetailStatus();
     showToast('Click the map to choose your search circle',6000);map.getContainer().style.cursor='crosshair';
   }
+  function cancelCircle(){choosingCircle=false;map?.getContainer().style.removeProperty('cursor');}
   function drawSearchCircle(){
     if(!map||!searchCenter)return;
     searchCircle?.remove();searchMarker?.remove();
     searchCircle=L.circle(searchCenter,{radius:searchRadius,color:'#16879a',weight:2,fillOpacity:.07,interactive:false}).addTo(map);
     searchMarker=L.marker(searchCenter,{draggable:true,icon:L.divIcon({className:'field-search-center',html:'<span>⌖</span>',iconSize:[30,30],iconAnchor:[15,15]})}).addTo(map);
     searchMarker.on('drag',()=>{searchCenter=searchMarker.getLatLng();searchCircle.setLatLng(searchCenter);});
+    searchMarker.on('dragstart',cancelRequest);
     searchMarker.on('dragend',()=>{detailStatus='Search circle moved · click Search circle to refresh.';updateDetailStatus();});
   }
   function clearDetails(){
     cancelRequest();choosingCircle=false;map?.getContainer().style.removeProperty('cursor');searchCircle?.remove();searchMarker?.remove();searchCircle=null;searchMarker=null;searchCenter=null;
     detailData={type:'FeatureCollection',features:[]};loadedBounds=null;renderDetails();detailStatus='Map details cleared.';updateDetailStatus();
   }
-  function queryBounds(){
-    const c=map.getCenter(),v=map.getBounds();
-    const north=geo.destination(c,1200,0).lat,south=geo.destination(c,1200,180).lat;
-    const east=geo.destination(c,1200,90).lng,west=geo.destination(c,1200,270).lng;
-    return [Math.max(south,v.getSouth()),Math.max(west,v.getWest()),Math.min(north,v.getNorth()),Math.min(east,v.getEast())];
-  }
   function cancelRequest(){version++;request?.abort();request=null;updateDetailStatus();}
   async function loadDetails(){
     if(!map)return;
     if(!searchCenter){chooseCircle();return;}
     if(!prefs.details.length){detailStatus='Choose at least one detail layer.';updateDetailStatus();return;}
-    const bounds=[searchCenter.lat,searchCenter.lng,searchRadius],keys=[...prefs.details].sort(),key=JSON.stringify([bounds,keys]);
+    const center={...searchCenter},radius=searchRadius,bounds=[center.lat,center.lng,radius],keys=[...prefs.details].sort(),key=JSON.stringify([bounds,keys]);
     const saved=cache.get(key);if(saved&&Date.now()-saved.at<600000){detailData=saved.data;loadedBounds=bounds;renderDetails();detailStatus='Cached local details · '+detailData.features.length+' features. Reload available after 10 minutes.';updateDetailStatus();return;}
     if(Date.now()<nextRequest){detailStatus='Please wait '+Math.ceil((nextRequest-Date.now())/1000)+' seconds before another area request.';updateDetailStatus();return;}
     cancelRequest();const current=version,controller=new AbortController();request=controller;nextRequest=Date.now()+15000;
-    detailStatus='Loading selected details near this map view…';updateDetailStatus();
+    detailStatus='Loading selected details in your search circle…';updateDetailStatus();
     const timeout=setTimeout(()=>controller.abort(),45000);
     try{
-      const query=geo.overpassCircleQuery(searchCenter,searchRadius,keys);let raw,lastError;
+      const query=geo.overpassCircleQuery(center,radius,keys);let raw,normalized;
       for(const server of detailServers){
         if(controller.signal.aborted)break;
         const attempt=new AbortController(),abort=()=>attempt.abort();controller.signal.addEventListener('abort',abort,{once:true});
-        const deadline=setTimeout(abort,14000);
+        const deadline=setTimeout(abort,server===detailServers[0]?6000:11000);
         try{
           const response=await fetch(server+'?'+new URLSearchParams({data:query}),{signal:attempt.signal});
           if(!response.ok)throw Error('Detail service returned '+response.status);
           raw=await response.json();if(!Array.isArray(raw?.elements)||(!raw.elements.length&&raw.remark))throw Error('Detail service is busy');break;
-        }catch(error){lastError=error;}
+        }catch(error){raw=null;}
         finally{clearTimeout(deadline);controller.signal.removeEventListener('abort',abort);}
+        // A single small OSM map extract keeps local searches usable when the
+        // query services time out. Larger circles stay on Overpass to bound data.
+        if(server===detailServers[0]&&radius<=600&&!controller.signal.aborted){
+          const fallback=new AbortController(),stop=()=>fallback.abort();controller.signal.addEventListener('abort',stop,{once:true});const end=setTimeout(stop,14000);
+          try{
+            const south=geo.destination(center,radius,180).lat,north=geo.destination(center,radius,0).lat,west=geo.destination(center,radius,270).lng,east=geo.destination(center,radius,90).lng;
+            detailStatus='Loading local OpenStreetMap details…';updateDetailStatus();
+            const response=await fetch('https://api.openstreetmap.org/api/0.6/map.json?'+new URLSearchParams({bbox:[west,south,east,north].join(',')}),{signal:fallback.signal});
+            if(!response.ok)throw Error('Fallback map service returned '+response.status);
+            normalized=geo.normalizeMapDetails(await response.json(),keys,center,radius);break;
+          }catch(error){/* Try the remaining query services. */}
+          finally{clearTimeout(end);controller.signal.removeEventListener('abort',stop);}
+        }
       }
-      if(!raw)throw controller.signal.aborted?new DOMException('Search cancelled','AbortError'):Error('Local detail services are busy or unreachable. Try again or use a smaller circle. '+(lastError?.message||''));
+      if(!raw&&!normalized)throw controller.signal.aborted?new DOMException('Search cancelled','AbortError'):Error('Local detail services are busy or unreachable. Try a 200–600 m circle or retry later.');
       if(current!==version)return;
-      detailData=geo.normalizeDetails(raw,keys);loadedBounds=bounds;cache.set(key,{data:detailData,at:Date.now()});if(cache.size>8)cache.delete(cache.keys().next().value);
-      renderDetails();detailStatus=detailData.features.length+' mapped features · '+new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'})+(detailData.truncated?' · Result limit reached; zoom in for more.':raw.remark?' · Service returned partial data; retry in a smaller area.':'.');
+      detailData=normalized||geo.normalizeDetails(raw,keys);loadedBounds=bounds;cache.set(key,{data:detailData,at:Date.now()});if(cache.size>8)cache.delete(cache.keys().next().value);
+      renderDetails();detailStatus=detailData.features.length+' mapped features · '+new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'})+(detailData.truncated?' · Result limit reached; use a smaller circle.':raw?.remark?' · Service returned partial data; retry in a smaller area.':'.');
     }catch(error){if(current===version)detailStatus=error.name==='AbortError'?'Detail request timed out. Try a smaller area.':error.message;}
     finally{clearTimeout(timeout);if(current===version){request=null;updateDetailStatus();}}
   }
@@ -144,7 +153,7 @@
     const link=node('a','field-source-link','View mapped feature ↗');link.href='https://www.openstreetmap.org/'+p.id;link.target='_blank';link.rel='noopener';content.append(link);return content;
   }
   function startMeasure(){
-    if(!map)return;measureMode=true;points=[];window.appShell?.close();document.body.classList.add('field-measuring');by('field-measure-bar').hidden=false;renderMeasure();showToast('Tap points on the map. Done keeps the measurement visible.');
+    if(!map)return;window.lampskeneReach?.cancelPick();cancelCircle();measureMode=true;points=[];window.appShell?.close();document.body.classList.add('field-measuring');by('field-measure-bar').hidden=false;renderMeasure();showToast('Tap points on the map. Done keeps the measurement visible.');
   }
   function stopMeasure(){measureMode=false;points=[];measureLayer?.clearLayers();document.body.classList.remove('field-measuring');by('field-measure-bar').hidden=true;}
   function finishMeasure(){measureMode=false;document.body.classList.remove('field-measuring');if(points.length<2){stopMeasure();return;}showToast('Measurement kept on map. Clear removes it.');}
@@ -204,11 +213,11 @@
     trailsLayer=L.tileLayer('https://tile.waymarkedtrails.org/hiking/{z}/{x}/{y}.png',{maxZoom:20,maxNativeZoom:18,pane:'map-reference',updateWhenZooming:false,attribution:'Trails &copy; <a href="https://hiking.waymarkedtrails.org/">Waymarked Trails</a>, OpenStreetMap'});
     syncOverlays();syncSources();
     map.on('click',e=>{if(choosingCircle){searchCenter={lat:e.latlng.lat,lng:e.latlng.lng};choosingCircle=false;map.getContainer().style.removeProperty('cursor');drawSearchCircle();detailStatus='Search circle ready · '+searchRadius+' m radius. Choose details, then Search circle.';updateDetailStatus();window.appShell?.openSettingsSection('map-detail-settings');}else if(measureMode){points.push({lat:e.latlng.lat,lng:e.latlng.lng});renderMeasure();}});
-    map.on('moveend',()=>{if(loadedBounds){detailStatus='Map moved · '+detailData.features.length+' loaded features. Load this area to refresh.';updateDetailStatus();}});
+    map.on('moveend',()=>{if(loadedBounds&&!request){detailStatus=detailData.features.length+' loaded details in your search circle. Move its pin to search elsewhere.';updateDetailStatus();}});
     map.on('zoomstart',()=>document.body.classList.add('field-map-moving'));map.on('zoomend',()=>document.body.classList.remove('field-map-moving'));
   }
   document.addEventListener('jetlag:panelchange',e=>{if(e.detail.panel!=='map'&&measureMode)finishMeasure();});
   document.addEventListener('keydown',e=>{if(e.key==='Escape'){if(measureMode)finishMeasure();if(choosingCircle){choosingCircle=false;map?.getContainer().style.removeProperty('cursor');}}});
   mount();const original=window.initMap;window.initMap=function(){original.apply(this,arguments);init();};
-  window.lampskeneMapTools={consumesMapClick:()=>measureMode||choosingCircle,startMeasure,stopMeasure,loadDetails,chooseCircle,clearDetails,openDetails:()=>window.appShell?.openSettingsSection('map-detail-settings'),details:()=>({type:'FeatureCollection',features:detailData.features.filter(f=>prefs.details.includes(f.properties.key))}),overlays:()=>[prefs.labels?'Labels':null,prefs.trails?'Trails':null,...prefs.sources.filter(s=>s.enabled).map(s=>s.name)].filter(Boolean),open:()=>window.appShell?.openSettingsSection('map-tools-settings')};
+  window.lampskeneMapTools={consumesMapClick:()=>measureMode||choosingCircle,startMeasure,stopMeasure,loadDetails,chooseCircle,cancelCircle,clearDetails,openDetails:()=>window.appShell?.openSettingsSection('map-detail-settings'),details:()=>({type:'FeatureCollection',features:detailData.features.filter(f=>prefs.details.includes(f.properties.key))}),overlays:()=>[prefs.labels?'Labels':null,prefs.trails?'Trails':null,...prefs.sources.filter(s=>s.enabled).map(s=>s.name)].filter(Boolean),open:()=>window.appShell?.openSettingsSection('map-tools-settings')};
 })();

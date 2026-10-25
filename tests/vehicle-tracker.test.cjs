@@ -65,6 +65,12 @@ test('CSV metadata preserves quoted fields, BOM, line types, and trip fallback',
   assert.equal(h.context.vehicleColor('10'),'#0070c0');
   assert.equal(h.context.vehicleColor('14'),'#d71920');
 });
+test('the 3D live-transit switch turns both feed consumers off and reopens all vehicles without pause',()=>{
+  const h=harness(),api=h.context.lampskeneTracker;
+  h.context.toggleSlLineLive();assert.equal(api.state().enabled,true);assert.equal(api.state().linesEnabled,true);
+  api.setEnabled(false);assert.equal(api.state().enabled,false);assert.equal(api.state().allEnabled,false);assert.equal(api.state().linesEnabled,false);
+  api.setEnabled(true);assert.equal(api.state().allEnabled,true);assert.equal(api.state().linesEnabled,false);assert.equal(api.state().paused,false);
+});
 
 test('invalid, duplicate, and stale source positions are excluded', () => {
   const h = harness(), now = h.now();

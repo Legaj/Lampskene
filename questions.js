@@ -477,6 +477,7 @@ function addHiderLocationCard() {
 
 function onMapClick(e) {
   if (typeof window !== 'undefined' && window.lampskeneMapTools?.consumesMapClick()) return;
+  if (typeof window !== 'undefined' && window.lampskeneReach?.picking) return;
   if (hiderPinLocked) return;
   placeHiderPin(e.latlng.lat, e.latlng.lng);
 }

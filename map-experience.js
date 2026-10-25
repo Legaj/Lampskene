@@ -219,7 +219,7 @@
       attribution:'Historical orthophoto 2006 &copy; <a href="https://kartor.stockholm/kartor-geodata/">Stockholms stad</a>'
     });
     layers.ortho2022=L.tileLayer.wms('https://openmap.stockholm.se/bios/wms/app/baggis/web/WMS_STHLM_ORTOFOTO_2022',{
-      layers:'p_1003220',format:'image/jpeg',version:'1.1.1',maxZoom:22,maxNativeZoom:21,tileSize:512,zoomOffset:-1,
+      layers:'p_1003220',format:'image/png',version:'1.1.1',maxZoom:22,maxNativeZoom:21,tileSize:512,zoomOffset:-1,
       updateWhenIdle:true,updateWhenZooming:false,
       attribution:'Orthophoto 2022 &copy; <a href="https://kartor.stockholm/kartor-geodata/">Stockholms stad</a>'
     });

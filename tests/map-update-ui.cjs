@@ -53,16 +53,34 @@ const server=http.createServer((req,res)=>{
     assert.ok(geometry.areas>0&&geometry.walls>0,JSON.stringify(geometry));assert.equal(geometry.finite,false);
     // First server fails; the backup provides real-shaped OSM data.
     let attempts=0;
-    await page.route('**/api/interpreter?*',async route=>{attempts++;if(attempts===1)await route.fulfill({status:503,body:'busy'});else await route.fulfill({status:200,contentType:'application/json',body:JSON.stringify({elements:[{type:'node',id:1,lat:59.342,lon:18.048,tags:{amenity:'bench',name:'Test bench'}}]})});});
+    if(!process.env.CHECK_LIVE_DETAILS){
+      await page.route('**/api/interpreter?*',async route=>{attempts++;if(attempts===1)await route.fulfill({status:503,body:'busy'});else await route.fulfill({status:200,contentType:'application/json',body:JSON.stringify({elements:[{type:'node',id:1,lat:59.342,lon:18.048,tags:{amenity:'bench',name:'Test bench'}}]})});});
+      await page.route('**/api/0.6/map.json?*',async route=>{attempts++;await route.fulfill({status:200,contentType:'application/json',body:JSON.stringify({elements:[{type:'node',id:1,lat:59.342,lon:18.048,tags:{amenity:'bench',name:'Test bench'}}]})});});
+    }
     await page.evaluate(()=>{lampskeneMapTools.chooseCircle();map.fire('click',{latlng:L.latLng(59.342,18.048)});});
-    await page.locator('#field-detail-load').click();await page.waitForFunction(()=>lampskeneMapTools.details().features.length===1);assert.equal(attempts,2,'detail search recovers via backup');
+    if(process.env.CHECK_LIVE_DETAILS)await page.selectOption('#field-detail-radius','200');
+    await page.locator('#field-detail-load').click();await page.waitForFunction(()=>lampskeneMapTools.details().features.length>0,undefined,{timeout:45000});
+    const detailCount=await page.evaluate(()=>lampskeneMapTools.details().features.length);
+    if(!process.env.CHECK_LIVE_DETAILS)assert.equal(attempts,2,'detail search recovers via backup');else console.log('Live local detail search:',detailCount,'features');
+    // A dated SL query counts waiting, without changing question geometry.
+    let slRequests=0;
+    if(!process.env.CHECK_LIVE_REACH)await page.route('https://journeyplanner.integration.sl.se/v2/trips?*',async route=>{slRequests++;const url=new URL(route.request().url());assert.equal(url.searchParams.get('itd_date'),'20261026');assert.equal(url.searchParams.get('itd_time'),'0900');await route.fulfill({status:200,contentType:'application/json',body:JSON.stringify({journeys:[{legs:[{origin:{departureTimePlanned:'2026-10-26T08:05:00Z'},transportation:{product:{class:2},disassembledName:'18'},stopSequence:[{id:'test-sl-stop',name:'Test reachable stop',coord:[59.343,18.05],arrivalTimePlanned:'2026-10-26T08:20:00Z'}]}]}]})});});
+    await page.evaluate(()=>{lampskeneReach.setOrigin({lat:59.342,lng:18.048});document.getElementById('reach-departure').value='2026-10-26T09:00';appShell.openSettingsSection('transport-reach-settings');});
+    const questionCount=await page.evaluate(()=>questions.length);
+    await page.locator('#reach-search').click();
+    await page.waitForFunction(()=>document.getElementById('reach-search').disabled===false,undefined,{timeout:process.env.CHECK_LIVE_REACH?120000:20000});
+    if(!process.env.CHECK_LIVE_REACH){assert.equal(slRequests,8);assert.equal(await page.evaluate(()=>lampskeneReach.data.features[0].properties.minutes),20);}
+    else{const count=await page.evaluate(()=>lampskeneReach.data.features.length);console.log('Live SL reach:',count,'reachable stops');assert.ok(count>0);await page.screenshot({path:path.join(out,'sl-reach.png')});}
+    assert.equal(await page.evaluate(()=>questions.length),questionCount);
+    await page.evaluate(()=>{appShell.openSettingsSection('transport-reach-settings');document.getElementById('reach-provider').value='traveltime';document.getElementById('reach-provider').dispatchEvent(new Event('change'));});
+    await page.locator('#reach-search').click();assert.match(await page.locator('#reach-status').innerText(),/application ID and API key/);
     await page.evaluate(()=>lampskene3D.open());
     await page.waitForFunction(()=>lampskene3D.map?.getSource('field-vehicles'),undefined,{timeout:45000});
     await page.evaluate(()=>{lampskene3D.refresh();lampskene3D.map.jumpTo({center:[18.048,59.342],zoom:16,pitch:78});});
     await page.waitForTimeout(1800);await page.screenshot({path:path.join(out,'3d-map.png')});
     assert.equal(await page.evaluate(()=>lampskene3D.map.getMaxPitch()),85);
     assert.ok(await page.evaluate(async()=>(await lampskene3D.map.getSource('field-question-walls').getData()).features.length>0));
-    assert.equal(await page.evaluate(async()=>(await lampskene3D.map.getSource('field-details').getData()).features.length),1);
+    assert.equal(await page.evaluate(async()=>(await lampskene3D.map.getSource('field-details').getData()).features.length),detailCount);
     await page.evaluate(()=>lampskene3D.setBackground('tf-transport'));
     assert.match(await page.evaluate(()=>lampskene3D.map.getSource('field-basemap').tiles[0]),/thunderforest/);
     await page.evaluate(()=>lampskene3D.startExploring('walk'));
@@ -71,6 +89,24 @@ const server=http.createServer((req,res)=>{
     await page.locator('#map3d-canvas canvas').focus();await page.keyboard.down('w');await page.waitForTimeout(350);await page.keyboard.up('w');
     assert.notDeepEqual(await page.evaluate(()=>lampskene3D.map.getCenter().toArray()),start,'pedestrian moves camera');
     await page.keyboard.press('Escape');assert.equal(await page.evaluate(()=>lampskene3D.exploration),'orbit');assert.equal(await page.evaluate(()=>lampskene3D.active),true);
+    await page.waitForFunction(async()=>{const source=lampskene3D.map.getSource('field-landmarks');return source&&(await source.getData()).features.length>0;});
+    const parts=await page.evaluate(async()=>(await lampskene3D.map.getSource('field-landmarks').getData()).features.length);assert.ok(parts>100);
+    await page.waitForTimeout(450);
+    await page.evaluate(()=>{document.querySelector('[data-map3d-toggle="questions"]').click();lampskene3D.setBackground('osm');lampskene3D.map.jumpTo({center:[18.0614,59.3439],zoom:17.8,pitch:58,bearing:240,elevation:0});});
+    await page.waitForTimeout(2000);await page.screenshot({path:path.join(out,'norra-real.png')});
+    if(process.env.CHECK_LANDMARK_OCCLUSION){
+      await page.evaluate(()=>{for(const l of lampskene3D.map.getStyle().layers)if(l.type==='fill-extrusion'&&!l.id.startsWith('field-'))lampskene3D.map.setLayoutProperty(l.id,'visibility','none');});
+      await page.waitForTimeout(300);await page.screenshot({path:path.join(out,'norra-model-only.png')});
+      await page.evaluate(()=>{for(const l of lampskene3D.map.getStyle().layers)if(l.type==='fill-extrusion'&&!l.id.startsWith('field-'))lampskene3D.map.setLayoutProperty(l.id,'visibility','visible');});
+    }
+    await page.evaluate(()=>lampskene3D.map.jumpTo({center:[18.0403,59.34532],zoom:18.2,pitch:58,bearing:50,elevation:0}));
+    await page.waitForTimeout(2000);await page.screenshot({path:path.join(out,'vanadis-corner.png')});
+    if(process.env.CHECK_LIVE_CONTOURS){
+      await page.evaluate(()=>lampskene3D.map.jumpTo({center:[18.04,59.343],zoom:14.5,pitch:55,elevation:0}));
+      await page.evaluate(()=>lampskeneContours.set(true));await page.waitForFunction(()=>lampskeneContours.data.features.length>0,undefined,{timeout:25000});
+      console.log('Live elevation contours:',await page.evaluate(()=>lampskeneContours.data.features.length));
+      await page.evaluate(()=>lampskene3D.refresh());await page.waitForTimeout(600);await page.screenshot({path:path.join(out,'3d-contours.png')});
+    }
     await page.evaluate(()=>lampskene3D.close());assert.deepEqual(errors,[],'no browser errors');
     console.log('Map update browser checks passed. Screenshots:',out);
   }finally{await browser.close();server.close();}

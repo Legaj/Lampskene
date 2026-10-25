@@ -6,8 +6,9 @@
   const node=(tag,cls,text)=>{const n=document.createElement(tag);if(cls)n.className=cls;if(text!==undefined)n.textContent=text;return n;};
   const by=id=>document.getElementById(id);
   let gl=null,loading=null,epoch=0,isOpen=false,lastFocus=null,refreshInterval=null,loadTimer=null;
-  let settings={terrain:true,buildings:true,details:true,questions:true};
+  let settings={terrain:true,buildings:true,landmarks:true,details:true,questions:true};
   let styleKey='osm',geometrySignature='',moveTimer=null,terrainFallback=false;
+  let landmarkMasks=null,landmarkReplacementPoints=null,nativeBuildingFilters=[];
   let vehicleLookup=new Map(),questionLookup=new Map(),lastVehicleSignature='';
   const sourceSignatures=new Map();
   let exploreMode='orbit',explorePoint=null,exploreBearing=0,orbitCamera=null,driveFrame=null,driveTime=0;
@@ -25,12 +26,11 @@
   function refreshGeometry(){
     if(!gl?.getSource('field-question-areas')||!window.lampskeneQuestionGeometry)return;
     const bounds=gl.getBounds();
-    const signature=JSON.stringify([settings.questions,bounds.toArray(),(typeof questions==='undefined'?[]:questions).map(q=>[q.id,typeof questionCode==='function'?questionCode(q,true):null]),window.lampskeneQuestions?.previewId,typeof _cityBoundaryOn!=='undefined'&&_cityBoundaryOn]);
+    const signature=JSON.stringify([settings.questions,bounds.toArray(),(typeof questions==='undefined'?[]:questions).map(q=>[q.id,typeof questionCode==='function'?questionCode(q,true):null]),window.lampskeneQuestions?.previewId,typeof _cityBoundaryOn!=='undefined'&&[_cityBoundaryOn,Boolean(_cityBoundaryData)],typeof _gameAreaMode!=='undefined'&&[_gameAreaMode,Boolean(_gameAreaGeoCache[_gameAreaMode])]]);
     if(signature===geometrySignature)return;geometrySignature=signature;
-    if(!settings.questions){setSourceData('field-question-areas',empty());setSourceData('field-question-walls',empty());return;}
     try{
       const result=window.lampskeneQuestionGeometry.build(bounds);
-      setSourceData('field-question-areas',result.areas);setSourceData('field-question-walls',result.walls);
+      setSourceData('field-question-areas',settings.questions?result.areas:empty());setSourceData('field-question-walls',settings.questions?result.walls:empty());setSourceData('field-game-area',result.gameArea||empty());
     }catch(error){geometrySignature='';console.warn('3D question geometry:',error);status('Question geometry could not be drawn. Return to 2D to inspect.');}
   }
   function stopExploring(restore=false){
@@ -46,6 +46,7 @@
     if(exploreMode==='orbit')orbitCamera={center:gl.getCenter(),zoom:gl.getZoom(),pitch:gl.getPitch(),bearing:gl.getBearing()};
     explorePoint={lat:gl.getCenter().lat,lng:gl.getCenter().lng};exploreBearing=gl.getBearing();exploreMode=mode;gl.keyboard?.disable();
     by('map3d-explore').value=mode;positionCamera();
+    gl.getCanvas().focus({preventScroll:true});
     status('W/S or ↑/↓ move · A/D or ←/→ turn · Q/E step sideways · Shift faster · Esc leaves '+mode+' mode');
   }
   function positionCamera(){
@@ -63,6 +64,7 @@
     exploreBearing=(exploreBearing+turn*65*dt+360)%360;
     const forward=(pressed.has('w')||pressed.has('arrowup')?1:0)-(pressed.has('s')||pressed.has('arrowdown')?1:0);
     const sideways=(pressed.has('e')?1:0)-(pressed.has('q')?1:0),speed=({walk:1.5,car:10,boat:5}[exploreMode]||1.5)*(pressed.has('shift')?2:1);
+    if(!turn&&!forward&&!sideways){driveTime=0;return;}
     if(forward)explorePoint=geo.destination(explorePoint,speed*dt,exploreBearing+(forward<0?180:0));
     if(sideways)explorePoint=geo.destination(explorePoint,speed*dt,exploreBearing+(sideways<0?-90:90));
     positionCamera();driveFrame=requestAnimationFrame(drive);
@@ -83,14 +85,17 @@
     host.innerHTML='<div id="map3d-canvas"></div><header class="map3d-header"><button type="button" id="map3d-back">Back to game</button></header><div id="map3d-loading" class="map3d-loading" role="status"><strong>Opening 3D map…</strong></div><div class="map3d-toolbar"><button type="button" id="map3d-north">North ↑</button><button type="button" id="map3d-tilt">Flat</button><select id="map3d-explore" aria-label="Desktop exploration"><option value="orbit">Orbit</option><option value="walk">Pedestrian</option><option value="car">Car</option><option value="boat">Boat</option></select></div><details class="map3d-options"><summary>Layers</summary><div class="map3d-layer-content"><label for="map3d-style">Map background</label><select id="map3d-style"></select><label for="map3d-pitch">Viewing angle <output id="map3d-pitch-value">55°</output></label><input id="map3d-pitch" type="range" min="0" max="85" value="55"><div id="map3d-toggles"></div></div></details><div class="map3d-status" id="map3d-status" role="status">Drag to explore · right-drag to look around</div>';
     document.body.append(host);
     by('map3d-back').addEventListener('click',()=>close(true));
-    by('map3d-north').addEventListener('click',()=>gl?.easeTo({bearing:0,duration:350}));by('map3d-tilt').addEventListener('click',()=>{if(!gl)return;const pitch=gl.getPitch()>20?0:55;gl.easeTo({pitch,duration:350});by('map3d-tilt').textContent=pitch?'Flat':'Tilt';});
-    for(const [key,label] of [['terrain','Terrain'],['buildings','Buildings'],['questions','Question areas & walls'],['details','Local detail results']]){
+    by('map3d-north').addEventListener('click',()=>{if(exploreMode!=='orbit'){exploreBearing=0;positionCamera();}else gl?.easeTo({bearing:0,duration:350});});by('map3d-tilt').addEventListener('click',()=>{if(!gl)return;stopExploring();const pitch=gl.getPitch()>20?0:55;gl.easeTo({pitch,duration:350});by('map3d-tilt').textContent=pitch?'Flat':'Tilt';});
+    for(const [key,label] of [['terrain','Terrain'],['buildings','Buildings'],['landmarks','Coloured landmarks'],['questions','Question areas & walls'],['details','Local detail results']]){
       const b=node('button','',label);b.type='button';b.dataset.map3dToggle=key;b.setAttribute('aria-pressed',String(settings[key]));b.addEventListener('click',()=>{settings[key]=!settings[key];syncLayers();});by('map3d-toggles').append(b);
     }
-    const transit=node('button','','Live transit');transit.type='button';transit.id='map3d-enable-transit';transit.addEventListener('click',()=>{window.lampskeneTracker?.toggleAll();refreshAll();});by('map3d-toggles').append(transit);
+    const transit=node('button','','Live transit');transit.type='button';transit.id='map3d-enable-transit';transit.addEventListener('click',()=>{const tracker=window.lampskeneTracker;if(tracker)tracker.setEnabled(!tracker.state().enabled);refreshAll();});by('map3d-toggles').append(transit);
     const rail=node('button','','SL rail network');rail.type='button';rail.id='map3d-rail';rail.addEventListener('click',()=>{window.lampskeneRail?.toggle();refreshAll();});by('map3d-toggles').append(rail);
     const contours=node('button','','Height contours');contours.type='button';contours.id='map3d-contours';contours.addEventListener('click',()=>{window.lampskeneContours?.toggle();refreshAll();});by('map3d-toggles').append(contours);
     const details=node('button','','Search local details in 2D');details.type='button';details.addEventListener('click',()=>{close(true);window.lampskeneMapTools?.openDetails();});by('map3d-toggles').append(details);
+    for(const [label,center] of [['Norra Real',[18.06145,59.34394]],['Vanadis corner',[18.04035,59.34533]]]){
+      const b=node('button','',label);b.type='button';b.addEventListener('click',()=>{stopExploring();gl?.easeTo({center,zoom:label==='Norra Real'?17.8:18.2,pitch:58,elevation:0,bearing:label==='Norra Real'?240:50,duration:900});by('map3d-explorer').querySelector('.map3d-options').open=false;});by('map3d-toggles').append(b);
+    }
     for(const item of window.lampskeneMap?.styles||[]){const option=node('option','',item.name);option.value=item.key;by('map3d-style').append(option);}
     by('map3d-style').addEventListener('change',()=>setBackground(by('map3d-style').value));
     by('map3d-pitch').addEventListener('input',()=>{stopExploring();gl?.easeTo({pitch:Number(by('map3d-pitch').value),duration:0});});
@@ -110,12 +115,12 @@
       if(!context)throw Error('This browser cannot create a 3D map. The 2D game is still available.');
       context.getExtension('WEBGL_lose_context')?.loseContext();
       lib.setWorkerCount(2);
-      styleKey=typeof activeLayerKey!=='undefined'?activeLayerKey:'osm';geometrySignature='';terrainFallback=false;
+      styleKey=typeof activeLayerKey!=='undefined'?activeLayerKey:'osm';geometrySignature='';terrainFallback=false;landmarkMasks=null;landmarkReplacementPoints=null;nativeBuildingFilters=[];
       const c=map.getCenter();gl=new lib.Map({container:'map3d-canvas',style:'https://tiles.openfreemap.org/styles/liberty',center:[c.lng,c.lat],zoom:Math.max(12,map.getZoom()-1),pitch:55,bearing:0,maxZoom:23,antialias:true,attributionControl:{compact:true},maxPitch:85});
       gl.addControl(new lib.NavigationControl({visualizePitch:true}),'top-right');
       loadTimer=setTimeout(()=>{if(version===epoch&&isOpen&&!gl?.isStyleLoaded()){by('map3d-loading').innerHTML='<strong>3D map is taking longer to load</strong><p>Check your connection, or return to the game and retry.</p>';}},22000);
       gl.on('load',()=>{clearTimeout(loadTimer);loadTimer=null;if(version!==epoch)return;by('map3d-loading').hidden=true;addSources();setBackground(styleKey);syncLayers();refreshAll();window.lampskeneContours?.refresh();if(!document.hidden)refreshInterval=setInterval(refreshAll,5000);});
-      gl.on('error',event=>{if(version!==epoch)return;if(event.sourceId==='field-terrain'&&!terrainFallback){terrainFallback=true;gl.setTerrain(null);gl.removeSource('field-terrain');gl.addSource('field-terrain',{type:'raster-dem',tiles:['https://s3.amazonaws.com/elevation-tiles-prod/terrarium/{z}/{x}/{y}.png'],tileSize:256,maxzoom:14,encoding:'terrarium'});syncLayers();}else if(event.sourceId==='field-terrain'){settings.terrain=false;syncLayers();status('Terrain tiles unavailable.');}else if(!gl.isStyleLoaded()){by('map3d-loading').innerHTML='<strong>3D map data unavailable</strong><p>Try again later. Back to game returns to your working map.</p>';}});
+      gl.on('error',event=>{if(version!==epoch)return;if(event.sourceId==='field-terrain'&&!terrainFallback){terrainFallback=true;gl.setTerrain(null);gl.addSource('field-terrain-backup',{type:'raster-dem',tiles:['https://s3.amazonaws.com/elevation-tiles-prod/terrarium/{z}/{x}/{y}.png'],tileSize:256,maxzoom:14,encoding:'terrarium'});syncLayers();}else if(event.sourceId==='field-terrain-backup'){settings.terrain=false;syncLayers();status('Terrain tiles unavailable.');}else if(event.sourceId!=='field-terrain'&&!gl.isStyleLoaded()){by('map3d-loading').innerHTML='<strong>3D map data unavailable</strong><p>Try again later. Back to game returns to your working map.</p>';}});
       gl.on('webglcontextlost',()=>{status('3D graphics paused by your browser. Return to the game to continue.');});
       gl.on('moveend',()=>{clearTimeout(moveTimer);moveTimer=setTimeout(()=>{refreshAll();window.lampskeneContours?.refresh();},300);});
       gl.on('pitch',()=>{by('map3d-pitch').value=String(Math.round(gl.getPitch()));by('map3d-pitch-value').textContent=Math.round(gl.getPitch())+'°';});
@@ -131,13 +136,18 @@
     if(lastFocus?.isConnected&&lastFocus.getClientRects().length)lastFocus.focus({preventScroll:true});
   }
   function addSources(){
+    nativeBuildingFilters=gl.getStyle().layers.filter(l=>l.type==='fill-extrusion').map(l=>({id:l.id,filter:gl.getFilter(l.id)}));
     gl.addSource('field-terrain',{type:'raster-dem',url:'https://tiles.mapterhorn.com/tilejson.json',tileSize:512,encoding:'terrarium'});
-    for(const id of ['field-vehicles','field-questions','field-details','field-position','field-players','field-question-areas','field-question-walls','field-rail','field-contours'])gl.addSource(id,{type:'geojson',data:empty()});
+    for(const id of ['field-vehicles','field-questions','field-details','field-position','field-players','field-question-areas','field-question-walls','field-game-area','field-rail','field-contours','field-landmarks','field-landmark-labels'])gl.addSource(id,{type:'geojson',data:empty()});
     gl.addLayer({id:'field-rail-lines',type:'line',source:'field-rail',paint:{'line-color':['get','color'],'line-width':['interpolate',['linear'],['zoom'],10,2,16,5],'line-opacity':.95}});
     gl.addLayer({id:'field-contour-lines',type:'line',source:'field-contours',paint:{'line-color':'#87623a','line-width':['case',['get','major'],1.7,.8],'line-opacity':.85}});
     gl.addLayer({id:'field-contour-labels',type:'symbol',source:'field-contours',filter:['==',['get','major'],true],layout:{'symbol-placement':'line','text-field':['get','label'],'text-size':11,'symbol-spacing':350,'text-font':['Noto Sans Regular']},paint:{'text-color':'#78512c','text-halo-color':'#fff9e7','text-halo-width':1.5}});
+    gl.addLayer({id:'field-game-area-solids',type:'fill-extrusion',source:'field-game-area',paint:{'fill-extrusion-color':'#2f8cff','fill-extrusion-height':2,'fill-extrusion-opacity':.30,'fill-extrusion-vertical-gradient':false}});
     gl.addLayer({id:'field-question-solids',type:'fill-extrusion',source:'field-question-areas',paint:{'fill-extrusion-color':'#4882dc','fill-extrusion-height':3,'fill-extrusion-opacity':.30,'fill-extrusion-vertical-gradient':false}});
     gl.addLayer({id:'field-question-boundaries',type:'fill-extrusion',source:'field-question-walls',paint:{'fill-extrusion-color':['get','color'],'fill-extrusion-height':['get','height'],'fill-extrusion-opacity':.46,'fill-extrusion-vertical-gradient':true}});
+    gl.addLayer({id:'field-landmark-buildings',type:'fill-extrusion',source:'field-landmarks',minzoom:14,paint:{'fill-extrusion-color':['get','color'],'fill-extrusion-base':['get','base'],'fill-extrusion-height':['get','height'],'fill-extrusion-opacity':1}});
+    gl.addLayer({id:'field-landmark-names',type:'symbol',source:'field-landmark-labels',minzoom:14,layout:{'text-field':['get','label'],'text-size':13,'text-offset':[0,1.5],'text-font':['Noto Sans Regular']},paint:{'text-color':'#604050','text-halo-color':'#fff8ed','text-halo-width':2}});
+    const target=gl;window.lampskeneLandmarks?.load().then(data=>{if(gl!==target||!isOpen)return;landmarkMasks=data.masks;landmarkReplacementPoints=data.replacementPoints;setSourceData('field-landmarks',data.parts);setSourceData('field-landmark-labels',data.labels);syncLayers();}).catch(error=>console.warn('Landmark models:',error.message));
     gl.addLayer({id:'field-vehicle-bodies',type:'fill-extrusion',source:'field-vehicles',minzoom:12,paint:{'fill-extrusion-color':['get','color'],'fill-extrusion-base':['coalesce',['get','base'],0],'fill-extrusion-height':['get','height'],'fill-extrusion-opacity':1}});
     gl.addLayer({id:'field-vehicle-labels',type:'symbol',source:'field-vehicles',minzoom:13,filter:['!=',['get','line'],''],layout:{'text-field':['get','line'],'text-size':12,'text-offset':[0,-1.1],'text-font':['Noto Sans Regular'],'text-allow-overlap':false},paint:{'text-color':'#20302a','text-halo-color':'#fffdf5','text-halo-width':2}});
     gl.addLayer({id:'field-question-pins',type:'circle',source:'field-questions',paint:{'circle-radius':8,'circle-color':['get','color'],'circle-stroke-color':'#fff','circle-stroke-width':2}});
@@ -158,14 +168,17 @@
       new maplibregl.Popup().setLngLat([pin.lng,pin.lat]).setDOMContent(content).addTo(gl);
     });
     gl.on('click','field-detail-points',event=>{const p=event.features?.[0]?.properties;if(!p)return;new maplibregl.Popup().setLngLat(event.lngLat).setDOMContent(node('strong','map3d-popup',p.name||'Map detail')).addTo(gl);});
+    gl.on('click','field-landmark-buildings',event=>{const p=event.features?.[0]?.properties;if(!p)return;const content=node('div','map3d-popup');content.append(node('strong','',p.name),node('p','','Stylized model · OSM footprint, original colours and facade details.'));new maplibregl.Popup().setLngLat(event.lngLat).setDOMContent(content).addTo(gl);});
     for(const layer of ['field-question-pins','field-vehicle-bodies']){gl.on('mouseenter',layer,()=>gl.getCanvas().style.cursor='pointer');gl.on('mouseleave',layer,()=>gl.getCanvas().style.cursor='');}
   }
   function syncLayers(){
     document.querySelectorAll('[data-map3d-toggle]').forEach(b=>b.setAttribute('aria-pressed',String(settings[b.dataset.map3dToggle])));
     if(!gl||!gl.getSource('field-terrain'))return;
-    gl.setTerrain(settings.terrain?{source:'field-terrain',exaggeration:1.1}:null);
+    gl.setTerrain(settings.terrain?{source:terrainFallback?'field-terrain-backup':'field-terrain',exaggeration:1.1}:null);
     for(const layer of gl.getStyle().layers)if(layer.type==='fill-extrusion'&&!layer.id.startsWith('field-'))gl.setLayoutProperty(layer.id,'visibility',settings.buildings?'visible':'none');
+    for(const layer of nativeBuildingFilters)gl.setFilter(layer.id,settings.landmarks&&landmarkMasks?['all',...(layer.filter?[layer.filter]:[]),['!',['within',landmarkMasks]],['>',['distance',landmarkReplacementPoints],1]]:layer.filter||null);
     for(const [flag,layers] of [['questions',['field-question-solids','field-question-boundaries']],['details',['field-detail-points','field-detail-lines']]])for(const id of layers)gl.setLayoutProperty(id,'visibility',settings[flag]?'visible':'none');
+    for(const id of ['field-landmark-buildings','field-landmark-names'])gl.setLayoutProperty(id,'visibility',settings.buildings&&settings.landmarks?'visible':'none');
     refreshGeometry();
   }
   function refreshAll(){
@@ -179,6 +192,8 @@
     const pins=window.lampskeneQuestions?.publicPins?.()||[];questionLookup=new Map(pins.map(p=>[String(p.id)+'/'+p.pin,p]));setSourceData('field-questions',{type:'FeatureCollection',features:pins.filter(geo.validPoint).map(p=>({type:'Feature',geometry:{type:'Point',coordinates:[p.lng,p.lat]},properties:{key:String(p.id)+'/'+p.pin,label:p.label,color:p.color||'#d38c37'}}))});
     const detail=window.lampskeneMapTools?.details()||empty();setSourceData('field-details',detail);
     setSourceData('field-rail',window.lampskeneRail?.data()||empty());setSourceData('field-contours',window.lampskeneContours?.data||empty());refreshGeometry();
+    if(typeof getBlueOverlayOpacity==='function')gl.setPaintProperty('field-question-solids','fill-extrusion-opacity',getBlueOverlayOpacity());
+    if(typeof getGameAreaOverlayOpacity==='function')gl.setPaintProperty('field-game-area-solids','fill-extrusion-opacity',getGameAreaOverlayOpacity());
     updatePosition();
     const players=[];if(typeof trackerMarkers!=='undefined'&&typeof trackerActiveIds!=='undefined')for(const id of trackerActiveIds){const marker=trackerMarkers[id];if(marker&&map.hasLayer(marker)&&typeof trackerStatusFor==='function'&&trackerStatusFor(id)==='Live'){const p=marker.getLatLng();if(geo.validPoint(p))players.push({type:'Feature',geometry:{type:'Point',coordinates:[p.lng,p.lat]},properties:{id}});}}setSourceData('field-players',{type:'FeatureCollection',features:players});
     by('map3d-enable-transit').setAttribute('aria-pressed',String(Boolean(state?.enabled)));

@@ -11,14 +11,16 @@
   function sync(){
     document.querySelectorAll('[data-contour-toggle]').forEach(b=>{b.setAttribute('aria-pressed',String(enabled));b.textContent='Height contours · '+(enabled?'ON':'OFF');});
     if(layer&&map)map.removeLayer(layer);layer=null;
-    if(enabled&&typeof map!=='undefined'&&map)layer=L.geoJSON(data,{interactive:false,style:f=>({color:'#88663c',weight:f.properties.major?1.6:.8,opacity:.8})}).addTo(map);
+    if(enabled&&typeof map!=='undefined'&&map)layer=L.geoJSON(data,{interactive:true,style:f=>({color:'#88663c',weight:f.properties.major?1.6:.8,opacity:.8}),onEachFeature:(f,l)=>l.bindTooltip(f.properties.ele+' m',{sticky:true})}).addTo(map);
     document.dispatchEvent(new CustomEvent('jetlag:contours'));
   }
   async function elevationTile(x,y,z,signal){
     const key=[x,y,z].join('/');if(cache.has(key))return cache.get(key);
     let response;
     for(const url of [`https://tiles.mapterhorn.com/${z}/${x}/${y}.webp`,`https://s3.amazonaws.com/elevation-tiles-prod/terrarium/${z}/${x}/${y}.png`]){
-      try{response=await fetch(url,{signal});if(response.ok)break;}catch(error){if(signal.aborted)throw error;}
+      const attempt=new AbortController(),abort=()=>attempt.abort();signal.addEventListener('abort',abort,{once:true});const timeout=setTimeout(abort,7000);
+      try{response=await fetch(url,{signal:attempt.signal});if(response.ok)break;}catch(error){if(signal.aborted)throw error;}
+      finally{clearTimeout(timeout);signal.removeEventListener('abort',abort);}
     }
     if(!response?.ok)throw Error('Elevation tiles unavailable');
     const bitmap=await createImageBitmap(await response.blob());

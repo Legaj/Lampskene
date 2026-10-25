@@ -37,3 +37,6 @@ body.timeline-active #map .leaflet-overlay-pane,body.timeline-active #map .leafl
 @media(max-width:768px){.basemap-gallery{gap:6px}.basemap-option{min-height:52px}.map-workspace-legend{max-width:min(230px,calc(100vw - 82px));font-size:10px;padding:4px 7px}}
 .workspace-section #basemap-collection{display:block;width:100%;min-height:44px;margin:6px 0 10px;padding:9px 12px;border:1px solid var(--border2);border-radius:9px;background:var(--surface2);color:var(--text);font:inherit;box-sizing:border-box;color-scheme:light dark}
 .field-search-center{display:grid;place-items:center;background:var(--surface);color:var(--accent);border:2px solid var(--accent);border-radius:50%;font:23px/1 system-ui;box-shadow:0 2px 8px #0004}
+.reach-origin{display:grid;place-items:center;background:#16879a;color:#fff;border:2px solid #fff;border-radius:50%;font:700 15px/1 system-ui;box-shadow:0 2px 8px #0004}
+#transport-reach-settings>input,#transport-reach-settings>select,#reach-credentials>input{display:block;width:100%;min-height:44px;box-sizing:border-box;padding:9px 11px;border:1px solid var(--border2);border-radius:9px;background:var(--surface2);color:var(--text);font:inherit;margin:5px 0 10px}
+#reach-credentials[hidden],#reach-stop[hidden]{display:none}#reach-status{font-size:12px;line-height:1.65}

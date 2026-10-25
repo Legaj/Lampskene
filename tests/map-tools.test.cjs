@@ -55,6 +55,13 @@ test('OSM detail normalization excludes private access, rejects invalid data and
   assert.equal(result.features[0].properties.info.backrest,'yes');
   assert.throws(()=>geo.normalizeDetails({},['bench']));
 });
+test('small-area detail fallback resolves way geometry, filters categories before the limit and honours the circle',()=>{
+  const nodes=Array.from({length:1200},(_,i)=>({type:'node',id:i+10,lat:59.34,lon:18.05,tags:{highway:'path'}}));
+  const data={elements:[...nodes,{type:'node',id:1,lat:59.34,lon:18.05,tags:{amenity:'bench'}},{type:'node',id:2,lat:59.34,lon:18.0501},{type:'node',id:3,lat:59.3401,lon:18.0501},{type:'node',id:4,lat:59.3401,lon:18.05},{type:'way',id:5,nodes:[1,2,3,4,1],tags:{landuse:'construction'}},{type:'node',id:6,lat:59.4,lon:18.1,tags:{amenity:'bench'}},{type:'node',id:7,lat:59.34,lon:18.05,tags:{amenity:'bench',access:'private'}}]};
+  const result=geo.normalizeMapDetails(data,['bench','construction'],{lat:59.34,lng:18.05},200);
+  assert.equal(result.features.length,2);assert.equal(result.features[1].geometry.type,'Polygon');
+  assert.throws(()=>geo.normalizeMapDetails(data,['bench'],{lat:59.34,lng:18.05},1200));
+});
 function overlayFixture(){
   const make=tag=>({tag,attrs:{},children:[],style:{removeProperty(key){delete this[key];}},setAttribute(k,v){this.attrs[k]=String(v);},appendChild(n){this.children.push(n);return n;},insertBefore(n){this.children.unshift(n);},querySelector(selector){return this.children.find(c=>c.tag===selector)||null;},set innerHTML(v){this.children=[];},get innerHTML(){return '';}});
   const frames=[],handlers=new Map(),group=make('g');

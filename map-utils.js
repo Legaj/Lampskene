@@ -93,7 +93,25 @@
     }
     return {type:'FeatureCollection',features,truncated:data.elements.length>=1000,updated:data.osm3s?.timestamp_osm_base||null};
   }
-  const api={validPoint,replaceBaseLayer,distance,bearing,destination,vehicleFootprint,DETAILS,overpassQuery,overpassCircleQuery,normalizeDetails};
+  function normalizeMapDetails(data,keys,center,radius){
+    if(!Array.isArray(data?.elements)||!validPoint(center)||!Number.isFinite(radius)||radius<100||radius>600)throw Error('Use a search circle of 100–600 m for the fallback detail service');
+    const nodes=new Map(data.elements.filter(e=>e.type==='node').map(e=>[e.id,e]));
+    const elements=[];
+    for(const item of data.elements){
+      if(!keys.includes(category(item.tags||{})))continue;
+      const element={type:item.type,id:item.id,tags:item.tags};
+      if(item.type==='node'){element.lat=item.lat;element.lon=item.lon;}
+      else if(item.type==='way'){
+        const geometry=(item.nodes||[]).map(id=>nodes.get(id)).filter(n=>n&&validPoint({lat:n.lat,lng:n.lon})).map(n=>({lat:n.lat,lon:n.lon}));
+        if(!geometry.length)continue;
+        element.geometry=geometry;element.center={lat:geometry.reduce((sum,p)=>sum+p.lat,0)/geometry.length,lon:geometry.reduce((sum,p)=>sum+p.lon,0)/geometry.length};
+      }else continue;
+      const point={lat:element.lat??element.center?.lat,lng:element.lon??element.center?.lon};
+      if(validPoint(point)&&distance(center,point)<=radius)elements.push(element);
+    }
+    return normalizeDetails({elements},keys);
+  }
+  const api={validPoint,replaceBaseLayer,distance,bearing,destination,vehicleFootprint,DETAILS,overpassQuery,overpassCircleQuery,normalizeDetails,normalizeMapDetails};
   if(typeof module==='object'&&module.exports)module.exports=api;
   root.lampskeneGeo=api;
 })(typeof window==='object'?window:globalThis);

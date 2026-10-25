@@ -57,7 +57,18 @@
     const combined=union(excluded.filter(p=>p.length));
     const project=p=>{const ll=map.layerPointToLatLng(L.point(p[0],p[1]));return [ll.lng,ll.lat];};
     const areas={type:'FeatureCollection',features:combined.map(poly=>({type:'Feature',geometry:{type:'Polygon',coordinates:poly.map(r=>r.map(project))},properties:{height:3,color:'#4882dc'}}))};
-    return {areas,walls:{type:'FeatureCollection',features:walls}};
+    let gameArea=empty();
+    if(typeof _gameAreaMode!=='undefined'&&_gameAreaMode!=='normal'&&typeof _gameAreaGeoCache!=='undefined'){
+      const region=_gameAreaGeoCache[_gameAreaMode],polygons=[];
+      const collect=g=>{if(!g)return;if(g.type==='FeatureCollection')g.features.forEach(collect);else if(g.type==='Feature')collect(g.geometry);else if(g.type==='GeometryCollection')g.geometries.forEach(collect);else if(g.type==='Polygon')polygons.push(g.coordinates);else if(g.type==='MultiPolygon')polygons.push(...g.coordinates);};
+      collect(region);
+      if(polygons.length){
+        const valid=union(polygons.map(poly=>pc.intersection(world,poly.map(r=>r.map(([lng,lat])=>{const p=map.latLngToLayerPoint(L.latLng(lat,lng));return [p.x,p.y];})))));
+        const outsideRegion=valid.length?pc.difference(world,valid):[world];
+        gameArea={type:'FeatureCollection',features:outsideRegion.map(poly=>({type:'Feature',geometry:{type:'Polygon',coordinates:poly.map(r=>r.map(project))},properties:{height:2,color:'#2f8cff'}}))};
+      }
+    }
+    return {areas,walls:{type:'FeatureCollection',features:walls},gameArea};
   }
   window.lampskeneQuestionGeometry={build};
 })();
