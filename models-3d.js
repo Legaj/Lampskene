@@ -29,5 +29,23 @@
     if(type==='ferry'){box(geo.destination(v,3,heading+180),12,4,3.2,6,'#fff8e5');box(geo.destination(v,2,heading),3,4.2,3.5,5.5,'#214b64');}
     return features;
   }
-  window.lampskeneModels={vehicle};
+  function explorer(point,mode,variant,heading){
+    const features=[];
+    const box=(p,length,width,base,height,color)=>features.push({type:'Feature',geometry:{type:'Polygon',coordinates:[geo.vehicleFootprint(p,heading,length,width)]},properties:{base,height,color}});
+    const offset=(along,side=0)=>geo.destination(geo.destination(point,Math.abs(along),heading+(along<0?180:0)),Math.abs(side),heading+(side<0?-90:90));
+    if(mode==='walk'){
+      for(const side of [-.17,.17]){box(offset(0,side),.28,.22,0,.12,'#27313b');box(offset(0,side),.20,.18,.12,.85,'#385d9b');}
+      box(point,.35,.60,.80,1.4,'#f2b51d');box(offset(0,.4),.20,.17,.9,1.35,'#efbf94');box(offset(0,-.4),.20,.17,.9,1.35,'#efbf94');
+      box(point,.32,.34,1.42,1.76,'#efbf94');box(offset(-.03),.34,.36,1.70,1.81,'#4a3431');
+    }else if(mode==='boat'){
+      box(point,7,2.6,.1,.75,'#f6f1df');box(point,6.6,2.3,.75,.9,'#255b85');box(offset(-1),2.8,1.9,.9,1.8,'#fff9e9');box(offset(.45),.12,1.8,1,1.7,'#244b60');box(offset(-1),2.9,2.0,1.8,1.95,'#cf7350');
+    }else{
+      const van=variant==='van',sport=variant==='sport',length=van?5.4:sport?4.5:4,width=van?2:1.85,top=van?2.3:sport?1.2:1.55,color=van?'#f1d16c':sport?'#e34a42':'#368fd3';
+      box(point,length,width,.30,.9,color);box(offset(van?-.7:-.2),length*(van?.6:.52),width-.13,.9,top,'#244755');box(offset(van?-.7:-.2),length*(van?.59:.5),width-.14,top,top+.09,color);
+      for(const along of [-length*.31,length*.31])for(const side of [-1,1])box(offset(along,side*width/2),.65,.23,.08,.65,'#242a32');
+      for(const side of [-1,1]){box(offset(length/2-.05,side*width*.32),.15,.35,.5,.72,'#fff2b0');box(offset(-length/2+.05,side*width*.32),.15,.35,.5,.72,'#ba272c');}
+    }
+    return {type:'FeatureCollection',features};
+  }
+  window.lampskeneModels={vehicle,explorer};
 })();

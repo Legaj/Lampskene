@@ -16,3 +16,10 @@ test('landmarks use the Norra Real and user-selected Vanadis corner footprints a
   assert.ok(result.labels.features.some(f=>f.properties.name.includes('Vanadisvägen')));
   assert.ok(result.replacementPoints.coordinates.length>40);
 });
+
+test('all third-person avatars and car variants have finite closed model geometry',()=>{
+  const c=models(),point={lat:59.3451,lng:18.0396};
+  for(const [mode,variant] of [['walk','city'],['boat','city'],['car','city'],['car','sport'],['car','van']]){
+    const model=c.lampskeneModels.explorer(point,mode,variant,43);validParts(model.features);assert.ok(model.features.length>=5);
+  }
+});

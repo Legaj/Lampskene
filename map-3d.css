@@ -10,5 +10,8 @@ body.map3d-active #position-controls,body.map3d-active .qe-map-inspector,body.ma
 .map3d-header{right:auto;max-width:none;padding:0;border:0;background:transparent;box-shadow:none}.map3d-header button{background:var(--surface);box-shadow:0 3px 15px #0002}
 .map3d-layer-content{display:flex;flex-direction:column;gap:9px;padding:0 12px 12px}.map3d-layer-content>label{font-size:12px;color:var(--text2);display:flex;justify-content:space-between}.map3d-layer-content>input{width:100%;accent-color:var(--accent)}
 .map3d-explorer select{max-width:100%;min-height:44px;padding:9px 12px;border:1px solid var(--border2);border-radius:9px;background:var(--surface);color:var(--text);font:600 12px/1.3 system-ui,sans-serif}.map3d-explorer select:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+.map3d-toolbar #map3d-drive-options:not([hidden]){display:flex;gap:6px}
+.map3d-playground{border-top:1px solid var(--border);padding-top:5px}.map3d-playground>summary{padding:10px 0}.map3d-playground>label,.map3d-playground>small{display:block;font-size:11px;color:var(--text2);margin:6px 0}.map3d-playground>select{width:100%;margin:0 0 8px}.map3d-playground>div{display:flex;gap:6px;flex-wrap:wrap}
+@media(max-width:600px){.map3d-explorer:has(#map3d-drive-options:not([hidden])) .map3d-options{bottom:172px}}
 .map3d-options #map3d-toggles{padding:0}.map3d-options{bottom:122px;max-height:calc(100% - 145px)}.map3d-options #map3d-enable-transit{grid-column:auto}.map3d-options #map3d-toggles button:last-child{grid-column:1/-1}.map3d-toolbar{bottom:67px}.map3d-status{max-width:700px}
 @media(pointer:coarse){#map3d-explore{display:none}}

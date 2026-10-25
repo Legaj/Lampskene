@@ -918,7 +918,7 @@
   </style>
   <link rel="stylesheet" href="map-experience.css?v=7" />
   <link rel="stylesheet" href="advanced-map.css?v=4" />
-  <link rel="stylesheet" href="map-3d.css?v=5" />
+  <link rel="stylesheet" href="map-3d.css?v=8" />
   <link rel="stylesheet" href="question-experience.css?v=5" />
   <link rel="stylesheet" href="tracker-experience.css?v=1" />
   <link rel="stylesheet" href="departure-board.css?v=1" />
@@ -4312,6 +4312,8 @@ async function deleteRoundUi(roundId) {
 }
 
 async function refreshAccountLists() {
+  const requestVersion = (refreshAccountLists.requestVersion || 0) + 1;
+  refreshAccountLists.requestVersion = requestVersion;
   if (!firebaseDb || !isRealGoogleUser()) {
     const inv = document.getElementById('invite-list');
     const rounds = document.getElementById('round-library-list');
@@ -4371,10 +4373,11 @@ async function refreshAccountLists() {
         </span>
       </div>`;
     }));
-    if (!mainUser || mainUser.uid !== historyUid) return;
+    if (!mainUser || mainUser.uid !== historyUid || refreshAccountLists.requestVersion !== requestVersion) return;
     const roundList = document.getElementById('round-library-list');
     if (roundList) roundList.innerHTML = rows.join('') || '<div class="account-muted">No rounds yet — create one above</div>';
   } catch(e) {
+    if (refreshAccountLists.requestVersion !== requestVersion) return;
     console.warn('Account list refresh failed:', e);
     const roundList = document.getElementById('round-library-list');
     if (roundList) roundList.innerHTML = `<div class="account-muted">Could not load rounds: ${escapeHtml(e.message || '')}</div>`;
@@ -4990,9 +4993,10 @@ function timelineFitPath() {
 <script src="question-geometry.js?v=7"></script>
 <script src="map-rail.js?v=5"></script>
 <script src="terrain-contours.js?v=7"></script>
-<script src="models-3d.js?v=5"></script>
+<script src="models-3d.js?v=8"></script>
 <script src="landmarks-3d.js?v=7"></script>
-<script src="map-3d.js?v=7"></script>
+<script src="map-3d.js?v=8"></script>
+<script src="map-sandbox.js?v=8"></script>
 <script src="question-experience.js?v=5"></script>
 <script src="tracker-experience.js?v=2"></script>
 <script src="departure-board.js?v=2"></script>

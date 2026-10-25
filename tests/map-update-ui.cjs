@@ -96,6 +96,19 @@ const server=http.createServer((req,res)=>{
     await page.locator('#map3d-canvas canvas').focus();await page.keyboard.down('w');await page.waitForTimeout(350);await page.keyboard.up('w');
     assert.notDeepEqual(await page.evaluate(()=>lampskene3D.map.getCenter().toArray()),start,'pedestrian moves camera');
     await page.keyboard.press('Escape');assert.equal(await page.evaluate(()=>lampskene3D.exploration),'orbit');assert.equal(await page.evaluate(()=>lampskene3D.active),true);
+    await page.evaluate(()=>{lampskene3D.setBackground('clean');lampskene3D.map.jumpTo({center:[18.0396,59.3451],zoom:18,pitch:55,bearing:0});lampskene3D.startExploring('car');});
+    assert.ok(await page.evaluate(async()=>(await lampskene3D.map.getSource('field-explorer').getData()).features.length>=10),'third-person car has a visible model');
+    await page.waitForTimeout(3500);console.log('Explorer camera:',await page.evaluate(()=>({zoom:lampskene3D.map.getZoom(),pitch:lampskene3D.map.getPitch(),rendered:lampskene3D.map.queryRenderedFeatures({layers:['field-explorer-body']}).length})));await page.screenshot({path:path.join(out,'third-person-car.png')});
+    await page.selectOption('#map3d-car','sport');await page.selectOption('#map3d-speed','2');
+    await page.keyboard.down('w');await page.waitForTimeout(350);await page.keyboard.up('w');
+    await page.evaluate(()=>lampskene3D.stopExploring(true));
+    assert.equal(await page.evaluate(async()=>(await lampskene3D.map.getSource('field-explorer').getData()).features.length),0);
+    await page.evaluate(()=>{lampskenePlayground.drop();});await page.waitForTimeout(1500);
+    assert.ok(await page.evaluate(async()=>(await lampskene3D.map.getSource('field-playground').getData()).features.length>0));
+    await page.screenshot({path:path.join(out,'cartoon-effect.png')});
+    await page.evaluate(()=>lampskenePlayground.clear());
+    assert.equal(await page.evaluate(async()=>(await lampskene3D.map.getSource('field-playground').getData()).features.length),0);
+
     await page.waitForFunction(async()=>{const source=lampskene3D.map.getSource('field-landmarks');return source&&(await source.getData()).features.length>0;});
     const parts=await page.evaluate(async()=>(await lampskene3D.map.getSource('field-landmarks').getData()).features.length);assert.ok(parts>100);
     await page.waitForTimeout(450);

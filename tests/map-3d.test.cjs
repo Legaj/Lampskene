@@ -10,7 +10,7 @@ function fixture(){
   const document={activeElement:null,hidden:false,createElement:node,head:node('head'),body:{append(){},classList:{add:value=>classes.add(value),remove:value=>classes.delete(value)}},getElementById(id){if(!elements.has(id))elements.set(id,node('div'));return elements.get(id);},querySelectorAll:()=>[],addEventListener(){}};
   class Explorer {
     constructor(){instances.push(this);this.handlers=new Map();this.removed=0;this.stopped=0;}
-    addControl(){}on(event,fn){this.handlers.set(event,fn);}getCenter(){return {lat:60,lng:19};}getZoom(){return 13;}stop(){this.stopped++;}remove(){this.removed++;}
+    getSource(){return null;}addControl(){}on(event,fn){this.handlers.set(event,fn);}getCenter(){return {lat:60,lng:19};}getZoom(){return 13;}stop(){this.stopped++;}remove(){this.removed++;}
   }
   const ctx={document,console,map:{getCenter:()=>({lat:59,lng:18}),getZoom:()=>12,setView:(...args)=>views.push(args),invalidateSize(){invalidations++;}},lampskeneGeo:require('../map-utils.js'),
     maplibregl:{Map:Explorer,NavigationControl:class{},setWorkerCount(){}},setTimeout:()=>1,clearTimeout(){},setInterval:()=>1,clearInterval(){},requestAnimationFrame:fn=>frames.push(fn),addEventListener(){}};
