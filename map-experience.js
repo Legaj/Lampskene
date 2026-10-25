@@ -89,10 +89,10 @@
       const host = oldPills.parentElement; host.id = 'map-style-settings';
       host.querySelector('.sp-label').textContent = 'Map style';
       const gallery = el('div', 'basemap-gallery');
-      const filterLabel = el('label','workspace-label','Map collection');
-      const filter = el('select'); filter.id='basemap-collection'; filterLabel.htmlFor=filter.id;
+      const filterLabel = el('div','workspace-label','Map collection');
+      const filter = el('div','basemap-collections'); filter.id='basemap-collection';filter.setAttribute('role','group');filter.setAttribute('aria-label','Map collection');filter.value='popular';
       for(const [value,label] of [['popular','Quick picks'],['street','Street & night'],['terrain','Terrain & trails'],['aerial','Aerial imagery'],['all','All backgrounds']]) {
-        const option=el('option','',label); option.value=value; filter.append(option);
+        const option=button(label,()=>{filter.value=value;filterMaps();},'basemap-collection-btn');option.dataset.collection=value;filter.append(option);
       }
       for (const item of MAPS) {
         const btn = button('', () => setBase(item.key), 'basemap-option');
@@ -104,13 +104,14 @@
       }
       const filterMaps=()=>{
         const selected=filter.value;
+        filter.querySelectorAll('[data-collection]').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.collection===selected)));
         gallery.querySelectorAll('[data-base]').forEach(node=>{
           const key=node.dataset.base;
           const category=['satellite','ortho2006','ortho2022'].includes(key)?'aerial':['opentopo','orienteering','tf-outdoors','tf-landscape','tf-cycle'].includes(key)?'terrain':'street';
           node.hidden=selected!=='all' && (selected==='popular'?!['osm','voyager','orienteering','satellite','ortho2006','darkmatter'].includes(key):selected!==category);
         });
       };
-      filter.addEventListener('change',filterMaps); filterMaps();
+      filterMaps();
       oldPills.before(filterLabel,filter);
       oldPills.replaceWith(gallery);
     }

@@ -916,7 +916,7 @@
     }
     @media (min-width:769px) { #curse-fab { display:none!important; } }
   </style>
-  <link rel="stylesheet" href="map-experience.css?v=6" />
+  <link rel="stylesheet" href="map-experience.css?v=7" />
   <link rel="stylesheet" href="advanced-map.css?v=4" />
   <link rel="stylesheet" href="map-3d.css?v=5" />
   <link rel="stylesheet" href="question-experience.css?v=5" />
@@ -2032,6 +2032,7 @@ function handleAppTrackerSnapshot(id, value) {
   if (!value) {
     delete trackerLocationMap[id];
     clearTrackerLayer(id);
+    document.dispatchEvent(new CustomEvent("jetlag:trackers"));
     renderTrackerMenus();
     return;
   }
@@ -2040,7 +2041,8 @@ function handleAppTrackerSnapshot(id, value) {
   if (!Number.isFinite(lat) || !Number.isFinite(lng) || Math.abs(lat) > 90 || Math.abs(lng) > 180) return;
   trackerLocationMap[id] = Object.assign({}, value, { lat, lng, deviceId:id });
   drawAppTrackerLocation(id);
-  pushTrackerTimelineSample(Object.assign({}, trackerLocationMap[id], { deviceId:id }));
+  document.dispatchEvent(new CustomEvent("jetlag:trackers"));
+  if (typeof pushTrackerTimelineSample === 'function') pushTrackerTimelineSample(Object.assign({}, trackerLocationMap[id], { deviceId:id }));
   renderTrackerMenus();
 }
 
@@ -2049,6 +2051,7 @@ function clearTrackerLayer(id) {
   if (trackerAccuracyCircles[id] && map) map.removeLayer(trackerAccuracyCircles[id]);
   delete trackerMarkers[id];
   delete trackerAccuracyCircles[id];
+  document.dispatchEvent(new CustomEvent("jetlag:trackers"));
 }
 
 function drawAppTrackerLocation(id) {
@@ -3842,8 +3845,8 @@ function resetAllData() {
 <script src="measuring-data.js"></script>
 <script src="matching-area-data.js"></script>
 <script src="sl-line-voronoi-data.js?v=1"></script>
-<script src="questions.js?v=66"></script>
-<script src="vehicles.js?v=6"></script>
+<script src="questions.js?v=76"></script>
+<script src="vehicles.js?v=7"></script>
 <script src="curses.js?v=5"></script>
 
 <!-- Firebase module bootstrap -->
@@ -4156,12 +4159,16 @@ async function acceptPartyInvite(partyId) {
 
 async function createRoundUi(role) {
   if (!isRealGoogleUser()) { showToast('Sign in with Google first'); return; }
+  const name = prompt('Name this round', new Date().toLocaleDateString() + ' · ' + role);
+  if (name === null) return;
+  if (!name.trim()) { showToast('Enter a round name'); return; }
   try {
     const { ref, push, update } = window.firebaseApi;
     const roundRef = push(ref(firebaseDb, 'rounds'));
     const roundId = roundRef.key;
     const selectedTrackerId = Array.from(trackerActiveIds || [])[0] || 'stenskara';
     const round = {
+      name:name.trim().slice(0,80),
       ownerUid:mainUser.uid,
       ownerUsername:(mainProfile && mainProfile.username) || mainUser.email || 'player',
       partyId:activePartyId || null,
@@ -4270,6 +4277,40 @@ async function openRound(roundId) {
   showToast('Round opened');
 }
 
+// These operations use the same round paths and ownership as existing creation
+// and deletion. No database configuration or security rule changes are needed.
+async function renameRoundUi(roundId) {
+  if (!firebaseDb || !isRealGoogleUser()) return;
+  try {
+    const { ref, get, update } = window.firebaseApi;
+    const r = (await get(ref(firebaseDb, `rounds/${roundId}`))).val();
+    if (!r || r.ownerUid !== mainUser.uid) { showToast('Only the round owner can rename it'); return; }
+    const name = prompt('Round name', r.name || 'Round');
+    if (name === null) return;
+    if (!name.trim()) { showToast('Enter a round name'); return; }
+    await update(ref(firebaseDb, `rounds/${roundId}`), {name:name.trim().slice(0,80),updatedAt:Date.now()});
+    await refreshAccountLists();showToast('Round renamed');
+  } catch(e) { showToast('Could not rename round: ' + (e.message || e),5000); }
+}
+async function deleteRoundUi(roundId) {
+  if (!firebaseDb || !isRealGoogleUser()) return;
+  try {
+    const { ref, get, update } = window.firebaseApi;
+    const r = (await get(ref(firebaseDb, `rounds/${roundId}`))).val();
+    if (!r || r.ownerUid !== mainUser.uid) { showToast('Only the round owner can delete it'); return; }
+    if (!confirm('Delete “' + (r.name || 'this round') + '” and its saved questions? This cannot be undone.')) return;
+    await update(ref(firebaseDb), {
+      [`rounds/${roundId}`]:null,
+      [`roundQuestions/${roundId}`]:null,
+      [`roundEndgame/${roundId}`]:null,
+      [`roundDrafts/${roundId}/${mainUser.uid}`]:null,
+      [`users/${mainUser.uid}/rounds/${roundId}`]:null
+    });
+    if (activeRoundId === roundId) { returnToMainMenu(false); return; }
+    await refreshAccountLists();showToast('Round deleted');
+  } catch(e) { showToast('Could not delete round: ' + (e.message || e),5000); }
+}
+
 async function refreshAccountLists() {
   if (!firebaseDb || !isRealGoogleUser()) {
     const inv = document.getElementById('invite-list');
@@ -4294,45 +4335,43 @@ async function refreshAccountLists() {
     // ── Round history (with party members) ──
     const roundSnap = await get(ref(firebaseDb, `users/${mainUser.uid}/rounds`));
     const roundIds = Object.keys(roundSnap.val() || {}).slice(-20).reverse();
-    const rows = [];
-    for (const roundId of roundIds) {
+    const historyUid = mainUser.uid;
+    const partyCache = new Map(), profileCache = new Map();
+    const load = (cache, path) => {
+      if (!cache.has(path)) cache.set(path, get(ref(firebaseDb, path)).then(s => s.val()).catch(() => null));
+      return cache.get(path);
+    };
+    const rows = await Promise.all(roundIds.map(async roundId => {
       const rs = await get(ref(firebaseDb, `rounds/${roundId}`));
-      const r = rs.val() || {};
-      // Fetch party members if this round belongs to a party
+      const r = rs.val();
+      if (!r) return ''; // Deleted shared rounds must not reappear as empty records.
       let membersText = 'solo';
-      try {
-        if (r.partyId) {
-          const partySnap = await get(ref(firebaseDb, `parties/${r.partyId}`));
-          const party = partySnap.val();
-          if (party && party.members) {
-            const memberUids = Object.keys(party.members);
-            // Look up usernames for each member
-            const names = [];
-            for (const uid of memberUids.slice(0, 8)) {
-              if (uid === mainUser.uid) { names.push('you'); continue; }
-              const ps = await get(ref(firebaseDb, `profiles/${uid}`));
-              const p = ps.val();
-              names.push(p && p.username ? p.username : (p && p.displayName ? p.displayName : 'player'));
-            }
-            membersText = names.join(', ');
-          }
-        } else {
-          membersText = 'solo';
+      if (r.partyId) {
+        const party = await load(partyCache, `parties/${r.partyId}`);
+        if (party && party.members) {
+          const names = await Promise.all(Object.keys(party.members).slice(0,8).map(async uid => {
+            if (uid === historyUid) return 'you';
+            const p = await load(profileCache, `profiles/${uid}`);
+            return p && (p.username || p.displayName) || 'player';
+          }));
+          membersText = names.join(', ');
         }
-      } catch(e) { /* ignore member fetch failures */ }
+      }
       const dateStr = r.createdAt ? new Date(r.createdAt).toLocaleDateString() : '';
       const roleIcon = r.role === 'hider' ? '🫣' : '🔍';
-      const testTag = r.test ? ' <span style="color:var(--muted)">(test)</span>' : '';
-      rows.push(`<div class="account-item">
-        <span>${roleIcon} ${escapeHtml(r.role || 'round')}${testTag} <span style="color:var(--muted)">${dateStr}</span>
-          <div class="ai-meta">with: ${escapeHtml(membersText)}</div>
+      const owned = r.ownerUid === historyUid;
+      return `<div class="account-item">
+        <span><strong>${escapeHtml(r.name || (r.role || 'Round') + ' · ' + dateStr)}</strong>
+          <div class="ai-meta">${roleIcon} ${escapeHtml(r.role || 'round')} · ${dateStr} · with: ${escapeHtml(membersText)}</div>
         </span>
-        <span style="display:flex;gap:4px">
+        <span style="display:flex;gap:4px;flex-wrap:wrap;justify-content:flex-end">
           <button class="sp-btn" onclick="openRound('${roundId}')" title="Open round"><span>Open</span></button>
           <button class="sp-btn" onclick="openRoundTimeline('${roundId}')" title="Replay timeline"><span>📊</span></button>
+          ${owned ? `<button class="sp-btn" onclick="renameRoundUi('${roundId}')"><span>Rename</span></button><button class="sp-btn" onclick="deleteRoundUi('${roundId}')"><span>Delete</span></button>` : ''}
         </span>
-      </div>`);
-    }
+      </div>`;
+    }));
+    if (!mainUser || mainUser.uid !== historyUid) return;
     const roundList = document.getElementById('round-library-list');
     if (roundList) roundList.innerHTML = rows.join('') || '<div class="account-muted">No rounds yet — create one above</div>';
   } catch(e) {
@@ -4944,21 +4983,20 @@ function timelineFitPath() {
   }
 }
 </script>
-<script src="map-utils.js?v=6"></script>
-<script src="map-experience.js?v=6"></script>
-<script src="advanced-map.js?v=6"></script>
+<script src="map-utils.js?v=7"></script>
+<script src="map-experience.js?v=7"></script>
+<script src="advanced-map.js?v=7"></script>
 <script src="vendor/polygon-clipping-0.15.7.js"></script>
-<script src="vendor/maplibre-contour-0.1.0.js"></script>
-<script src="question-geometry.js?v=6"></script>
+<script src="question-geometry.js?v=7"></script>
 <script src="map-rail.js?v=5"></script>
-<script src="terrain-contours.js?v=6"></script>
+<script src="terrain-contours.js?v=7"></script>
 <script src="models-3d.js?v=5"></script>
-<script src="landmarks-3d.js?v=6"></script>
-<script src="map-3d.js?v=6"></script>
+<script src="landmarks-3d.js?v=7"></script>
+<script src="map-3d.js?v=7"></script>
 <script src="question-experience.js?v=5"></script>
 <script src="tracker-experience.js?v=2"></script>
 <script src="departure-board.js?v=2"></script>
-<script src="transport-reach.js?v=6"></script>
+<script src="transport-reach.js?v=7"></script>
 <script src="app-shell.js?v=4"></script>
 <script src="position-experience.js?v=3"></script>
 <script src="field-lab.js?v=3"></script>

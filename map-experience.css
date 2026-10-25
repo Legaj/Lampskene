@@ -40,3 +40,5 @@ body.timeline-active #map .leaflet-overlay-pane,body.timeline-active #map .leafl
 .reach-origin{display:grid;place-items:center;background:#16879a;color:#fff;border:2px solid #fff;border-radius:50%;font:700 15px/1 system-ui;box-shadow:0 2px 8px #0004}
 #transport-reach-settings>input,#transport-reach-settings>select,#reach-credentials>input{display:block;width:100%;min-height:44px;box-sizing:border-box;padding:9px 11px;border:1px solid var(--border2);border-radius:9px;background:var(--surface2);color:var(--text);font:inherit;margin:5px 0 10px}
 #reach-credentials[hidden],#reach-stop[hidden]{display:none}#reach-status{font-size:12px;line-height:1.65}
+
+.basemap-collections{display:flex;flex-wrap:wrap;gap:6px;margin:8px 0 14px}.basemap-collection-btn{font:inherit;font-size:12px;padding:9px 12px;border-radius:20px;border:1px solid var(--border2);background:var(--surface2);color:var(--text);cursor:pointer}.basemap-collection-btn[aria-pressed="true"]{background:var(--accent);color:var(--bg);border-color:var(--accent)}

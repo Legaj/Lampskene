@@ -3,7 +3,7 @@
 (() => {
   'use strict';
   const empty=()=>({type:'FeatureCollection',features:[]});
-  const colors={radar:'#e3994b',thermo:'#cab037',angle:'#a47cce',matching:'#3da984',measuring:'#3d9dab'};
+  const colors={radar:'#ff7315',thermo:'#ffd000',angle:'#a329ff',matching:'#00da8c',measuring:'#00beed'};
   function build(bounds){
     if(typeof map==='undefined'||!map||!window.polygonClipping)return {areas:empty(),walls:empty()};
     const pc=window.polygonClipping,geo=window.lampskeneGeo;
@@ -33,7 +33,7 @@
       const first=map.layerPointToLatLng(L.point(a[0]+lo*dx,a[1]+lo*dy));
       const last=map.layerPointToLatLng(L.point(a[0]+hi*dx,a[1]+hi*dy));
       if(geo.distance(first,last)<.05)return;
-      const bearing=geo.bearing(first,last),width=.55;
+      const bearing=geo.bearing(first,last),width=1.05;
       const corners=[geo.destination(first,width,bearing-90),geo.destination(last,width,bearing-90),geo.destination(last,width,bearing+90),geo.destination(first,width,bearing+90)];
       const coords=corners.map(p=>[p.lng,p.lat]);coords.push(coords[0]);
       walls.push({type:'Feature',geometry:{type:'Polygon',coordinates:[coords]},properties:{id:current?.id??'area',color:colors[current?.type]||'#4882dc',height:current?.id===window.lampskeneQuestions?.previewId?65:32}});

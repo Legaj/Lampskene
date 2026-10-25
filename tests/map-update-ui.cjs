@@ -81,8 +81,15 @@ const server=http.createServer((req,res)=>{
     assert.equal(await page.evaluate(()=>lampskene3D.map.getMaxPitch()),85);
     assert.ok(await page.evaluate(async()=>(await lampskene3D.map.getSource('field-question-walls').getData()).features.length>0));
     assert.equal(await page.evaluate(async()=>(await lampskene3D.map.getSource('field-details').getData()).features.length),detailCount);
+    assert.equal(await page.locator('#map3d-style').inputValue(),'clean');
+    assert.equal(await page.locator('#map3d-pitch,#map3d-tilt').count(),0);
+    const buildings=await page.evaluate(()=>lampskene3D.map.getStyle().layers.filter(l=>l.type==='fill-extrusion'&&!l.id.startsWith('field-')));
+    assert.ok(buildings.length);assert.ok(buildings.every(l=>l.paint['fill-extrusion-opacity']===1&&!JSON.stringify(l.filter||null).includes('within')&&!JSON.stringify(l.filter||null).includes('distance')));
+    console.log('Native buildings:',JSON.stringify(buildings.map(l=>({id:l.id,minzoom:l.minzoom,filter:l.filter}))));
+    await page.evaluate(()=>{trackerActiveIds.add('local-test');trackerCatalog['local-test']={name:'3D test tracker'};handleAppTrackerSnapshot('local-test',{lat:59.342,lng:18.048,updatedAt:Date.now()-60000});lampskene3D.refresh();});
+    assert.equal(await page.evaluate(async()=>(await lampskene3D.map.getSource('field-players').getData()).features.length),1,'selected stale GPS trackers remain visible in 3D');
     await page.evaluate(()=>lampskene3D.setBackground('tf-transport'));
-    assert.match(await page.evaluate(()=>lampskene3D.map.getSource('field-basemap').tiles[0]),/thunderforest/);
+    assert.match(await page.evaluate(()=>lampskene3D.map.getStyle().sources['field-basemap'].tiles[0]),/thunderforest/);
     await page.evaluate(()=>lampskene3D.startExploring('walk'));
     assert.equal(await page.evaluate(()=>lampskene3D.exploration),'walk');
     const start=await page.evaluate(()=>lampskene3D.map.getCenter().toArray());
@@ -92,7 +99,7 @@ const server=http.createServer((req,res)=>{
     await page.waitForFunction(async()=>{const source=lampskene3D.map.getSource('field-landmarks');return source&&(await source.getData()).features.length>0;});
     const parts=await page.evaluate(async()=>(await lampskene3D.map.getSource('field-landmarks').getData()).features.length);assert.ok(parts>100);
     await page.waitForTimeout(450);
-    await page.evaluate(()=>{document.querySelector('[data-map3d-toggle="questions"]').click();lampskene3D.setBackground('osm');lampskene3D.map.jumpTo({center:[18.0614,59.3439],zoom:17.8,pitch:58,bearing:240,elevation:0});});
+    await page.evaluate(()=>{document.querySelector('[data-map3d-toggle="questions"]').click();lampskene3D.setBackground('clean');lampskene3D.map.jumpTo({center:[18.0614,59.3439],zoom:17.8,pitch:58,bearing:240,elevation:0});});
     await page.waitForTimeout(2000);await page.screenshot({path:path.join(out,'norra-real.png')});
     if(process.env.CHECK_LANDMARK_OCCLUSION){
       await page.evaluate(()=>{for(const l of lampskene3D.map.getStyle().layers)if(l.type==='fill-extrusion'&&!l.id.startsWith('field-'))lampskene3D.map.setLayoutProperty(l.id,'visibility','none');});
@@ -107,6 +114,10 @@ const server=http.createServer((req,res)=>{
       console.log('Live elevation contours:',await page.evaluate(()=>lampskeneContours.data.features.length));
       await page.evaluate(()=>lampskene3D.refresh());await page.waitForTimeout(600);await page.screenshot({path:path.join(out,'3d-contours.png')});
     }
+    await page.evaluate(()=>{lampskene3D.setBackground('positron');lampskene3D.close();});
+    await page.evaluate(()=>lampskene3D.open());await page.waitForFunction(()=>lampskene3D.map?.getSource('field-vehicles'),undefined,{timeout:45000});
+    assert.equal(await page.locator('#map3d-style').inputValue(),'positron','3D remembers its own background');
+    assert.ok(await page.evaluate(()=>lampskene3D.map.getStyle().layers.filter(l=>!l.id.startsWith('field-')&&l.type!=='fill-extrusion'&&l.type!=='background').every(l=>l.layout?.visibility==='none')),'raster maps never expose another labelled vector map below them');
     await page.evaluate(()=>lampskene3D.close());assert.deepEqual(errors,[],'no browser errors');
     console.log('Map update browser checks passed. Screenshots:',out);
   }finally{await browser.close();server.close();}

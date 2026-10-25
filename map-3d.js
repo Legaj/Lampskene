@@ -7,19 +7,26 @@
   const by=id=>document.getElementById(id);
   let gl=null,loading=null,epoch=0,isOpen=false,lastFocus=null,refreshInterval=null,loadTimer=null;
   let settings={terrain:true,buildings:true,landmarks:true,details:true,questions:true};
-  let styleKey='osm',geometrySignature='',moveTimer=null,terrainFallback=false;
-  let landmarkMasks=null,landmarkReplacementPoints=null,nativeBuildingFilters=[];
+  let styleKey='clean',geometrySignature='',moveTimer=null,terrainFallback=false;
+  try{styleKey=localStorage.getItem('lampskene_3d_background')||'clean';}catch(_){}
+  let nativeBackgroundLayers=[];
   let vehicleLookup=new Map(),questionLookup=new Map(),lastVehicleSignature='';
   const sourceSignatures=new Map();
   let exploreMode='orbit',explorePoint=null,exploreBearing=0,orbitCamera=null,driveFrame=null,driveTime=0;
   const pressed=new Set();
   function setBackground(key){
+    if(key!=='clean'&&!window.lampskeneMap?.styles?.some(s=>s.key===key))key='clean';
     styleKey=key;by('map3d-style').value=key;if(!gl?.getSource('field-vehicles'))return;
+    try{localStorage.setItem('lampskene_3d_background',key);}catch(_){}
     if(gl.getLayer('field-basemap'))gl.removeLayer('field-basemap');if(gl.getSource('field-basemap'))gl.removeSource('field-basemap');
+    // Keep the vector background underneath raster tiles blank, so a tile loading
+    // at another zoom never exposes a different map or its road labels.
+    for(const layer of nativeBackgroundLayers)gl.setLayoutProperty(layer.id,'visibility',key==='clean'&&layer.type!=='symbol'?'visible':'none');
+    if(key==='clean')return;
     const source=window.lampskeneMap?.rasterStyle(key);if(!source)return;
     gl.addSource('field-basemap',source);
     const building=gl.getStyle().layers.find(l=>l.type==='fill-extrusion'&&!l.id.startsWith('field-'));
-    gl.addLayer({id:'field-basemap',type:'raster',source:'field-basemap',paint:{'raster-opacity':1,'raster-fade-duration':150}},building?.id||'field-rail-lines');
+    gl.addLayer({id:'field-basemap',type:'raster',source:'field-basemap',paint:{'raster-opacity':1,'raster-fade-duration':0}},building?.id||'field-rail-lines');
     // Raster styles already contain their own place labels.
     for(const layer of gl.getStyle().layers)if(layer.type==='symbol'&&!layer.id.startsWith('field-'))gl.setLayoutProperty(layer.id,'visibility','none');
   }
@@ -82,10 +89,10 @@
   }
   function mount(){
     const host=node('section','map3d-explorer');host.id='map3d-explorer';host.hidden=true;host.setAttribute('aria-label','3D map explorer');
-    host.innerHTML='<div id="map3d-canvas"></div><header class="map3d-header"><button type="button" id="map3d-back">Back to game</button></header><div id="map3d-loading" class="map3d-loading" role="status"><strong>Opening 3D map…</strong></div><div class="map3d-toolbar"><button type="button" id="map3d-north">North ↑</button><button type="button" id="map3d-tilt">Flat</button><select id="map3d-explore" aria-label="Desktop exploration"><option value="orbit">Orbit</option><option value="walk">Pedestrian</option><option value="car">Car</option><option value="boat">Boat</option></select></div><details class="map3d-options"><summary>Layers</summary><div class="map3d-layer-content"><label for="map3d-style">Map background</label><select id="map3d-style"></select><label for="map3d-pitch">Viewing angle <output id="map3d-pitch-value">55°</output></label><input id="map3d-pitch" type="range" min="0" max="85" value="55"><div id="map3d-toggles"></div></div></details><div class="map3d-status" id="map3d-status" role="status">Drag to explore · right-drag to look around</div>';
+    host.innerHTML='<div id="map3d-canvas"></div><header class="map3d-header"><button type="button" id="map3d-back">Back to game</button></header><div id="map3d-loading" class="map3d-loading" role="status"><strong>Opening 3D map…</strong></div><div class="map3d-toolbar"><button type="button" id="map3d-north">North ↑</button><select id="map3d-explore" aria-label="Desktop exploration"><option value="orbit">Orbit</option><option value="walk">Pedestrian</option><option value="car">Car</option><option value="boat">Boat</option></select></div><details class="map3d-options"><summary>Layers</summary><div class="map3d-layer-content"><label for="map3d-style">Map background</label><select id="map3d-style"></select><div id="map3d-toggles"></div></div></details><div class="map3d-status" id="map3d-status" role="status">Drag to explore · right-drag to look around</div>';
     document.body.append(host);
     by('map3d-back').addEventListener('click',()=>close(true));
-    by('map3d-north').addEventListener('click',()=>{if(exploreMode!=='orbit'){exploreBearing=0;positionCamera();}else gl?.easeTo({bearing:0,duration:350});});by('map3d-tilt').addEventListener('click',()=>{if(!gl)return;stopExploring();const pitch=gl.getPitch()>20?0:55;gl.easeTo({pitch,duration:350});by('map3d-tilt').textContent=pitch?'Flat':'Tilt';});
+    by('map3d-north').addEventListener('click',()=>{if(exploreMode!=='orbit'){exploreBearing=0;positionCamera();}else gl?.easeTo({bearing:0,duration:350});});
     for(const [key,label] of [['terrain','Terrain'],['buildings','Buildings'],['landmarks','Coloured landmarks'],['questions','Question areas & walls'],['details','Local detail results']]){
       const b=node('button','',label);b.type='button';b.dataset.map3dToggle=key;b.setAttribute('aria-pressed',String(settings[key]));b.addEventListener('click',()=>{settings[key]=!settings[key];syncLayers();});by('map3d-toggles').append(b);
     }
@@ -93,12 +100,9 @@
     const rail=node('button','','SL rail network');rail.type='button';rail.id='map3d-rail';rail.addEventListener('click',()=>{window.lampskeneRail?.toggle();refreshAll();});by('map3d-toggles').append(rail);
     const contours=node('button','','Height contours');contours.type='button';contours.id='map3d-contours';contours.addEventListener('click',()=>{window.lampskeneContours?.toggle();refreshAll();});by('map3d-toggles').append(contours);
     const details=node('button','','Search local details in 2D');details.type='button';details.addEventListener('click',()=>{close(true);window.lampskeneMapTools?.openDetails();});by('map3d-toggles').append(details);
-    for(const [label,center] of [['Norra Real',[18.06145,59.34394]],['Vanadis corner',[18.04035,59.34533]]]){
-      const b=node('button','',label);b.type='button';b.addEventListener('click',()=>{stopExploring();gl?.easeTo({center,zoom:label==='Norra Real'?17.8:18.2,pitch:58,elevation:0,bearing:label==='Norra Real'?240:50,duration:900});by('map3d-explorer').querySelector('.map3d-options').open=false;});by('map3d-toggles').append(b);
-    }
+    const clean=node('option','','Clean 3D · no labels');clean.value='clean';by('map3d-style').append(clean);
     for(const item of window.lampskeneMap?.styles||[]){const option=node('option','',item.name);option.value=item.key;by('map3d-style').append(option);}
     by('map3d-style').addEventListener('change',()=>setBackground(by('map3d-style').value));
-    by('map3d-pitch').addEventListener('input',()=>{stopExploring();gl?.easeTo({pitch:Number(by('map3d-pitch').value),duration:0});});
     by('map3d-explore').addEventListener('change',()=>startExploring(by('map3d-explore').value));
     const panel=node('div','workspace-section');panel.id='map-3d-settings';panel.innerHTML='<div class="sp-label">3D map</div>';
     const openButton=node('button','workspace-btn','Open 3D map');openButton.type='button';openButton.addEventListener('click',open);panel.append(openButton);by('settings-panel').append(panel);
@@ -108,14 +112,14 @@
     if(typeof map==='undefined'||!map)return;
     if(isOpen)return;
     lastFocus=document.activeElement;window.appShell?.close({restoreFocus:false});window.lampskeneQuestions?.closeInspector();window.lampskeneMapTools?.stopMeasure();window.lampskenePosition?.setFollow(false);window.lampskeneTracker?.stopFollowing();
-    isOpen=true;const version=++epoch;by('map3d-explorer').hidden=false;document.body.classList.add('map3d-active');by('map3d-loading').hidden=false;by('map3d-loading').removeAttribute('data-state');by('map3d-loading').innerHTML='<strong>Opening 3D map…</strong>';by('map3d-tilt').textContent='Flat';by('map3d-back').focus({preventScroll:true});
+    isOpen=true;const version=++epoch;by('map3d-explorer').hidden=false;document.body.classList.add('map3d-active');by('map3d-loading').hidden=false;by('map3d-loading').removeAttribute('data-state');by('map3d-loading').innerHTML='<strong>Opening 3D map…</strong>';by('map3d-back').focus({preventScroll:true});
     try{
       const lib=await loadLibrary();if(version!==epoch||!isOpen)return;
       const probe=document.createElement('canvas'),context=probe.getContext('webgl2');
       if(!context)throw Error('This browser cannot create a 3D map. The 2D game is still available.');
       context.getExtension('WEBGL_lose_context')?.loseContext();
       lib.setWorkerCount(2);
-      styleKey=typeof activeLayerKey!=='undefined'?activeLayerKey:'osm';geometrySignature='';terrainFallback=false;landmarkMasks=null;landmarkReplacementPoints=null;nativeBuildingFilters=[];
+      geometrySignature='';terrainFallback=false;nativeBackgroundLayers=[];
       const c=map.getCenter();gl=new lib.Map({container:'map3d-canvas',style:'https://tiles.openfreemap.org/styles/liberty',center:[c.lng,c.lat],zoom:Math.max(12,map.getZoom()-1),pitch:55,bearing:0,maxZoom:23,antialias:true,attributionControl:{compact:true},maxPitch:85});
       gl.addControl(new lib.NavigationControl({visualizePitch:true}),'top-right');
       loadTimer=setTimeout(()=>{if(version===epoch&&isOpen&&!gl?.isStyleLoaded()){by('map3d-loading').innerHTML='<strong>3D map is taking longer to load</strong><p>Check your connection, or return to the game and retry.</p>';}},22000);
@@ -123,7 +127,6 @@
       gl.on('error',event=>{if(version!==epoch)return;if(event.sourceId==='field-terrain'&&!terrainFallback){terrainFallback=true;gl.setTerrain(null);gl.addSource('field-terrain-backup',{type:'raster-dem',tiles:['https://s3.amazonaws.com/elevation-tiles-prod/terrarium/{z}/{x}/{y}.png'],tileSize:256,maxzoom:14,encoding:'terrarium'});syncLayers();}else if(event.sourceId==='field-terrain-backup'){settings.terrain=false;syncLayers();status('Terrain tiles unavailable.');}else if(event.sourceId!=='field-terrain'&&!gl.isStyleLoaded()){by('map3d-loading').innerHTML='<strong>3D map data unavailable</strong><p>Try again later. Back to game returns to your working map.</p>';}});
       gl.on('webglcontextlost',()=>{status('3D graphics paused by your browser. Return to the game to continue.');});
       gl.on('moveend',()=>{clearTimeout(moveTimer);moveTimer=setTimeout(()=>{refreshAll();window.lampskeneContours?.refresh();},300);});
-      gl.on('pitch',()=>{by('map3d-pitch').value=String(Math.round(gl.getPitch()));by('map3d-pitch-value').textContent=Math.round(gl.getPitch())+'°';});
     }catch(error){if(version===epoch){by('map3d-loading').dataset.state='error';by('map3d-loading').replaceChildren(node('strong','',error.message),node('p','','Use Back to game to continue.'));}}
   }
   function close(useView=false){
@@ -136,7 +139,13 @@
     if(lastFocus?.isConnected&&lastFocus.getClientRects().length)lastFocus.focus({preventScroll:true});
   }
   function addSources(){
-    nativeBuildingFilters=gl.getStyle().layers.filter(l=>l.type==='fill-extrusion').map(l=>({id:l.id,filter:gl.getFilter(l.id)}));
+    nativeBackgroundLayers=gl.getStyle().layers.filter(l=>l.type!=='fill-extrusion'&&l.type!=='background').map(l=>({id:l.id,type:l.type}));
+    for(const layer of gl.getStyle().layers.filter(l=>l.type==='fill-extrusion')){
+      // Retain the provider's building/part filter. Never mask connected blocks.
+      gl.setPaintProperty(layer.id,'fill-extrusion-opacity',1);
+      gl.setPaintProperty(layer.id,'fill-extrusion-height',['max',3,['coalesce',['to-number',['get','render_height']],['to-number',['get','height']],8]]);
+      gl.setPaintProperty(layer.id,'fill-extrusion-base',['max',0,['coalesce',['to-number',['get','render_min_height']],0]]);
+    }
     gl.addSource('field-terrain',{type:'raster-dem',url:'https://tiles.mapterhorn.com/tilejson.json',tileSize:512,encoding:'terrarium'});
     for(const id of ['field-vehicles','field-questions','field-details','field-position','field-players','field-question-areas','field-question-walls','field-game-area','field-rail','field-contours','field-landmarks','field-landmark-labels'])gl.addSource(id,{type:'geojson',data:empty()});
     gl.addLayer({id:'field-rail-lines',type:'line',source:'field-rail',paint:{'line-color':['get','color'],'line-width':['interpolate',['linear'],['zoom'],10,2,16,5],'line-opacity':.95}});
@@ -144,10 +153,10 @@
     gl.addLayer({id:'field-contour-labels',type:'symbol',source:'field-contours',filter:['==',['get','major'],true],layout:{'symbol-placement':'line','text-field':['get','label'],'text-size':11,'symbol-spacing':350,'text-font':['Noto Sans Regular']},paint:{'text-color':'#78512c','text-halo-color':'#fff9e7','text-halo-width':1.5}});
     gl.addLayer({id:'field-game-area-solids',type:'fill-extrusion',source:'field-game-area',paint:{'fill-extrusion-color':'#2f8cff','fill-extrusion-height':2,'fill-extrusion-opacity':.30,'fill-extrusion-vertical-gradient':false}});
     gl.addLayer({id:'field-question-solids',type:'fill-extrusion',source:'field-question-areas',paint:{'fill-extrusion-color':'#4882dc','fill-extrusion-height':3,'fill-extrusion-opacity':.30,'fill-extrusion-vertical-gradient':false}});
-    gl.addLayer({id:'field-question-boundaries',type:'fill-extrusion',source:'field-question-walls',paint:{'fill-extrusion-color':['get','color'],'fill-extrusion-height':['get','height'],'fill-extrusion-opacity':.46,'fill-extrusion-vertical-gradient':true}});
+    gl.addLayer({id:'field-question-boundaries',type:'fill-extrusion',source:'field-question-walls',paint:{'fill-extrusion-color':['get','color'],'fill-extrusion-height':['get','height'],'fill-extrusion-opacity':.88,'fill-extrusion-vertical-gradient':false}});
     gl.addLayer({id:'field-landmark-buildings',type:'fill-extrusion',source:'field-landmarks',minzoom:14,paint:{'fill-extrusion-color':['get','color'],'fill-extrusion-base':['get','base'],'fill-extrusion-height':['get','height'],'fill-extrusion-opacity':1}});
     gl.addLayer({id:'field-landmark-names',type:'symbol',source:'field-landmark-labels',minzoom:14,layout:{'text-field':['get','label'],'text-size':13,'text-offset':[0,1.5],'text-font':['Noto Sans Regular']},paint:{'text-color':'#604050','text-halo-color':'#fff8ed','text-halo-width':2}});
-    const target=gl;window.lampskeneLandmarks?.load().then(data=>{if(gl!==target||!isOpen)return;landmarkMasks=data.masks;landmarkReplacementPoints=data.replacementPoints;setSourceData('field-landmarks',data.parts);setSourceData('field-landmark-labels',data.labels);syncLayers();}).catch(error=>console.warn('Landmark models:',error.message));
+    const target=gl;window.lampskeneLandmarks?.load().then(data=>{if(gl!==target||!isOpen)return;setSourceData('field-landmarks',data.parts);setSourceData('field-landmark-labels',data.labels);syncLayers();}).catch(error=>console.warn('Landmark models:',error.message));
     gl.addLayer({id:'field-vehicle-bodies',type:'fill-extrusion',source:'field-vehicles',minzoom:12,paint:{'fill-extrusion-color':['get','color'],'fill-extrusion-base':['coalesce',['get','base'],0],'fill-extrusion-height':['get','height'],'fill-extrusion-opacity':1}});
     gl.addLayer({id:'field-vehicle-labels',type:'symbol',source:'field-vehicles',minzoom:13,filter:['!=',['get','line'],''],layout:{'text-field':['get','line'],'text-size':12,'text-offset':[0,-1.1],'text-font':['Noto Sans Regular'],'text-allow-overlap':false},paint:{'text-color':'#20302a','text-halo-color':'#fffdf5','text-halo-width':2}});
     gl.addLayer({id:'field-question-pins',type:'circle',source:'field-questions',paint:{'circle-radius':8,'circle-color':['get','color'],'circle-stroke-color':'#fff','circle-stroke-width':2}});
@@ -155,6 +164,7 @@
     gl.addLayer({id:'field-detail-points',type:'circle',source:'field-details',filter:['==',['geometry-type'],'Point'],paint:{'circle-radius':5,'circle-color':['get','color'],'circle-stroke-color':'#fff','circle-stroke-width':1}});
     gl.addLayer({id:'field-detail-lines',type:'line',source:'field-details',filter:['!=',['geometry-type'],'Point'],paint:{'line-color':['get','color'],'line-width':3}});
     gl.addLayer({id:'field-player-pins',type:'circle',source:'field-players',paint:{'circle-radius':8,'circle-color':'#b76cce','circle-stroke-color':'#fff','circle-stroke-width':2}});
+    gl.addLayer({id:'field-player-labels',type:'symbol',source:'field-players',layout:{'text-field':['get','label'],'text-size':13,'text-offset':[0,1.4],'text-font':['Noto Sans Regular']},paint:{'text-color':'#532168','text-halo-color':'#ffffff','text-halo-width':2}});
     gl.addLayer({id:'field-position-pin',type:'circle',source:'field-position',paint:{'circle-radius':9,'circle-color':'#3085d8','circle-stroke-color':'#fff','circle-stroke-width':3}});
     gl.on('click','field-vehicle-bodies',event=>{
       const id=event.features?.[0]?.properties.id,v=vehicleLookup.get(id);if(!v)return;
@@ -174,9 +184,8 @@
   function syncLayers(){
     document.querySelectorAll('[data-map3d-toggle]').forEach(b=>b.setAttribute('aria-pressed',String(settings[b.dataset.map3dToggle])));
     if(!gl||!gl.getSource('field-terrain'))return;
-    gl.setTerrain(settings.terrain?{source:terrainFallback?'field-terrain-backup':'field-terrain',exaggeration:1.1}:null);
+    gl.setTerrain(settings.terrain?{source:terrainFallback?'field-terrain-backup':'field-terrain',exaggeration:1}:null);
     for(const layer of gl.getStyle().layers)if(layer.type==='fill-extrusion'&&!layer.id.startsWith('field-'))gl.setLayoutProperty(layer.id,'visibility',settings.buildings?'visible':'none');
-    for(const layer of nativeBuildingFilters)gl.setFilter(layer.id,settings.landmarks&&landmarkMasks?['all',...(layer.filter?[layer.filter]:[]),['!',['within',landmarkMasks]],['>',['distance',landmarkReplacementPoints],1]]:layer.filter||null);
     for(const [flag,layers] of [['questions',['field-question-solids','field-question-boundaries']],['details',['field-detail-points','field-detail-lines']]])for(const id of layers)gl.setLayoutProperty(id,'visibility',settings[flag]?'visible':'none');
     for(const id of ['field-landmark-buildings','field-landmark-names'])gl.setLayoutProperty(id,'visibility',settings.buildings&&settings.landmarks?'visible':'none');
     refreshGeometry();
@@ -195,17 +204,17 @@
     if(typeof getBlueOverlayOpacity==='function')gl.setPaintProperty('field-question-solids','fill-extrusion-opacity',getBlueOverlayOpacity());
     if(typeof getGameAreaOverlayOpacity==='function')gl.setPaintProperty('field-game-area-solids','fill-extrusion-opacity',getGameAreaOverlayOpacity());
     updatePosition();
-    const players=[];if(typeof trackerMarkers!=='undefined'&&typeof trackerActiveIds!=='undefined')for(const id of trackerActiveIds){const marker=trackerMarkers[id];if(marker&&map.hasLayer(marker)&&typeof trackerStatusFor==='function'&&trackerStatusFor(id)==='Live'){const p=marker.getLatLng();if(geo.validPoint(p))players.push({type:'Feature',geometry:{type:'Point',coordinates:[p.lng,p.lat]},properties:{id}});}}setSourceData('field-players',{type:'FeatureCollection',features:players});
+    const players=[];if(typeof trackerMarkers!=='undefined'&&typeof trackerActiveIds!=='undefined')for(const id of trackerActiveIds){const marker=trackerMarkers[id];if(marker&&map.hasLayer(marker)){const p=marker.getLatLng();if(geo.validPoint(p))players.push({type:'Feature',geometry:{type:'Point',coordinates:[p.lng,p.lat]},properties:{id,label:typeof trackerDisplayName==='function'?trackerDisplayName(id,trackerCatalog[id]):id}});}}setSourceData('field-players',{type:'FeatureCollection',features:players});
     by('map3d-enable-transit').setAttribute('aria-pressed',String(Boolean(state?.enabled)));
     by('map3d-enable-transit').textContent='Live transit · '+(state?.enabled?'ON':'OFF');
     by('map3d-rail').setAttribute('aria-pressed',String(Boolean(window.lampskeneRail?.enabled)));by('map3d-contours').setAttribute('aria-pressed',String(Boolean(window.lampskeneContours?.enabled)));
     if(exploreMode==='orbit')status((state?.enabled?(state.paused?'Transit paused · ':vehicles.length+' live vehicles · '):'Live transit off · ')+detail.features.length+' local details');
   }
-  function setSourceData(id,data){const signature=JSON.stringify(data);if(sourceSignatures.get(id)===signature)return;const source=gl?.getSource(id);if(source){sourceSignatures.set(id,signature);source.setData(data);}}
+  function setSourceData(id,data){if(sourceSignatures.get(id)===data)return;const signature=id==='field-contours'?data:JSON.stringify(data);if(sourceSignatures.get(id)===signature)return;const source=gl?.getSource(id);if(source){sourceSignatures.set(id,signature);source.setData(data);}}
   function updatePosition(){if(document.hidden||!isOpen||!gl?.getSource('field-position'))return;const position=window.lampskenePosition?.status;setSourceData('field-position',position?.running&&!position.stale&&geo.validPoint(position.fix)?{type:'FeatureCollection',features:[{type:'Feature',geometry:{type:'Point',coordinates:[position.fix.lng,position.fix.lat]},properties:{}}]}:empty());}
   mount();window.lampskene3D={open,close,refresh:refreshAll,setBackground,startExploring,stopExploring,get active(){return isOpen;},get map(){return gl;},get exploration(){return exploreMode;}};
   window.addEventListener('tracker:update',refreshAll);document.addEventListener('jetlag:positionchange',updatePosition);document.addEventListener('jetlag:mapdetails',refreshAll);
-  for(const event of ['jetlag:railchange','jetlag:contours','jetlag:pinvisibility'])document.addEventListener(event,refreshAll);
+  for(const event of ['jetlag:railchange','jetlag:contours','jetlag:pinvisibility','jetlag:trackers'])document.addEventListener(event,refreshAll);
   document.addEventListener('keydown',event=>{
     if(!isOpen||exploreMode==='orbit'||event.target?.closest?.('input,select,textarea,button,summary'))return;
     const key=event.key.toLowerCase();if(key==='escape'){event.preventDefault();event.stopImmediatePropagation();stopExploring(true);return;}
