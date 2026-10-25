@@ -916,10 +916,10 @@
     }
     @media (min-width:769px) { #curse-fab { display:none!important; } }
   </style>
-  <link rel="stylesheet" href="map-experience.css?v=4" />
+  <link rel="stylesheet" href="map-experience.css?v=5" />
   <link rel="stylesheet" href="advanced-map.css?v=4" />
-  <link rel="stylesheet" href="map-3d.css?v=3" />
-  <link rel="stylesheet" href="question-experience.css?v=4" />
+  <link rel="stylesheet" href="map-3d.css?v=5" />
+  <link rel="stylesheet" href="question-experience.css?v=5" />
   <link rel="stylesheet" href="tracker-experience.css?v=1" />
   <link rel="stylesheet" href="departure-board.css?v=1" />
   <link rel="stylesheet" href="app-shell.css?v=4" />
@@ -3243,9 +3243,16 @@ function applyHideLockedPins() {
   for (const q of questions) {
     const hidden = q.locked && _hideLockedPins;
     for (const m of [q.marker, q.markerA, q.markerB, q._centerMarker, q._dirMarker].filter(Boolean)) {
-      try { const el = m.getElement ? m.getElement() : null; if (el) el.style.display = hidden ? 'none' : ''; } catch(e) {}
+      try {
+        m.setOpacity?.(hidden ? 0 : 1);
+        const el = m.getElement ? m.getElement() : null;
+        if (el) el.style.display = hidden ? 'none' : '';
+        if (m._shadow) m._shadow.style.display = hidden ? 'none' : '';
+        if (hidden) m.closeTooltip?.();
+      } catch(e) {}
     }
   }
+  document.dispatchEvent(new CustomEvent('jetlag:pinvisibility'));
 }
 function toggleHideLockedPins() {
   _hideLockedPins = !_hideLockedPins;
@@ -3835,7 +3842,7 @@ function resetAllData() {
 <script src="measuring-data.js"></script>
 <script src="matching-area-data.js"></script>
 <script src="sl-line-voronoi-data.js?v=1"></script>
-<script src="questions.js?v=64"></script>
+<script src="questions.js?v=65"></script>
 <script src="vehicles.js?v=5"></script>
 <script src="curses.js?v=5"></script>
 
@@ -4937,11 +4944,17 @@ function timelineFitPath() {
   }
 }
 </script>
-<script src="map-utils.js?v=4"></script>
-<script src="map-experience.js?v=4"></script>
-<script src="advanced-map.js?v=4"></script>
-<script src="map-3d.js?v=4"></script>
-<script src="question-experience.js?v=4"></script>
+<script src="map-utils.js?v=5"></script>
+<script src="map-experience.js?v=5"></script>
+<script src="advanced-map.js?v=5"></script>
+<script src="vendor/polygon-clipping-0.15.7.js"></script>
+<script src="vendor/maplibre-contour-0.1.0.js"></script>
+<script src="question-geometry.js?v=5"></script>
+<script src="map-rail.js?v=5"></script>
+<script src="terrain-contours.js?v=5"></script>
+<script src="models-3d.js?v=5"></script>
+<script src="map-3d.js?v=5"></script>
+<script src="question-experience.js?v=5"></script>
 <script src="tracker-experience.js?v=2"></script>
 <script src="departure-board.js?v=2"></script>
 <script src="app-shell.js?v=4"></script>

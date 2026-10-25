@@ -7,6 +7,8 @@
   let selectedId = null, selectedPin = null, inspector = null;
   const markerBindings = new WeakMap();
   let frame = 0;
+  let showCoordinates = false;
+  try { showCoordinates = window.localStorage?.getItem('lampskene_question_coordinates') === 'true'; } catch (_) {}
   const byId = id => questions.find(q => String(q.id) === String(id));
   const cardFor = q => document.getElementById(`q-card-${q.id}`) || document.getElementById(`angle-card-${q.id}`);
   const distanceLabel = value => !Number.isFinite(Number(value)) ? '—' : value >= 1000 ? `${(value / 1000).toFixed(1)} km` : `${Math.round(value)} m`;
@@ -28,11 +30,11 @@
   const readyToAsk = q => q.type==='radar' ? !!getRadiusMeters(q) : ['matching','measuring'].includes(q.type) ? !!q.nearestId : true;
   const pinOptions = q => q.type==='thermo' ? [['thermoA','Pin A'],['thermoB','Pin B']] : q.type==='angle' ? [['angleCenter','Center'],['angleDirection','Direction']] : [[q.type,'Question pin']];
   const pinPoint = (q,pin) => pin==='thermoB' ? {lat:q.latB,lng:q.lngB} : pin==='thermoA' ? {lat:q.latA,lng:q.lngA} : pin==='angleDirection' ? q.direction : pointFor(q);
-  const geometrySignature = q => JSON.stringify([q.type,pointFor(q),q.latA,q.lngA,q.latB,q.lngB,q.direction,q.radius,q.unit,q.nearestId,q.subcat,q.seekerDist,q.angle,q.mode,q.excludeRadius]);
+  const geometrySignature = q => JSON.stringify([q.type,pointFor(q),q.latA,q.lngA,q.latB,q.lngB,q.direction,q.radius,q.unit,q.nearestId,q.subcat,q.seekerDist,q.angle,q.mode,q.excludeRadius,q.locked,typeof _hideLockedPins !== 'undefined' && _hideLockedPins]);
   function publicPins() {
     const colors={radar:'#d78442',thermo:'#c6a92f',matching:'#3da984',measuring:'#3d9dab',angle:'#9a75c2'};
     if(typeof questions==='undefined')return [];
-    return questions.filter(q=>Object.hasOwn(colors,q.type)).flatMap(q=>pinOptions(q).flatMap(([pin,name])=>{
+    return questions.filter(q=>Object.hasOwn(colors,q.type) && !(q.locked && typeof _hideLockedPins !== 'undefined' && _hideLockedPins)).flatMap(q=>pinOptions(q).flatMap(([pin,name])=>{
       const point=pinPoint(q,pin);if(!point||!validQuestionPoint(point.lat,point.lng))return [];
       return [{id:q.id,type:q.type,pin,label:`${typeLabel(q)} #${q.id} · ${name}`,lat:point.lat,lng:point.lng,color:pin==='thermoB'?'#cf8440':colors[q.type]}];
     }));
@@ -381,7 +383,7 @@
         row.append(button(q.locked?'Unlock':'Lock',()=>lockQuestion(q)));
         const gps=button('GPS',()=>{const id=q.id,pin=selectedPin;_getGPS((lat,lng)=>{if(byId(id)===q&&moveInspectorPin(id,pin,{lat,lng}))preview(id,{pin});});});gps.disabled=!questionMoveAllowed(q);row.append(gps);
         const center=button('Map center',()=>{const position=map.getCenter();moveInspectorPin(q.id,selectedPin,{lat:position.lat,lng:position.lng});});center.disabled=!questionMoveAllowed(q);row.append(center);
-        if(!q.locked&&!questionMoveAllowed(q))row.append(button('Move 60s',()=>{openMoveWindow(q.id);updateInspector();}));
+        if(q.type!=='radar'&&!q.locked&&!questionMoveAllowed(q))row.append(button('Move 60s',()=>{openMoveWindow(q.id);updateInspector();}));
       }
       tools.append(row);
     }
@@ -404,7 +406,7 @@
     clearPreview();previewId=q.id;previewSignature=geometrySignature(q);previewLayer=L.layerGroup().addTo(map);
     const style={color:'#16879a',weight:2,dashArray:'6 4',fillColor:'#16879a',fillOpacity:.06,interactive:false};
     const points=[], pos=pointFor(q);
-    const pin=(p,label,key)=>{if(!p||!validQuestionPoint(p.lat,p.lng))return;points.push([p.lat,p.lng]);L.circleMarker([p.lat,p.lng],{radius:8,color:'#fff',weight:2,fillColor:'#16879a',fillOpacity:1,interactive:true,bubblingMouseEvents:false}).bindTooltip(questionEscapeHtml(label),{permanent:false,direction:'top'}).on('click',()=>openInspector(q.id,key)).addTo(previewLayer);};
+    const pin=(p,label,key)=>{if(!p||!validQuestionPoint(p.lat,p.lng))return;points.push([p.lat,p.lng]);if(q.locked && typeof _hideLockedPins !== 'undefined' && _hideLockedPins)return;L.circleMarker([p.lat,p.lng],{radius:8,color:'#fff',weight:2,fillColor:'#16879a',fillOpacity:1,interactive:true,bubblingMouseEvents:false}).bindTooltip(questionEscapeHtml(label),{permanent:false,direction:'top'}).on('click',()=>openInspector(q.id,key)).addTo(previewLayer);};
     if(q.type==='radar') {
       pin(pos,'Radar center'); const radius=getRadiusMeters(q);
       if(radius){const c=L.circle([pos.lat,pos.lng],{...style,radius}).addTo(previewLayer);points.push(c.getBounds().getNorthEast(),c.getBounds().getSouthWest());}
@@ -483,6 +485,23 @@
   document.addEventListener('input',e=>{if(e.target.closest('.q-card'))schedule();});
   document.addEventListener('keydown',e=>{if(e.key==='Escape'&&inspector&&!inspector.hidden){closeInspector();e.preventDefault();}});
   document.addEventListener('jetlag:rolechange',()=>closeInspector());
-  window.lampskeneQuestions={sync:schedule,preview,clearPreview,copyAnswer,focusPlace,inspect:openInspector,closeInspector,edit:editQuestion,publicPins};
+  document.addEventListener('jetlag:pinvisibility',schedule);
+  const coordinateHost=document.getElementById('hide-locked-btn')?.parentElement;
+  if(coordinateHost){
+    const toggle=button('Show question coordinates',()=>{
+      showCoordinates=!showCoordinates;
+      try{window.localStorage?.setItem('lampskene_question_coordinates',String(showCoordinates));}catch(_){}
+      syncCoordinates();
+    },'sp-btn');
+    toggle.id='question-coordinates-toggle';coordinateHost.append(toggle);
+  }
+  function syncCoordinates(){
+    document.body?.classList?.toggle('qe-show-coordinates',showCoordinates);
+    const toggle=document.getElementById('question-coordinates-toggle');
+    toggle?.setAttribute('aria-pressed',String(showCoordinates));
+    if(toggle)toggle.textContent='Question coordinates · '+(showCoordinates?'ON':'OFF');
+  }
+  syncCoordinates();
+  window.lampskeneQuestions={sync:schedule,preview,clearPreview,copyAnswer,focusPlace,inspect:openInspector,closeInspector,edit:editQuestion,publicPins,get previewId(){return previewId;}};
   schedule();
 })();

@@ -17,6 +17,8 @@
   let detailLayer,measureLayer,labelsLayer,trailsLayer,request=null,version=0,nextRequest=0,loadedBounds=null;
   let detailData={type:'FeatureCollection',features:[]},detailStatus='Choose details, then load this area.',measureMode=false,points=[],sourceLayers=new Map();
   const cache=new Map();
+  let searchCenter=null,searchRadius=600,choosingCircle=false,searchCircle=null,searchMarker=null;
+  const detailServers=['https://overpass.kumi.systems/api/interpreter','https://overpass-api.de/api/interpreter','https://overpass.private.coffee/api/interpreter'];
 
   function mount() {
     const tools=section('Map tools','map-tools-settings');
@@ -38,15 +40,21 @@
   }
   function mountDetails() {
     const host=section('Local details','map-detail-settings');
-    host.append(hint('Find mapped benches, water, entrances and more. Loads a local area up to 2.4 km across; zoom in for a smaller search.'));
+    host.append(hint('Choose a search circle on the 2D map, select what to find, then Search. Results appear in both 2D and 3D.'));
+    const radiusLabel=node('label','workspace-label','Search radius');radiusLabel.htmlFor='field-detail-radius';
+    const radius=node('select');radius.id='field-detail-radius';
+    for(const value of [200,400,600,1000,1200]){const option=node('option','',value+' m');option.value=String(value);radius.append(option);}radius.value=String(searchRadius);
+    radius.addEventListener('change',()=>{searchRadius=Number(radius.value);drawSearchCircle();});
+    const choose=btn('Choose search circle in 2D',chooseCircle);choose.id='field-detail-choose';host.append(radiusLabel,radius,choose);
     const grid=node('div','field-detail-grid');
     for(const d of geo.DETAILS) {
       const b=btn('',()=>{prefs.details=prefs.details.includes(d.key)?prefs.details.filter(k=>k!==d.key):[...prefs.details,d.key];persist();syncDetailButtons();renderDetails();detailStatus='Selection changed. Load this area for new details.';updateDetailStatus();},'field-detail-toggle');
       b.dataset.detail=d.key;const mark=node('span','field-detail-mark',d.icon);mark.style.setProperty('--detail-color',d.color);b.append(mark,node('span','',d.name));grid.append(b);
     }
     host.append(grid);
-    const actions=node('div','workspace-actions');const load=btn('Load this area',loadDetails);load.id='field-detail-load';
-    actions.append(load,btn('Clear map details',()=>{cancelRequest();detailData={type:'FeatureCollection',features:[]};loadedBounds=null;renderDetails();detailStatus='Map details cleared.';updateDetailStatus();}));
+    const actions=node('div','workspace-actions');const load=btn('Search circle',loadDetails);load.id='field-detail-load';
+    actions.append(load,btn('Clear map details',clearDetails));
+    const view3d=btn('View results in 3D',()=>window.lampskene3D?.open());view3d.id='field-detail-3d';actions.append(view3d);
     const status=hint(detailStatus);status.id='field-detail-status';status.setAttribute('role','status');
     host.append(actions,status);
     const results=node('div','field-nearby-list');results.id='field-detail-results';host.append(results);
@@ -60,7 +68,24 @@
     host.append(works);syncDetailButtons();
   }
   function syncDetailButtons(){document.querySelectorAll('[data-detail]').forEach(b=>b.setAttribute('aria-pressed',String(prefs.details.includes(b.dataset.detail))));}
-  function updateDetailStatus(){if(by('field-detail-status'))by('field-detail-status').textContent=detailStatus;const b=by('field-detail-load');if(b){b.disabled=Boolean(request);b.textContent=request?'Loading details…':'Load this area';}}
+  function updateDetailStatus(){if(by('field-detail-status'))by('field-detail-status').textContent=detailStatus;const b=by('field-detail-load');if(b){b.disabled=Boolean(request);b.textContent=request?'Searching…':'Search circle';}}
+  function chooseCircle(){
+    if(!map)return;window.lampskene3D?.close(true);stopMeasure();window.appShell?.close();choosingCircle=true;
+    detailStatus='Click the 2D map to place your search circle.';updateDetailStatus();
+    showToast('Click the map to choose your search circle',6000);map.getContainer().style.cursor='crosshair';
+  }
+  function drawSearchCircle(){
+    if(!map||!searchCenter)return;
+    searchCircle?.remove();searchMarker?.remove();
+    searchCircle=L.circle(searchCenter,{radius:searchRadius,color:'#16879a',weight:2,fillOpacity:.07,interactive:false}).addTo(map);
+    searchMarker=L.marker(searchCenter,{draggable:true,icon:L.divIcon({className:'field-search-center',html:'<span>⌖</span>',iconSize:[30,30],iconAnchor:[15,15]})}).addTo(map);
+    searchMarker.on('drag',()=>{searchCenter=searchMarker.getLatLng();searchCircle.setLatLng(searchCenter);});
+    searchMarker.on('dragend',()=>{detailStatus='Search circle moved · click Search circle to refresh.';updateDetailStatus();});
+  }
+  function clearDetails(){
+    cancelRequest();choosingCircle=false;map?.getContainer().style.removeProperty('cursor');searchCircle?.remove();searchMarker?.remove();searchCircle=null;searchMarker=null;searchCenter=null;
+    detailData={type:'FeatureCollection',features:[]};loadedBounds=null;renderDetails();detailStatus='Map details cleared.';updateDetailStatus();
+  }
   function queryBounds(){
     const c=map.getCenter(),v=map.getBounds();
     const north=geo.destination(c,1200,0).lat,south=geo.destination(c,1200,180).lat;
@@ -70,18 +95,29 @@
   function cancelRequest(){version++;request?.abort();request=null;updateDetailStatus();}
   async function loadDetails(){
     if(!map)return;
-    if(map.getZoom()<14){detailStatus='Zoom in to street level (14+) to load local details.';updateDetailStatus();showToast(detailStatus);return;}
+    if(!searchCenter){chooseCircle();return;}
     if(!prefs.details.length){detailStatus='Choose at least one detail layer.';updateDetailStatus();return;}
-    const bounds=queryBounds(),keys=[...prefs.details].sort(),key=JSON.stringify([bounds.map(v=>+v.toFixed(3)),keys]);
+    const bounds=[searchCenter.lat,searchCenter.lng,searchRadius],keys=[...prefs.details].sort(),key=JSON.stringify([bounds,keys]);
     const saved=cache.get(key);if(saved&&Date.now()-saved.at<600000){detailData=saved.data;loadedBounds=bounds;renderDetails();detailStatus='Cached local details · '+detailData.features.length+' features. Reload available after 10 minutes.';updateDetailStatus();return;}
     if(Date.now()<nextRequest){detailStatus='Please wait '+Math.ceil((nextRequest-Date.now())/1000)+' seconds before another area request.';updateDetailStatus();return;}
     cancelRequest();const current=version,controller=new AbortController();request=controller;nextRequest=Date.now()+15000;
     detailStatus='Loading selected details near this map view…';updateDetailStatus();
-    const timeout=setTimeout(()=>controller.abort(),25000);
+    const timeout=setTimeout(()=>controller.abort(),45000);
     try{
-      const response=await fetch('https://overpass-api.de/api/interpreter',{method:'POST',body:new URLSearchParams({data:geo.overpassQuery(bounds,keys)}),signal:controller.signal});
-      if(!response.ok)throw Error(response.status===429?'The map service is busy. Wait a moment and retry.':'Detail service unavailable ('+response.status+'). Retry shortly.');
-      const raw=await response.json();if(current!==version)return;
+      const query=geo.overpassCircleQuery(searchCenter,searchRadius,keys);let raw,lastError;
+      for(const server of detailServers){
+        if(controller.signal.aborted)break;
+        const attempt=new AbortController(),abort=()=>attempt.abort();controller.signal.addEventListener('abort',abort,{once:true});
+        const deadline=setTimeout(abort,14000);
+        try{
+          const response=await fetch(server+'?'+new URLSearchParams({data:query}),{signal:attempt.signal});
+          if(!response.ok)throw Error('Detail service returned '+response.status);
+          raw=await response.json();if(!Array.isArray(raw?.elements)||(!raw.elements.length&&raw.remark))throw Error('Detail service is busy');break;
+        }catch(error){lastError=error;}
+        finally{clearTimeout(deadline);controller.signal.removeEventListener('abort',abort);}
+      }
+      if(!raw)throw controller.signal.aborted?new DOMException('Search cancelled','AbortError'):Error('Local detail services are busy or unreachable. Try again or use a smaller circle. '+(lastError?.message||''));
+      if(current!==version)return;
       detailData=geo.normalizeDetails(raw,keys);loadedBounds=bounds;cache.set(key,{data:detailData,at:Date.now()});if(cache.size>8)cache.delete(cache.keys().next().value);
       renderDetails();detailStatus=detailData.features.length+' mapped features · '+new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'})+(detailData.truncated?' · Result limit reached; zoom in for more.':raw.remark?' · Service returned partial data; retry in a smaller area.':'.');
     }catch(error){if(current===version)detailStatus=error.name==='AbortError'?'Detail request timed out. Try a smaller area.':error.message;}
@@ -167,12 +203,12 @@
     labelsLayer=L.tileLayer('https://services.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}',{maxZoom:20,maxNativeZoom:18,pane:'map-reference',opacity:.9,updateWhenZooming:false,attribution:'Reference labels &copy; Esri'});
     trailsLayer=L.tileLayer('https://tile.waymarkedtrails.org/hiking/{z}/{x}/{y}.png',{maxZoom:20,maxNativeZoom:18,pane:'map-reference',updateWhenZooming:false,attribution:'Trails &copy; <a href="https://hiking.waymarkedtrails.org/">Waymarked Trails</a>, OpenStreetMap'});
     syncOverlays();syncSources();
-    map.on('click',e=>{if(measureMode){points.push({lat:e.latlng.lat,lng:e.latlng.lng});renderMeasure();}});
+    map.on('click',e=>{if(choosingCircle){searchCenter={lat:e.latlng.lat,lng:e.latlng.lng};choosingCircle=false;map.getContainer().style.removeProperty('cursor');drawSearchCircle();detailStatus='Search circle ready · '+searchRadius+' m radius. Choose details, then Search circle.';updateDetailStatus();window.appShell?.openSettingsSection('map-detail-settings');}else if(measureMode){points.push({lat:e.latlng.lat,lng:e.latlng.lng});renderMeasure();}});
     map.on('moveend',()=>{if(loadedBounds){detailStatus='Map moved · '+detailData.features.length+' loaded features. Load this area to refresh.';updateDetailStatus();}});
     map.on('zoomstart',()=>document.body.classList.add('field-map-moving'));map.on('zoomend',()=>document.body.classList.remove('field-map-moving'));
   }
   document.addEventListener('jetlag:panelchange',e=>{if(e.detail.panel!=='map'&&measureMode)finishMeasure();});
-  document.addEventListener('keydown',e=>{if(e.key==='Escape'&&measureMode)finishMeasure();});
+  document.addEventListener('keydown',e=>{if(e.key==='Escape'){if(measureMode)finishMeasure();if(choosingCircle){choosingCircle=false;map?.getContainer().style.removeProperty('cursor');}}});
   mount();const original=window.initMap;window.initMap=function(){original.apply(this,arguments);init();};
-  window.lampskeneMapTools={consumesMapClick:()=>measureMode,startMeasure,stopMeasure,loadDetails,details:()=>({type:'FeatureCollection',features:detailData.features.filter(f=>prefs.details.includes(f.properties.key))}),overlays:()=>[prefs.labels?'Labels':null,prefs.trails?'Trails':null,...prefs.sources.filter(s=>s.enabled).map(s=>s.name)].filter(Boolean),open:()=>window.appShell?.openSettingsSection('map-tools-settings')};
+  window.lampskeneMapTools={consumesMapClick:()=>measureMode||choosingCircle,startMeasure,stopMeasure,loadDetails,chooseCircle,clearDetails,openDetails:()=>window.appShell?.openSettingsSection('map-detail-settings'),details:()=>({type:'FeatureCollection',features:detailData.features.filter(f=>prefs.details.includes(f.properties.key))}),overlays:()=>[prefs.labels?'Labels':null,prefs.trails?'Trails':null,...prefs.sources.filter(s=>s.enabled).map(s=>s.name)].filter(Boolean),open:()=>window.appShell?.openSettingsSection('map-tools-settings')};
 })();

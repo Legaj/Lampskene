@@ -589,7 +589,6 @@ function renderSeekerRadarCard(q) {
       </div>
       <div class="icon-btns" id="lock-row-${q.id}">
         <button class="icon-btn" id="lock-btn-${q.id}" onclick="toggleSeekerLock(${q.id})">${locked ? '🔓 Locked' : '🔒 Lock'}</button>
-        <button class="icon-btn move-window-btn" id="move-window-btn-${q.id}" onclick="openMoveWindow(${q.id})">Move 60s</button>
       </div>
       <div id="remove-row-${q.id}" ${locked ? 'style="display:none"' : ''}>
         <button class="remove-btn" id="remove-btn-${q.id}" onclick="removeQuestion(${q.id})">✕ Remove Question</button>
@@ -767,13 +766,14 @@ function invalidateQuestionAnswer(q) {
   else q.zone='pending';
 }
 function questionMarkers(q) { return [q.marker, q.markerA, q.markerB, q._centerMarker, q._dirMarker].filter(Boolean); }
-function questionMoveAllowed(q) { return !q.locked && (!_moveLockEnabled || (q._moveWindowUntil && Date.now() < q._moveWindowUntil)); }
+function questionMoveAllowed(q) { return !q.locked && (q.type === 'radar' || !_moveLockEnabled || (q._moveWindowUntil && Date.now() < q._moveWindowUntil)); }
 function applyQuestionMoveLocks() {
   document.body.classList.toggle('move-lock-enabled', _moveLockEnabled);
   for (const q of questions || []) for (const m of questionMarkers(q)) {
     try { if (m.dragging) questionMoveAllowed(q) ? m.dragging.enable() : m.dragging.disable(); } catch(e) {}
   }
   refreshMoveWindowButtons();
+  if (typeof applyHideLockedPins === 'function') applyHideLockedPins();
 }
 function setMoveLockEnabled(on, save = true) {
   _moveLockEnabled = !!on;
@@ -795,6 +795,7 @@ function openMoveWindow(id) {
 function refreshMoveWindowButtons() {
   for (const q of questions || []) {
     if (q.hiderMode) continue;
+    if (q.type === 'radar') { document.getElementById(`move-window-btn-${q.id}`)?.remove(); continue; }
     const card = document.getElementById(q.type === 'angle' ? `angle-card-${q.id}` : `q-card-${q.id}`);
     const row = card?.querySelector('.icon-btns');
     if (!row) continue;
@@ -1068,7 +1069,7 @@ function toggleCityBoundaryMask() {
   setCityBoundaryMask(!_cityBoundaryOn);
 }
 
-function addCityBoundaryMaskPath() {
+function addCityBoundaryMaskPath(renderer) {
   if (!_cityBoundaryOn || !_cityBoundaryData) return;
   const outers = [];
   const holes = [];
@@ -1077,8 +1078,8 @@ function addCityBoundaryMaskPath() {
     outers.push(geoRingToPx(poly[0]));
     for (const inner of poly.slice(1)) if (inner.length >= 3) holes.push(geoRingToPx(inner));
   }
-  if (outers.length) addYesPathMulti(outers);
-  for (const hole of holes) addNoPath(hole);
+  if (outers.length) (renderer ? renderer.addYesPathMulti : addYesPathMulti)(outers);
+  for (const hole of holes) (renderer ? renderer.addNoPath : addNoPath)(hole);
 }
 
 function rectToPx(rect) {
@@ -1339,24 +1340,25 @@ function clearQuestionOverlay(){  scheduleRebuild(); }
 function rebuildMasterPath(){ scheduleRebuild(); }
 
 // ── Main rebuild function ─────────────────────────────────────
-function rebuildAll(){
-  if(!map || !_overlaySvg) return;
-  _overlaySvg.innerHTML = ''; // clear and rebuild
-  _maskCounter = 0;
-  const pad = overlayPad();
+function rebuildAll(renderer){
+  if(!map || (!renderer && !_overlaySvg)) return;
+  if (!renderer) { _overlaySvg.innerHTML = ''; _maskCounter = 0; }
+  const paint = renderer || {addYesPath,addNoPath,addYesPathMulti,addMaskedWorldPath};
+  const pad = renderer?.pad || overlayPad();
 
   const allData = getAllMatchingData();
 
-  addCityBoundaryMaskPath();
+  if (!renderer?.skipCityBoundary) addCityBoundaryMaskPath(renderer);
 
-  for(const q of questions){
+  for(const q of (renderer?.questions || questions)){
+    renderer?.question?.(q);
 
     // ── Radar ─────────────────────────────────────────────────
     if(q.type === 'radar'){
       const r = getRadiusMeters(q); if(!r) continue;
       const pts = circlePxPts(q.lat, q.lng, r);
-      if(q.zone === 'inside')        addYesPath(pts);   // blue outside circle
-      else if(q.zone === 'outside')  addNoPath(pts);    // blue inside circle
+      if(q.zone === 'inside')        paint.addYesPath(pts);   // blue outside circle
+      else if(q.zone === 'outside')  paint.addNoPath(pts);    // blue inside circle
     }
 
     // ── Thermometer ───────────────────────────────────────────
@@ -1375,23 +1377,23 @@ function rebuildAll(){
       const c3x=c2x+nx*exdir*pad*2, c3y=c2y+ny*exdir*pad*2;
       const c4x=c1x+nx*exdir*pad*2, c4y=c1y+ny*exdir*pad*2;
       const excludedQuad = [[c1x,c1y],[c2x,c2y],[c3x,c3y],[c4x,c4y]];
-      addNoPath(excludedQuad); // blue in the excluded half-plane
+      paint.addNoPath(excludedQuad); // blue in the excluded half-plane
     }
 
     // ── Angle question ─────────────────────────────────────────
     else if(q.type === 'angle'){
       if(q.zone !== 'inside' && q.zone !== 'outside') continue;
-      const sectors = angleSectorPxPointSets(q);
+      const sectors = angleSectorPxPointSets(q, renderer?.pad);
       if (!sectors.length) continue;
       if(q.mode === 'excludeRadius'){
         if(q.zone === 'inside'){
-          addYesPathMulti(sectors);
+          paint.addYesPathMulti(sectors);
         } else {
-          sectors.forEach(outer => addNoPath(outer));
+          sectors.forEach(outer => paint.addNoPath(outer));
         }
       } else {
-        if(q.zone === 'inside') addYesPathMulti(sectors);
-        else                   sectors.forEach(outer => addNoPath(outer));
+        if(q.zone === 'inside') paint.addYesPathMulti(sectors);
+        else                   sectors.forEach(outer => paint.addNoPath(outer));
       }
     }
 
@@ -1415,8 +1417,8 @@ function rebuildAll(){
           if(!cell.length) break;
         }
         if(cell.length < 3) continue;
-        if(q.answer === 'yes') addYesPath(cell);  // blue outside cell
-        else                   addNoPath(cell);   // blue inside cell
+        if(q.answer === 'yes') paint.addYesPath(cell);  // blue outside cell
+        else                   paint.addNoPath(cell);   // blue inside cell
       }
 
       else if(type0 === 'polygon'){
@@ -1428,18 +1430,18 @@ function rebuildAll(){
             for (const loc of locs) {
               const outer = geoRingToPx(loc.rings[0]);
               const inners = loc.rings.slice(1).map(r => geoRingToPx(r));
-              addNoPath(outer, inners);
+              paint.addNoPath(outer, inners);
             }
           } else {
             // Seeker is outside all areas, Hider is inside SOME area.
             // Valid area = inside ANY polygon. Blue = outside all polygons.
             const outers = locs.map(loc => geoRingToPx(loc.rings[0]));
-            addYesPathMulti(outers); // Fills world, punches out all polygons
+            paint.addYesPathMulti(outers); // Fills world, punches out all polygons
 
             // Inner rings (holes in the polygon) are not "inside", so paint them blue
             for (const loc of locs) {
               for (let i = 1; i < loc.rings.length; i++) {
-                addNoPath(geoRingToPx(loc.rings[i]));
+                paint.addNoPath(geoRingToPx(loc.rings[i]));
               }
             }
           }
@@ -1449,11 +1451,11 @@ function rebuildAll(){
           const outer = geoRingToPx(loc.rings[0]);
           const inners = loc.rings.slice(1).map(r => geoRingToPx(r));
           if(q.answer === 'yes'){
-            addYesPath(outer); // blue outside polygon
+            paint.addYesPath(outer); // blue outside polygon
             // Inner rings = holes in polygon = NOT valid area for hider → blue
-            for(const inner of inners) addNoPath(inner);
+            for(const inner of inners) paint.addNoPath(inner);
           } else {
-            addNoPath(outer, inners); // blue inside polygon with inner-ring holes
+            paint.addNoPath(outer, inners); // blue inside polygon with inner-ring holes
           }
         }
       }
@@ -1463,15 +1465,15 @@ function rebuildAll(){
         const loc = locs.find(x => x.id === q.nearestId); if(!loc) continue;
         if(!loc.voronoiCell || loc.voronoiCell.length < 3) continue;
         const cell = geoRingToPx(loc.voronoiCell);
-        if(q.answer === 'yes') addYesPath(cell);
-        else                   addNoPath(cell);
+        if(q.answer === 'yes') paint.addYesPath(cell);
+        else                   paint.addNoPath(cell);
       }
 
       else if(type0 === 'raster-voronoi'){
         const loc = locs.find(x => x.id === q.nearestId); if(!loc || !loc.rects) continue;
         const cells = loc.rects.map(rectToPx);
-        if(q.answer === 'yes') addYesPathMulti(cells);
-        else                   cells.forEach(cell => addNoPath(cell));
+        if(q.answer === 'yes') paint.addYesPathMulti(cells);
+        else                   cells.forEach(cell => paint.addNoPath(cell));
       }
     }
 
@@ -1484,11 +1486,11 @@ function rebuildAll(){
       for(const loc of locs){
         const pts = circlePxPts(loc.lat, loc.lng, q.seekerDist);
         if(q.answer === 'closer') closerCirclesPts.push(pts);
-        else                      addNoPath(pts);
+        else                      paint.addNoPath(pts);
       }
       // Each answer is its own constraint. Combining circles from different
       // questions would incorrectly accept the union instead of intersection.
-      if(q.answer === 'closer') addMaskedWorldPath(closerCirclesPts);
+      if(q.answer === 'closer') paint.addMaskedWorldPath(closerCirclesPts);
     }
   }
 
@@ -1587,6 +1589,7 @@ function removeQuestion(id) {
   const q=questions.find(x=>String(x.id)===String(id));
   if (!q) return;
   if (q.locked && !q.hiderMode) { showToast('Unlock this question before removing it'); return; }
+  if (!confirm(`Delete ${q.type === 'thermo' ? 'thermometer' : q.type} question #${q.id}? This cannot be undone.`)) return;
   questionMarkers(q).forEach(marker => map.removeLayer(marker));
   if (q.type === 'angle') clearAngleQuestionLayers(q);
   if (outlineCircles[q.id]) { map.removeLayer(outlineCircles[q.id]); delete outlineCircles[q.id]; }
@@ -2790,10 +2793,10 @@ function angleSectorPxPoints(q) {
   return angleSectorPxPointsFromTheta(q, Math.atan2(dy, dx));
 }
 
-function angleSectorPxPointsFromTheta(q, theta) {
+function angleSectorPxPointsFromTheta(q, theta, radiusOverride) {
   const center = map.latLngToLayerPoint(L.latLng(q.center.lat, q.center.lng));
   const width = q.angle * Math.PI / 180;
-  const r = getAngleDrawRadiusPx(q);
+  const r = radiusOverride || getAngleDrawRadiusPx(q);
   const innerR = q.mode === 'excludeRadius' ? getAngleExcludeRadiusPx(q) : 0;
   const steps = 40;
   if (innerR > 0) {
@@ -2816,18 +2819,18 @@ function angleSectorPxPointsFromTheta(q, theta) {
   return pts;
 }
 
-function angleSectorPxPointSets(q) {
+function angleSectorPxPointSets(q, radiusOverride) {
   const center = map.latLngToLayerPoint(L.latLng(q.center.lat, q.center.lng));
   const dir = map.latLngToLayerPoint(L.latLng(q.direction.lat, q.direction.lng));
   const baseTheta = Math.atan2(dir.y - center.y, dir.x - center.x);
   if (q.mode === 'bidirectional') {
-    return [baseTheta, baseTheta + Math.PI].map(theta => angleSectorPxPointsFromTheta(q, theta));
+    return [baseTheta, baseTheta + Math.PI].map(theta => angleSectorPxPointsFromTheta(q, theta, radiusOverride));
   }
   if (q.mode === 'triple') {
     if (q.angle > 90) return [];
-    return [0, 1, 2].map(i => angleSectorPxPointsFromTheta(q, baseTheta + i * 2 * Math.PI / 3));
+    return [0, 1, 2].map(i => angleSectorPxPointsFromTheta(q, baseTheta + i * 2 * Math.PI / 3, radiusOverride));
   }
-  return [angleSectorPxPointsFromTheta(q, baseTheta)];
+  return [angleSectorPxPointsFromTheta(q, baseTheta, radiusOverride)];
 }
 
 function angleCirclePx(q) {
@@ -3052,7 +3055,7 @@ function renderAngleCard(q) {
       <div>
         <input type="number" min="1" max="180" value="${q.angle}" style="width:86px;padding:7px 9px;border:1px solid rgba(154,77,255,0.35);border-radius:10px;background:#fff;color:#5d2387;font-weight:700;" onchange="setAngleQuestionAngle('${q.id}', this.value)">
       </div>
-      <div style="margin-top:10px">Mode: ${modes}</div>
+      <div class="aq-mode-options" role="group" aria-label="Angle mode">${modes}</div>
       ${exR}
       <div class="coord-disp"><strong>Center</strong><br>${q.center.lat.toFixed(5)}, ${q.center.lng.toFixed(5)}</div>
       <div class="coord-disp"><strong>Direction</strong><br>${q.direction.lat.toFixed(5)}, ${q.direction.lng.toFixed(5)}</div>

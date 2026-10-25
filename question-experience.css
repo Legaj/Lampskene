@@ -46,7 +46,9 @@
 .qe-card .unit-toggle{display:flex;flex:none}
 .qe-card .unit-btn{min-width:44px;min-height:44px;font-family:inherit;font-size:12px;letter-spacing:0}
 .qe-card .unit-btn.active{color:var(--surface);background:var(--accent)}
-.qe-angle-modes{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px;font-size:0;margin-top:0!important}
+.qe-angle-modes{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px;font-size:0;margin-top:0!important}
+body:not(.qe-show-coordinates) .qe-coordinates{display:none}
+.qe-card .qe-angle-modes .aq-mode{font-size:11px;padding:8px 3px;overflow-wrap:anywhere}
 .qe-card .aq-mode{min-height:44px;padding:8px;margin:0;font-family:inherit;font-size:12px;white-space:normal;border:1px solid var(--border2);border-radius:8px;background:var(--surface2)!important;color:var(--text)!important}
 .qe-card .aq-mode.selected{border-color:var(--accent);box-shadow:inset 0 0 0 1px var(--accent)}
 .qe-adjustment-fields{display:flex;flex-direction:column;gap:8px;min-width:0}

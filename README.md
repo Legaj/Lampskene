@@ -6,8 +6,12 @@ Open [the game](https://legaj.github.io/Lampskene/), sign in with Google, and st
 
 ## Map and seeker tools
 
-- Eighteen map backgrounds, including transit, terrain, outdoor, minimal, and aerial styles. Background changes preserve question layers and independent overlay choices. Rapid game-area changes discard outdated boundary requests.
+- Nineteen map backgrounds, including transit, terrain, outdoor, minimal, and aerial styles. Clear streets, Minimal and Night streets use keyless Esri tiles. Stockholm aerial HD uses the city's 2022 orthophoto service; its source survey has 8 cm resolution. Background changes preserve question layers and independent overlay choices.
 - Compact question cards keep answers, Copy, and Map within reach. Tap a card heading to edit its geometry. Matching and measuring questions include searchable places.
+- Locked pins hide immediately, including preview copies and their 3D markers. Coordinates are off by default; enable them in Settings → Game & questions. Delete asks for confirmation. Radar pins use explicit Lock/Unlock without a 60-second button.
+- The 3D explorer shares map backgrounds, the coloured SL rail network, local-detail results, and real elevation contours with 2D. Answer areas become blue solids and question boundaries become translucent walls. Pins remain editable in 2D. Use the angle slider up to 85° for a lower view.
+- On desktop, choose Pedestrian, Car or Boat in 3D. W/S or arrow keys move, A/D turn, Q/E move sideways, Shift increases speed, and Escape returns to orbit. These are free camera modes without road or building collision simulation. Live buses, trains and boats use simplified multipart models at close zoom.
+- Tools → Local details lets you choose a 200–1200 m circle in 2D and search selected OSM categories. Results are shared with 3D and can be cleared. Requests use bounded queries, caching, timeouts and backup Overpass servers. Height contours use a terrain model with 5 m spacing and bold lines every 25 m; spacing does not imply survey accuracy.
 - SL has stable Routes, Live, and Departures tabs. Route overlays and live marker sizes live here; Settings contains map, game, appearance, GPS, and planning controls.
 - Eight interface themes: Bamboo, Kelp, Dark, Light, Sepia, Ocean, Dusk, and Graphite. Choose one directly in Settings → Appearance. Question shading and game-area shading have separate controls.
 - Bundled place overlays, answer filtering, a saved-place shortlist, and anchored walking rings. Rings use straight-line distance at 80 m/min; actual paths and journey times vary.

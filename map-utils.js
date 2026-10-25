@@ -68,6 +68,12 @@
     if(!clauses.length)throw Error('Choose at least one detail layer');
     return `[out:json][timeout:20][maxsize:16777216];(${clauses.join('')});out center tags geom 1000;`;
   }
+  function overpassCircleQuery(center,radius,keys){
+    if(!validPoint(center)||!Number.isFinite(radius)||radius<100||radius>1200)throw Error('Choose a search circle between 100 and 1200 metres');
+    const clauses=DETAILS.filter(d=>keys.includes(d.key)).map(d=>`nwr${d.query}(around:${Math.round(radius)},${center.lat.toFixed(6)},${center.lng.toFixed(6)});`);
+    if(!clauses.length)throw Error('Choose at least one detail layer');
+    return `[out:json][timeout:12][maxsize:16777216];(${clauses.join('')});out center tags geom 1000;`;
+  }
   function normalizeDetails(data,keys) {
     if(!Array.isArray(data?.elements))throw Error('The map service returned an unreadable response');
     const features=[],seen=new Set();
@@ -87,7 +93,7 @@
     }
     return {type:'FeatureCollection',features,truncated:data.elements.length>=1000,updated:data.osm3s?.timestamp_osm_base||null};
   }
-  const api={validPoint,replaceBaseLayer,distance,bearing,destination,vehicleFootprint,DETAILS,overpassQuery,normalizeDetails};
+  const api={validPoint,replaceBaseLayer,distance,bearing,destination,vehicleFootprint,DETAILS,overpassQuery,overpassCircleQuery,normalizeDetails};
   if(typeof module==='object'&&module.exports)module.exports=api;
   root.lampskeneGeo=api;
 })(typeof window==='object'?window:globalThis);

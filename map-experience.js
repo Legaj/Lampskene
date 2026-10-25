@@ -4,12 +4,13 @@
   const PREF_KEY = 'lampskene_map_workspace_v1';
   const MAPS = [
     { key:'osm', name:'Street', detail:'OpenStreetMap · everyday navigation', look:'street', id:'btn-osm' },
-    { key:'voyager', name:'Clear streets', detail:'CARTO · streets and local names', look:'street' },
-    { key:'positron', name:'Minimal', detail:'CARTO · quiet light background', look:'canvas' },
-    { key:'darkmatter', name:'Night streets', detail:'CARTO · low-light navigation', look:'night' },
+    { key:'voyager', name:'Clear streets', detail:'Esri · streets and local names', look:'street' },
+    { key:'positron', name:'Minimal', detail:'Esri · quiet light background', look:'canvas' },
+    { key:'darkmatter', name:'Night streets', detail:'Esri · dark canvas', look:'night' },
     { key:'opentopo', name:'Topographic', detail:'OpenTopoMap · contours and paths', look:'landscape' },
     { key:'orienteering', name:'Orienteering · OSM', detail:'Terrain and marked trails · not a competition map', look:'outdoors' },
     { key:'ortho2006', name:'Stockholm orthophoto', detail:'City aerial survey · historical, 2006', look:'satellite' },
+    { key:'ortho2022', name:'Stockholm aerial · HD', detail:'City orthophoto 2022 · 8 cm survey imagery', look:'satellite' },
     { key:'tf-transport', name:'Transit', detail:'Rail, bus and station context', look:'transit', id:'btn-base' },
     { key:'tf-transport-dark', name:'Transit dark', detail:'High contrast for night play', look:'night' },
     { key:'tf-cycle', name:'Cycle', detail:'Cycle routes and elevation', look:'cycle', id:'btn-cycle' },
@@ -105,7 +106,7 @@
         const selected=filter.value;
         gallery.querySelectorAll('[data-base]').forEach(node=>{
           const key=node.dataset.base;
-          const category=['satellite','ortho2006'].includes(key)?'aerial':['opentopo','orienteering','tf-outdoors','tf-landscape','tf-cycle'].includes(key)?'terrain':'street';
+          const category=['satellite','ortho2006','ortho2022'].includes(key)?'aerial':['opentopo','orienteering','tf-outdoors','tf-landscape','tf-cycle'].includes(key)?'terrain':'street';
           node.hidden=selected!=='all' && (selected==='popular'?!['osm','voyager','orienteering','satellite','ortho2006','darkmatter'].includes(key):selected!==category);
         });
       };
@@ -201,10 +202,11 @@
       maxZoom:20, maxNativeZoom:19, updateWhenIdle:true, updateWhenZooming:false,
       attribution:'Imagery &copy; <a href="https://www.esri.com/">Esri</a>, Maxar, Earthstar Geographics, and the GIS User Community'
     });
-    for(const [key,style] of [['voyager','rastertiles/voyager'],['positron','light_all'],['darkmatter','dark_all']]) {
-      layers[key]=L.tileLayer('https://{s}.basemaps.cartocdn.com/'+style+'/{z}/{x}/{y}.png',{
-        maxZoom:20,maxNativeZoom:20,updateWhenIdle:true,updateWhenZooming:false,
-        attribution:'&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/attributions">CARTO</a>'
+    // CARTO now serves an API-key warning image with HTTP 200. Use keyless tiles.
+    for(const [key,style,maxNativeZoom] of [['voyager','World_Street_Map',18],['positron','Canvas/World_Light_Gray_Base',16],['darkmatter','Canvas/World_Dark_Gray_Base',16]]) {
+      layers[key]=L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/'+style+'/MapServer/tile/{z}/{y}/{x}',{
+        maxZoom:22,maxNativeZoom,updateWhenIdle:true,updateWhenZooming:false,
+        attribution:'Tiles &copy; Esri, HERE, Garmin, OpenStreetMap contributors'
       });
     }
     for(const key of ['opentopo','orienteering']) layers[key]=L.tileLayer('https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png',{
@@ -215,6 +217,11 @@
       layers:'p_1002830',format:'image/png',version:'1.1.1',maxZoom:20,maxNativeZoom:19,
       updateWhenIdle:true,updateWhenZooming:false,
       attribution:'Historical orthophoto 2006 &copy; <a href="https://kartor.stockholm/kartor-geodata/">Stockholms stad</a>'
+    });
+    layers.ortho2022=L.tileLayer.wms('https://openmap.stockholm.se/bios/wms/app/baggis/web/WMS_STHLM_ORTOFOTO_2022',{
+      layers:'p_1003220',format:'image/jpeg',version:'1.1.1',maxZoom:22,maxNativeZoom:21,tileSize:512,zoomOffset:-1,
+      updateWhenIdle:true,updateWhenZooming:false,
+      attribution:'Orthophoto 2022 &copy; <a href="https://kartor.stockholm/kartor-geodata/">Stockholms stad</a>'
     });
     for (const item of MAPS) {
       tileHealth[item.key] = {ok:0,errors:0};
@@ -372,6 +379,15 @@
   }
   const rebuild = window.rebuildAll;
   window.rebuildAll = function (...args) { const result=rebuild.apply(this,args); clearTimeout(refreshTimer); refreshTimer=setTimeout(()=>{if(prefs.places)refreshPlaces();if(window.appShell?.activePanel==='settings')renderPlaces();},180); return result; };
-  window.lampskeneMap = {addBookmark,previewPlace,fitQuestions,openSettings,styles:MAPS.map(({key,name})=>({key,name}))};
+  function rasterStyle(key){
+    const layer=layers[key];if(!layer)return null;
+    let url=layer._url.replace('{s}','a').replace('{r}','');
+    if(layer.wmsParams){
+      const params=new URLSearchParams({...layer.wmsParams,service:'WMS',request:'GetMap',srs:'EPSG:3857',width:512,height:512});
+      url+=(url.includes('?')?'&':'?')+params.toString()+'&bbox={bbox-epsg-3857}';
+    }
+    return {type:'raster',tiles:[url],tileSize:layer.wmsParams?512:256,maxzoom:layer.options.maxNativeZoom||19,attribution:layer.options.attribution||''};
+  }
+  window.lampskeneMap = {addBookmark,previewPlace,fitQuestions,openSettings,rasterStyle,styles:MAPS.map(({key,name})=>({key,name}))};
   document.addEventListener('jetlag:referencechange',renderLegend);
 })();
