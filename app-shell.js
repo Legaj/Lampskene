@@ -3,7 +3,7 @@
   'use strict';
   if (window.appShell) return;
 
-  const panels = { questions: 'sidebar', transit: 'sl-panel', curses: 'curse-panel', settings: 'settings-panel' };
+  const panels = { checklist:'question-checklist', questions: 'sidebar', transit: 'sl-panel', curses: 'curse-panel', settings: 'settings-panel' };
   const buttonTargets = {
     'menu-btn': 'questions', 'mnav-questions-btn': 'questions', 'sl-btn': 'transit',
     'mnav-sl-btn': 'transit', 'curse-btn': 'curses', 'mnav-curses-btn': 'curses',
@@ -11,6 +11,7 @@
   };
   const paths = {
     map: '<path d="m3 6 6-3 6 3 6-3v15l-6 3-6-3-6 3V6Z"/><path d="M9 3v15m6-12v15"/>',
+    checklist: '<rect x="4" y="3" width="16" height="18" rx="3"/><path d="m7 9 1 1 2-2m-3 7 1 1 2-2m3-4h4m-4 5h4"/>',
     questions: '<rect x="4" y="3" width="16" height="18" rx="3"/><path d="M8 8h8m-8 4h8m-8 4h4"/>',
     transit: '<rect x="5" y="3" width="14" height="15" rx="4"/><path d="M5 10h14M8 21l2-3m6 3-2-3M9 14h.01M15 14h.01"/>',
     curses: '<path d="m12 2 2.5 6.5L21 11l-6.5 2.5L12 20l-2.5-6.5L3 11l6.5-2.5L12 2Z"/><path d="m20 18 1 3m-2-1h3"/>',
@@ -208,12 +209,12 @@
     document.body.append(nav);
     nav.setAttribute('aria-label', 'Game navigation');
     nav.setAttribute('role', 'navigation');
-    if (!byId('mnav-map-btn')) {
-      const mapButton = document.createElement('button'); mapButton.id = 'mnav-map-btn'; mapButton.className = 'mnav-btn'; nav.prepend(mapButton);
+    if (!byId('mnav-checklist-btn')) {
+      const mapButton = document.createElement('button'); mapButton.id = 'mnav-checklist-btn'; mapButton.className = 'mnav-btn'; nav.prepend(mapButton);
     }
-    buttonTargets['mnav-map-btn'] = 'map';
-    ['mnav-map-btn', 'mnav-questions-btn', 'mnav-sl-btn', 'mnav-curses-btn', 'mnav-settings-btn'].forEach(id => { const button = byId(id); if (button) nav.append(button); });
-    const labels = { questions: 'Questions', transit: 'SL', curses: 'Curses', settings: 'Settings', map: 'Map', menu: 'Menu' };
+    buttonTargets['mnav-checklist-btn'] = 'checklist';
+    ['mnav-checklist-btn', 'mnav-questions-btn', 'mnav-sl-btn', 'mnav-curses-btn', 'mnav-settings-btn'].forEach(id => { const button = byId(id); if (button) nav.append(button); });
+    const labels = { checklist:'Checklist', questions: 'Questions', transit: 'SL', curses: 'Curses', settings: 'Settings', map: 'Map', menu: 'Menu' };
     for (const [id, target] of Object.entries(buttonTargets)) {
       const button = byId(id);
       if (!button) continue;
@@ -236,7 +237,7 @@
   }
 
   function setupPanelHeaders() {
-    const descriptions = { questions: 'Clues, answers and search zones', transit: 'Routes, stops and live vehicles', curses: 'Effects, rules and your deck', settings: 'Map layers and game preferences' };
+    const descriptions = { checklist:'Played questions and repeat costs', questions: 'Clues, answers and search zones', transit: 'Routes, stops and live vehicles', curses: 'Effects, rules and your deck', settings: 'Map layers and game preferences' };
     for (const [name, id] of Object.entries(panels)) {
       const panel = byId(id);
       if (!panel) continue;
@@ -330,6 +331,7 @@
       drawer.addEventListener('toggle', () => filters.setAttribute('aria-expanded', String(drawer.open)));
       const count = byId('question-count'); if (count) { count.classList.add('shell-question-count'); heading.querySelector('.shell-panel-heading')?.append(count); }
       byId('question-search')?.setAttribute('aria-label', 'Search your questions');
+      if(count){count.classList.add('usage-count-link');count.setAttribute('role','button');count.tabIndex=0;count.title='Open question tracker';count.addEventListener('click',()=>open('checklist'));count.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();open('checklist');}});}
     }
     const seeker = byId('seeker-footer');
     if (seeker) {

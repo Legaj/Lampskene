@@ -920,6 +920,7 @@
   <link rel="stylesheet" href="advanced-map.css?v=4" />
   <link rel="stylesheet" href="map-3d.css?v=10" />
   <link rel="stylesheet" href="question-experience.css?v=5" />
+  <link rel="stylesheet" href="question-usage.css?v=11" />
   <link rel="stylesheet" href="tracker-experience.css?v=1" />
   <link rel="stylesheet" href="departure-board.css?v=1" />
   <link rel="stylesheet" href="app-shell.css?v=10" />
@@ -3597,8 +3598,10 @@ let _restoringState = false;
 function saveState(saveDraft = true) {
   if (!mode || _restoringState) return;
   if (map && typeof activeRoundId !== 'undefined' && activeRoundId && _sessionRoundId !== activeRoundId) return;
+  window.lampskeneQuestionUsage?.captureLocked();
   try {
     const state = {
+      questionUsage:window.lampskeneQuestionUsage?.getState()||null,
       mode, qCounter,
       roundId: typeof activeRoundId !== 'undefined' ? activeRoundId : null,
       hiderPin: hiderPin ? [hiderPin.getLatLng().lat, hiderPin.getLatLng().lng] : null,
@@ -3651,6 +3654,7 @@ function loadSavedState() {
 
 function restoreState(state) {
   if (!state) return;
+  window.lampskeneQuestionUsage?.restore(state.questionUsage);
   const restoreRound = typeof activeRoundId !== 'undefined' ? activeRoundId : null, restoreRole = mode, restoreMap = map;
   const restoreIsCurrent = () => mode === restoreRole && map === restoreMap && (typeof activeRoundId === 'undefined' || activeRoundId === restoreRound);
   const restoreFrame = callback => requestAnimationFrame(() => { if (restoreIsCurrent()) callback(); });
@@ -4402,6 +4406,7 @@ async function saveActiveRoundDraft() {
       qCounter,
       mode,
       questions:(questions || []).map(sanitizeQuestionForFirebase),
+      questionUsage:window.lampskeneQuestionUsage?.getState()||null,
       updatedAt:Date.now()
     });
     await update(ref(firebaseDb, `rounds/${roundAtStart}`), { updatedAt:Date.now() });
@@ -4422,11 +4427,13 @@ async function loadActiveRoundDraft() {
     if (activeRoundId !== roundAtStart || _sessionRoundId !== roundAtStart || mode !== roleAtStart || map !== mapAtStart || questions.length) return false;
     if (!snap.exists()) return false;
     const draft = snap.val();
-    if (!draft || !Array.isArray(draft.questions) || !draft.questions.length) return false;
-    if (draft.mode && draft.mode !== mode) return false;
+    if (!draft || (draft.mode && draft.mode !== mode)) return false;
+    window.lampskeneQuestionUsage?.restore(draft.questionUsage);
+    if (!Array.isArray(draft.questions) || !draft.questions.length) return false;
     restoreState({
       mode:mode,
       qCounter:Number(draft.qCounter || 0),
+      questionUsage:draft.questionUsage||null,
       questions:draft.questions,
       mapZoom:map ? map.getZoom() : 12
     });
@@ -5000,11 +5007,14 @@ function timelineFitPath() {
 <script src="explorer-mesh.js?v=10"></script>
 <script src="map-3d.js?v=10"></script>
 <script src="map-sandbox.js?v=8"></script>
-<script src="question-experience.js?v=5"></script>
+<script src="question-experience.js?v=11"></script>
 <script src="tracker-experience.js?v=2"></script>
 <script src="departure-board.js?v=2"></script>
 <script src="transport-reach.js?v=7"></script>
-<script src="app-shell.js?v=10"></script>
+<script src="question-rules.js?v=11"></script>
+<script src="question-usage.js?v=11"></script>
+<script src="question-usage-ui.js?v=11"></script>
+<script src="app-shell.js?v=11"></script>
 <script src="position-experience.js?v=3"></script>
 <script src="field-lab.js?v=3"></script>
 <script src="transit-workspace.js?v=4"></script>

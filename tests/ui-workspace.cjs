@@ -70,10 +70,13 @@ const server = http.createServer((req, res) => {
       assert.equal(await page.evaluate(() => document.body.dataset.theme),theme);
       await checkLayout('theme-'+theme);
     }
-    await page.locator('#mnav-map-btn').click();
+    await page.locator('#mnav-checklist-btn').click();
+    assert.equal(await page.evaluate(()=>appShell.activePanel),'checklist');
+    await page.locator('#mnav-checklist-btn').click();
     await checkLayout('phone-map');
     assert.equal(await page.evaluate(() => appShell.activePanel),null);
-    assert.equal(await page.locator('#mnav-map-btn').getAttribute('aria-current'),'page');
+    assert.equal(await page.locator('#mnav-map-btn').count(),0);
+    assert.equal(await page.locator('#mnav-checklist-btn').getAttribute('aria-expanded'),'false');
     assert.equal(await page.locator('#shell-help-btn').count(),0);
     await page.evaluate(() => { applyTheme('sepia'); switchMode('hider', true); });
     await page.waitForFunction(() => mode === 'hider');

@@ -459,6 +459,7 @@
     }
     if(questions.length)document.querySelectorAll('.qe-empty').forEach(el=>el.remove());
     if(typeof _updateQuestionTools==='function')_updateQuestionTools();
+    window.lampskeneQuestionUsageUI?.sync();
   }
   const schedule=()=>{if(!frame)frame=requestAnimationFrame(sync);};
   const hooks=['addQuestion','addMatchingQuestion','addMeasuringQuestion','addAngleQuestion','setZone','setCloser','setMatchingAnswer','setMeasuringAnswer','setAngleZone','onRadiusChange','setUnit','toggleSeekerLock','toggleThermoLock','toggleThermoBorder','toggleMatchingVoronoi','toggleMatchingLock','toggleMeasuringLock','toggleAngleLock','toggleHiderLock','toggleEndgameLock','setMoveLockEnabled','openMoveWindow','applyQuestionMoveLocks','setMatchingSubcat','setMeasuringSubcat','setAngleQuestionAngle','setAngleQuestionMode','setAngleExcludeRadius','applyPinMove','recordPinMove','placeSeekerPin','placeThermoPin','placeSeekerMatchingPin','placeSeekerMeasuringPin','angleQuestionSetupMap','placeHiderPin','placeEndgamePin','checkAllHiderRadars','checkHiderRadar','checkHiderThermo','checkHiderMatching','checkHiderMeasuring','checkHiderAngle','decodeAndAdd','seekerDecodeAndAdd','removeQuestion','removeAngleQuestion','restoreState','switchMode','chooseMode','updateMatchingNearest','updateMeasuringNearest','_startEndgame','_endgameExitLocal'];
