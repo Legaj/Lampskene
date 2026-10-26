@@ -369,6 +369,21 @@
       if (!willOpen) return;
       const result = togglePicker.apply(this, args); questionAction = 'add'; return result;
     };
+    for (const [role,footer] of [['seeker',seeker],['hider',hider]]) if(footer){
+      const paste=document.createElement('button');paste.type='button';paste.className='shell-question-import-button';paste.textContent='Quick paste';paste.dataset.clipboardPaste=role;paste.dataset.questionImport=role;paste.setAttribute('aria-controls','shell-'+role+'-import');paste.setAttribute('aria-expanded','false');
+      paste.addEventListener('click',async()=>{
+        closeQuestionActions();showQuestionImport(role,paste);
+        const field=byId(role+'-code-field');
+        try{
+          if(!navigator.clipboard?.readText)throw Error('Clipboard unavailable');
+          const text=(await navigator.clipboard.readText()).trim();
+          if(typeof mode!=='undefined'&&mode!==role)return;
+          if(!text){showToast('Clipboard is empty. You can paste or type a code below.');return;}
+          field.value=text;field.dispatchEvent(new Event('input',{bubbles:true}));
+          const decode=window[role==='hider'?'decodeAndAdd':'seekerDecodeAndAdd'];if(typeof decode==='function')decode();
+        }catch(_){showToast('Touch and hold the code field to paste, or type a code.');field?.focus({preventScroll:true});}
+      });footer.append(paste);
+    }
     for (const footer of [seeker, hider]) if (footer) {
       const toolbar = document.createElement('div'); toolbar.className = 'shell-question-toolbar';
       footer.querySelectorAll(':scope > button').forEach(button => toolbar.append(button)); footer.append(toolbar);

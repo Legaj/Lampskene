@@ -1,6 +1,6 @@
 # Detailed building sources
 
-Checked 25 October 2026. The published app retains its keyless OpenFreeMap buildings and original low-poly landmarks; no Firebase settings or paid services were added.
+Checked 26 October 2026. The published app retains its keyless OpenFreeMap buildings and original low-poly landmarks; no Firebase settings or paid services were added.
 
 ## Downloadable individual models
 
@@ -21,3 +21,12 @@ For future imports, prefer a small, optimised glTF/GLB model of a specific landm
 ## Current accuracy limits
 
 The Norra Real and Vanadis corner models are artistic interpretations over attributed OSM footprints. Elevation contours use a finer ground-elevation model at 5 m intervals, with bolder lines every 25 m. They are estimates, not surveyed height measurements. Native building coverage and heights depend on the upstream map data.
+
+
+## Landmark collection in this release
+
+There are 26 custom building footprints: the original Norra Real buildings and Vanadis corner, plus 23 additions. The additions are City Hall (including the Three Crowns tower), the Royal Palace, Parliament House, the Royal Opera, Riddarhuset, Nordiska museet, Vasamuseet, Stockholm Public Library, Konserthuset, Avicii Arena, Kulturhuset, Norra Latin, both Kungstornen, Storkyrkan, Tyska kyrkan, Riddarholmskyrkan, Jakobs kyrka, Klara kyrka, Sankt Johannes kyrka, Adolf Fredriks kyrka, Katarina kyrka and Sofia kyrka.
+
+Footprints and tower positions come from OpenStreetMap; colours, facade details and roof forms are original low-poly interpretations. Palace and City Hall courtyards remain open. The exact footprint cut-out preserves other buildings even when the tile provider groups an entire block into one feature. Cutting runs in a worker.
+
+City Hall's 106 m tower and Three Crowns are described by [the City of Stockholm](https://stadshuset.stockholm/en/visit-stockholm-city-hall/city-hall-tower/) and [Visit Stockholm](https://www.visitstockholm.com/o/the-city-hall/). The [Royal Court](https://www.kungahuset.se/english/royal-palaces-and-residences) and [Riksdag](https://www.riksdagen.se/en/contact-and-visit/the-art-and-buildings-of-the-riksdag/the-riksdag-buildings/) provide architectural background for the palace and Parliament House.

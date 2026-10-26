@@ -15,3 +15,13 @@ body.map3d-active #position-controls,body.map3d-active .qe-map-inspector,body.ma
 @media(max-width:600px){.map3d-explorer:has(#map3d-drive-options:not([hidden])) .map3d-options{bottom:172px}}
 .map3d-options #map3d-toggles{padding:0}.map3d-options{bottom:122px;max-height:calc(100% - 145px)}.map3d-options #map3d-enable-transit{grid-column:auto}.map3d-options #map3d-toggles button:last-child{grid-column:1/-1}.map3d-toolbar{bottom:67px}.map3d-status{max-width:700px}
 @media(pointer:coarse){#map3d-explore{display:none}}
+
+@media(max-width:768px),(pointer:coarse){
+  .map3d-status{display:none}
+  .map3d-toolbar{position:static;display:contents}
+  .map3d-toolbar #map3d-north{position:absolute;top:12px;left:122px;z-index:3;background:var(--surface)}
+  #map3d-explore,#map3d-drive-options{display:none!important}
+  .map3d-options{top:12px;bottom:auto;left:auto;right:50px;width:auto;max-height:calc(100% - 28px);z-index:4}
+  .map3d-options>summary{padding:12px;min-height:44px}
+  .map3d-options[open]{top:64px;left:14px;right:14px;width:auto;max-height:calc(100% - 82px)}
+}

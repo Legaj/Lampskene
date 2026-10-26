@@ -68,7 +68,16 @@
         gameArea={type:'FeatureCollection',features:outsideRegion.map(poly=>({type:'Feature',geometry:{type:'Polygon',coordinates:poly.map(r=>r.map(project))},properties:{height:2,color:'#2f8cff'}}))};
       }
     }
-    return {areas,walls:{type:'FeatureCollection',features:walls},gameArea};
+    // Merge the small boundary strips before drawing translucent walls. Drawing
+    // every strip separately produces dark seams where neighbouring caps overlap.
+    const wallGroups=new Map();
+    for(const wall of walls){const key=wall.properties.id+'/'+wall.properties.height;if(!wallGroups.has(key))wallGroups.set(key,[]);wallGroups.get(key).push(wall);}
+    const coherentWalls=[];
+    for(const group of wallGroups.values()){
+      try{const coordinates=pc.union(...group.map(w=>w.geometry.coordinates));if(coordinates.length)coherentWalls.push({type:'Feature',geometry:{type:'MultiPolygon',coordinates},properties:group[0].properties});}
+      catch(_){coherentWalls.push(...group);}
+    }
+    return {areas,walls:{type:'FeatureCollection',features:coherentWalls},gameArea};
   }
   window.lampskeneQuestionGeometry={build};
 })();

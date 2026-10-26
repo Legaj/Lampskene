@@ -21,7 +21,8 @@ test('3D radar exclusion preserves the allowed circle as a hole and the shared r
   const f=fixture(),sentinel={innerHTML:'Keep 2D mask'};f.ctx.sentinel=sentinel;vm.runInContext('_overlaySvg=sentinel',f.ctx);
   const result=f.build([{id:1,type:'radar',lat:59.34,lng:18.05,radius:'500',unit:'M',zone:'inside'}]);
   assert.equal(excluded(result,18.05,59.34),false);assert.equal(excluded(result,18.08,59.34),true);
-  assert.ok(result.walls.features.length>=40);assert.equal(sentinel.innerHTML,'Keep 2D mask');
+  assert.equal(result.walls.features.length,1,'the circle is one coherent translucent wall');
+  assert.equal(result.walls.features[0].geometry.type,'MultiPolygon');assert.ok(result.walls.features[0].properties.height>=75);assert.equal(sentinel.innerHTML,'Keep 2D mask');
 });
 test('3D thermometer has an excluded half-plane and a real vertical boundary',()=>{
   const result=fixture().build([{id:2,type:'thermo',latA:59.34,lngA:18.04,latB:59.34,lngB:18.06,closer:'A'}]);

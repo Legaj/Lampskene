@@ -9,6 +9,7 @@
     const features=[],labels=[],masks=[],replacementPoints=[];
     for(const building of collection.features||[]){
       const ring=building.geometry?.coordinates?.[0],p=building.properties;
+      if(p?.color)continue;
       if(!p||!Array.isArray(ring)||ring.length<4||!ring.every(([lng,lat])=>geo.validPoint({lat,lng})))continue;
       const points=ring.slice(0,-1),center={lat:points.reduce((a,v)=>a+v[1],0)/points.length,lng:points.reduce((a,v)=>a+v[0],0)/points.length};
       const padLat=2/111320,padLng=2/(111320*Math.cos(center.lat*Math.PI/180));
@@ -67,10 +68,11 @@
       box(door,hotel?153:154,5.5,3.4,3.9,4.35,cream);
       labels.push(feature({type:'Point',coordinates:[center.lng,center.lat]},{...common,label:hotel?'Vanadis · pastel corner':p.name}));
     }
-    return {footprints:collection,parts:{type:'FeatureCollection',features},labels:{type:'FeatureCollection',features:labels},masks:{type:'MultiPolygon',coordinates:masks},replacementPoints:{type:'MultiPoint',coordinates:replacementPoints}};
+    const extra=window.lampskeneCityLandmarks?.build(collection);if(extra){features.push(...extra.parts.features);labels.push(...extra.labels.features);}
+    return {footprints:{...collection,features:collection.features.filter(f=>!f.properties?.color||Boolean(window.lampskeneCityLandmarks))},parts:{type:'FeatureCollection',features},labels:{type:'FeatureCollection',features:labels},masks:{type:'MultiPolygon',coordinates:masks},replacementPoints:{type:'MultiPoint',coordinates:replacementPoints}};
   }
   function load(){
-    if(!pending)pending=fetch('landmark-footprints.geojson?v=6',{cache:'force-cache'}).then(r=>{if(!r.ok)throw Error('Landmark footprints unavailable');return r.json();}).then(build).catch(error=>{pending=null;throw error;});
+    if(!pending)pending=fetch(window.lampskeneCityLandmarks?'city-landmark-footprints.geojson?v=10':'landmark-footprints.geojson?v=6',{cache:'force-cache'}).then(r=>{if(!r.ok)throw Error('Landmark footprints unavailable');return r.json();}).then(build).catch(error=>{pending=null;throw error;});
     return pending;
   }
   window.lampskeneLandmarks={load,build};

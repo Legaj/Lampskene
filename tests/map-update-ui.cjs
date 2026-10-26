@@ -99,8 +99,16 @@ const server=http.createServer((req,res)=>{
     await page.evaluate(()=>{lampskene3D.setBackground('clean');lampskene3D.map.jumpTo({center:[18.0396,59.3451],zoom:18,pitch:55,bearing:0});lampskene3D.startExploring('car');});
     assert.ok(await page.evaluate(async()=>(await lampskene3D.map.getSource('field-explorer').getData()).features.length>=10),'third-person car has a visible model');
     await page.waitForTimeout(3500);console.log('Explorer camera:',await page.evaluate(()=>({zoom:lampskene3D.map.getZoom(),pitch:lampskene3D.map.getPitch(),rendered:lampskene3D.map.queryRenderedFeatures({layers:['field-explorer-body']}).length})));await page.screenshot({path:path.join(out,'third-person-car.png')});
+    assert.ok(await page.evaluate(()=>lampskene3D.explorer.mesh?.draws>0),'vehicle uses the GPU mesh');
+    const beforeLook=await page.evaluate(()=>lampskene3D.explorer);
+    await page.mouse.move(900,500);await page.mouse.down();await page.mouse.move(1040,560,{steps:5});await page.mouse.up();
+    const afterLook=await page.evaluate(()=>lampskene3D.explorer);
+    assert.deepEqual(afterLook.point,beforeLook.point,'looking does not move the vehicle');assert.equal(afterLook.bearing,beforeLook.bearing,'looking does not steer');assert.notEqual(afterLook.lookYaw,0);assert.notEqual(afterLook.lookPitch,0);
+    await page.locator('#map3d-canvas canvas').focus();await page.keyboard.press('r');assert.equal(await page.evaluate(()=>lampskene3D.explorer.lookYaw),0);
+    await page.evaluate(()=>{window.explorerUpdates=0;const source=lampskene3D.map.getSource('field-explorer'),set=source.setData.bind(source);source.setData=function(...args){window.explorerUpdates++;return set(...args);};});
     await page.selectOption('#map3d-car','sport');await page.selectOption('#map3d-speed','2');
-    await page.keyboard.down('w');await page.waitForTimeout(350);await page.keyboard.up('w');
+    await page.keyboard.down('w');await page.waitForTimeout(800);await page.keyboard.up('w');
+    assert.ok(await page.evaluate(()=>window.explorerUpdates<=1),'driving does not retile vehicle GeoJSON each frame');
     await page.evaluate(()=>lampskene3D.stopExploring(true));
     assert.equal(await page.evaluate(async()=>(await lampskene3D.map.getSource('field-explorer').getData()).features.length),0);
     await page.evaluate(()=>{lampskenePlayground.drop();});await page.waitForTimeout(1500);
@@ -109,7 +117,9 @@ const server=http.createServer((req,res)=>{
     await page.evaluate(()=>lampskenePlayground.clear());
     assert.equal(await page.evaluate(async()=>(await lampskene3D.map.getSource('field-playground').getData()).features.length),0);
 
-    await page.waitForFunction(async()=>{const source=lampskene3D.map.getSource('field-landmarks');return source&&(await source.getData()).features.length>0;});
+    await page.waitForFunction(()=>lampskene3D.map?.getSource('field-landmarks'));
+    await page.evaluate(async()=>{await lampskeneLandmarks.load();});
+    assert.equal(await page.evaluate(async()=>(await lampskene3D.map.getSource('field-landmark-labels').getData()).features.length),26,'all original and new landmark buildings load');
     const parts=await page.evaluate(async()=>(await lampskene3D.map.getSource('field-landmarks').getData()).features.length);assert.ok(parts>100);
     await page.waitForTimeout(450);
     await page.evaluate(()=>{document.querySelector('[data-map3d-toggle="questions"]').click();lampskene3D.setBackground('clean');lampskene3D.map.jumpTo({center:[18.0614,59.3439],zoom:17.8,pitch:58,bearing:240,elevation:0});});
@@ -133,7 +143,18 @@ const server=http.createServer((req,res)=>{
     await page.evaluate(()=>lampskene3D.open());await page.waitForFunction(()=>lampskene3D.map?.getSource('field-vehicles'),undefined,{timeout:45000});
     assert.equal(await page.locator('#map3d-style').inputValue(),'positron','3D remembers its own background');
     assert.ok(await page.evaluate(()=>lampskene3D.map.getStyle().layers.filter(l=>!l.id.startsWith('field-')&&l.type!=='fill-extrusion'&&l.type!=='background').every(l=>l.layout?.visibility==='none')),'raster maps never expose another labelled vector map below them');
-    await page.evaluate(()=>lampskene3D.close());assert.deepEqual(errors,[],'no browser errors');
+    for(const width of [320,390]){
+      await page.setViewportSize({width,height:844});
+      const controls=await page.evaluate(()=>{const rect=id=>{const r=document.getElementById(id).getBoundingClientRect();return{x:r.x,y:r.y,right:r.right,bottom:r.bottom};};const l=document.querySelector('.map3d-options').getBoundingClientRect();return{back:rect('map3d-back'),north:rect('map3d-north'),layers:{x:l.x,y:l.y},status:getComputedStyle(document.getElementById('map3d-status')).display};});
+      assert.ok(controls.north.x>=controls.back.right,'mobile North sits beside Back');assert.ok(controls.layers.x>=controls.north.right,'mobile Layers does not overlap North');assert.equal(controls.status,'none');
+      await page.locator('.map3d-options>summary').click();await page.screenshot({path:path.join(out,'mobile-3d-'+width+'.png')});await page.locator('.map3d-options>summary').click();
+    }
+    await page.evaluate(()=>{lampskene3D.close();switchMode('hider',true);Object.defineProperty(navigator,'clipboard',{configurable:true,value:{readText:async()=> 'RAD-59.34000-18.05000-750M'}});});
+    await page.waitForFunction(()=>mode==='hider');await page.evaluate(()=>appShell.open('questions'));
+    await page.locator('[data-clipboard-paste="hider"]').click();await page.waitForFunction(()=>questions.some(q=>q.hiderMode&&String(q.radius)==='750'));
+    await page.evaluate(()=>{navigator.clipboard.readText=async()=>{throw new Error('Permission denied');};appShell.open('questions');});
+    await page.locator('[data-clipboard-paste="hider"]').click();assert.equal(await page.locator('#hider-code-field').isVisible(),true,'clipboard denial keeps manual paste available');
+    assert.deepEqual(errors,[],'no browser errors');
     console.log('Map update browser checks passed. Screenshots:',out);
   }finally{await browser.close();server.close();}
 })().catch(error=>{console.error(error);server.close();process.exitCode=1;});

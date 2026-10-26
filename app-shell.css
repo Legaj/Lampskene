@@ -575,3 +575,5 @@ body.app-shell .leaflet-control-zoom a { background: var(--surface) !important; 
   .app-shell .shell-question-toolbar > button { min-height: 44px; }
   .app-shell .shell-nav-badge { right: calc(50% - 24px); top: 0; }
 }
+
+.shell-question-toolbar>button:last-child:nth-child(odd){grid-column:1/-1}
